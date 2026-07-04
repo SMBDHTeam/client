@@ -1,0 +1,37 @@
+#!/bin/sh
+
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$current_branch" != "main" ]; then
+  exit 0
+fi
+
+if ! git fetch origin main --quiet; then
+  echo ""
+  echo "origin/main의 최신 상태를 확인하지 못해 push를 중단함 이건 기본중에 기본임 정신차리자"
+  echo "네트워크와 원격 저장소 상태를 확인한 뒤 다시 시도하자"
+  echo ""
+  exit 1
+fi
+
+if git merge-base --is-ancestor origin/main HEAD; then
+  echo ""
+  echo "최신 main이 반영되어 있음. push를 진행함"
+  echo ""
+else
+  echo ""
+  echo "=================================================="
+  echo "최신 main이 반영되지 않아 push를 중단합니다."
+  echo ""
+  echo "진혁 또는 봉민이 먼저 push한 커밋이 있음"
+  echo "아래 명령으로 최신 main을 반영하셈"
+  echo ""
+  echo "  git pull --rebase origin main"
+  echo ""
+  echo "충돌이 나면 해결한 뒤 다시 push하셈ㅋㅋ 충돌 지옥!!"
+  echo "=================================================="
+  echo ""
+  exit 1
+fi
+
+exit 0
