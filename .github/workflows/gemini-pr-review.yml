@@ -6,7 +6,7 @@ on:
     branches:
       - main
       - dev
-    types: [opened, reopened]
+    types: [opened, synchronize,reopened]
 
 permissions:
   contents: read
