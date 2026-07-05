@@ -1,0 +1,48 @@
+name: Gemini PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  gemini-pr-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Gemini PR Review
+        uses: google-github-actions/run-gemini-cli@v0
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          prompt: |
+            너는 우리 팀 프로젝트의 코드 리뷰어야.
+            이 Pull Request의 변경사항을 한국어로 리뷰해줘.
+
+            아래 항목을 기준으로 중요한 문제만 짧게 리뷰해줘.
+
+            1. 버그 가능성
+            2. 빌드 실패 가능성
+            3. 보안 문제
+            4. 환경변수나 secret 노출 여부
+            5. 불필요한 코드 또는 console.log
+            6. 테스트가 필요한 부분
+            7. 리뷰어가 꼭 확인해야 할 부분
+
+            특히 다음 파일이 변경되면 더 주의해서 봐줘.
+            - Dockerfile
+            - docker-compose.yml
+            - .github/workflows/*
+            - .env
+            - application-prod.yml
+            - nginx 설정 파일
+            - package.json
+            - package-lock.json
+
+            문제가 없으면 "큰 문제는 없어 보입니다"라고 작성해줘.
