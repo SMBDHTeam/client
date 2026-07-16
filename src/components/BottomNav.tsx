@@ -40,6 +40,7 @@ export default function BottomNav() {
                   alt=""
                   width={30}
                   height={30}
+                  loading="eager"
                 />
                 {label}
               </Link>
@@ -50,4 +51,3 @@ export default function BottomNav() {
     </nav>
   );
 }
-

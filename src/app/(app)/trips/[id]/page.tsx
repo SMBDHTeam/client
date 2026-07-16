@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getItinerary } from "@/mocks/itinerary";
 import NaverMap from "@/components/NaverMap";
+import V2ScheduleDetail from "@/components/V2ScheduleDetail";
 
-export default function TripDetailPage() {
+function LegacyTripDetailPage() {
     const router = useRouter();
     const params = useParams<{ id: string }>();
     const itinerary = getItinerary(params.id);
@@ -21,21 +22,13 @@ export default function TripDetailPage() {
     const lastIndex = Math.max(places.length - 1, 1);
     const progress = (activeIndex / lastIndex) * 100;
 
-    const route = useMemo(
-        () =>
-            places.map((p) => ({
-                lat: p.lat,
-                lng: p.lng,
-                order: p.order,
-                color: p.color,
-            })),
-        [places],
-    );
-
-    const mapCenter = useMemo(
-        () => ({ lat: places[0].lat, lng: places[0].lng }),
-        [places],
-    );
+    const route = places.map((p) => ({
+        lat: p.lat,
+        lng: p.lng,
+        order: p.order,
+        color: p.color,
+    }));
+    const mapCenter = { lat: places[0].lat, lng: places[0].lng };
 
     useEffect(() => {
         function recalc() {
@@ -258,4 +251,10 @@ export default function TripDetailPage() {
             </div>
         </div>
     );
+}
+
+export default function TripDetailPage() {
+    const params = useParams<{ id: string }>();
+    if (!/^\d+$/.test(params.id)) return <V2ScheduleDetail scheduleId={params.id} />;
+    return <LegacyTripDetailPage />;
 }

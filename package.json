@@ -21,7 +21,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
-    "check:up-to-date": "node scripts/check-up-to-date.js",
     "husky": "^9.1.7",
     "tailwindcss": "^4",
     "typescript": "^5"

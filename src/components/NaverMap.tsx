@@ -1,5 +1,8 @@
 "use client";
 
+/* The Naver Maps browser SDK is loaded dynamically and has no local type declarations. */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useEffect, useRef, useState } from "react";
 
 declare global {
@@ -14,7 +17,7 @@ let naverMapsPromise: Promise<void> | null = null;
 
 function loadNaverMaps(): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
-  if (window.naver?.maps) return Promise.resolve();
+  if (window.naver?.maps?.Map) return Promise.resolve();
   if (naverMapsPromise) return naverMapsPromise;
 
   naverMapsPromise = new Promise<void>((resolve, reject) => {
@@ -47,20 +50,55 @@ type RoutePoint = {
   color: string;
 };
 
+type RouteLine = {
+  mode: "WALK" | "BUS" | "SUBWAY" | "TRAIN";
+  coordinates: [number, number][];
+};
+
+type EndpointMarker = {
+  name: string;
+  lat: number;
+  lng: number;
+};
+
+type TransferPoint = EndpointMarker & {
+  mode: RouteLine["mode"];
+  lineName: string | null;
+};
+
+const ROUTE_COLORS: Record<RouteLine["mode"], string> = {
+  WALK: "#71717A",
+  BUS: "#2E7DF2",
+  SUBWAY: "#17B89B",
+  TRAIN: "#8B5CF6",
+};
+
 export default function NaverMap({
   center = BUSAN_CENTER,
   place,
   onAddPlace,
   route,
+  routeLines,
+  transferPoints,
+  startMarker,
+  endMarker,
   activeOrder,
   className,
+  showAddAction = true,
+  showMarker = true,
 }: {
   center?: { lat: number; lng: number };
   place?: { name: string; tag: string; alreadyAdded: boolean } | null;
   onAddPlace?: () => void;
   route?: RoutePoint[];
+  routeLines?: RouteLine[];
+  transferPoints?: TransferPoint[];
+  startMarker?: EndpointMarker | null;
+  endMarker?: EndpointMarker | null;
   activeOrder?: number;
   className?: string;
+  showAddAction?: boolean;
+  showMarker?: boolean;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -69,6 +107,7 @@ export default function NaverMap({
   const routeOverlaysRef = useRef<any[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
+  const [mapError, setMapError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,7 +115,9 @@ export default function NaverMap({
       .then(() => {
         if (!cancelled) setScriptReady(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setMapError(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -89,6 +130,7 @@ export default function NaverMap({
 
     function createMap() {
       if (mapInstanceRef.current) return;
+      if (!window.naver?.maps?.Map || !window.naver.maps.LatLng) return;
       if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
 
       mapInstanceRef.current = new window.naver.maps.Map(container, {
@@ -102,14 +144,30 @@ export default function NaverMap({
 
     const observer = new ResizeObserver(() => {
       createMap();
-      if (mapInstanceRef.current) {
+      if (mapInstanceRef.current && window.naver?.maps?.Event) {
         window.naver.maps.Event.trigger(mapInstanceRef.current, "resize");
       }
     });
     observer.observe(container);
 
+    function detectMapError() {
+      const style = container.getAttribute("style") ?? "";
+      if (container.textContent?.includes("인증에 실패") || style.includes("auth_fail")) {
+        setMapError(true);
+      }
+    }
+    const errorObserver = new MutationObserver(detectMapError);
+    errorObserver.observe(container, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    detectMapError();
+
     return () => {
       observer.disconnect();
+      errorObserver.disconnect();
       mapInstanceRef.current = null;
       markerRef.current = null;
       infoWindowRef.current = null;
@@ -120,7 +178,15 @@ export default function NaverMap({
   }, [scriptReady]);
 
   useEffect(() => {
-    if (!mapReady || route) return;
+    if (!mapReady || mapError || route || !window.naver?.maps?.LatLng) return;
+
+    if (!showMarker) {
+      markerRef.current?.setMap(null);
+      markerRef.current = null;
+      infoWindowRef.current?.close();
+      return;
+    }
+
     const map = mapInstanceRef.current;
     const position = new window.naver.maps.LatLng(center.lat, center.lng);
     if (!markerRef.current) {
@@ -129,10 +195,10 @@ export default function NaverMap({
       markerRef.current.setPosition(position);
     }
     map.panTo(position);
-  }, [mapReady, center.lat, center.lng, route]);
+  }, [mapReady, mapError, center.lat, center.lng, route, showMarker]);
 
   useEffect(() => {
-    if (!mapReady || !markerRef.current || !window.naver) return;
+    if (!mapReady || mapError || !markerRef.current || !window.naver?.maps?.InfoWindow) return;
 
     if (!place) {
       infoWindowRef.current?.close();
@@ -154,18 +220,23 @@ export default function NaverMap({
     tag.style.cssText =
       "margin:0 0 8px;font-size:11px;color:#a1a1aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
 
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = place.alreadyAdded ? "담음" : "+ 추가";
-    button.disabled = place.alreadyAdded;
-    button.style.cssText = `width:100%;padding:6px 0;border:none;border-radius:9999px;font-size:12px;font-weight:600;cursor:${
-      place.alreadyAdded ? "default" : "pointer"
-    };background:${place.alreadyAdded ? "#f4f4f5" : "#EAF2FE"};color:${
-      place.alreadyAdded ? "#a1a1aa" : "#2E7DF2"
-    };`;
-    button.onclick = () => onAddPlace?.();
+    content.append(title, tag);
 
-    content.append(title, tag, button);
+    if (showAddAction) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = place.alreadyAdded ? "담음" : "+ 추가";
+      button.disabled = place.alreadyAdded;
+      button.style.cssText = `width:100%;padding:6px 0;border:none;border-radius:9999px;font-size:12px;font-weight:600;cursor:${
+        place.alreadyAdded ? "default" : "pointer"
+      };background:${place.alreadyAdded ? "#f4f4f5" : "#EAF2FE"};color:${
+        place.alreadyAdded ? "#a1a1aa" : "#2E7DF2"
+      };`;
+      button.onclick = () => onAddPlace?.();
+      content.append(button);
+    } else {
+      tag.style.marginBottom = "0";
+    }
 
     if (!infoWindowRef.current) {
       infoWindowRef.current = new window.naver.maps.InfoWindow({
@@ -178,30 +249,65 @@ export default function NaverMap({
       infoWindowRef.current.setContent(content);
     }
     infoWindowRef.current.open(mapInstanceRef.current, markerRef.current);
-  }, [mapReady, place?.name, place?.tag, place?.alreadyAdded, onAddPlace]);
+  }, [mapReady, mapError, place, onAddPlace, showAddAction]);
 
   useEffect(() => {
-    if (!mapReady || !route || route.length === 0 || !window.naver) return;
+    if (
+      !mapReady ||
+      mapError ||
+      (!route || route.length === 0) ||
+      !window.naver?.maps?.LatLng
+    ) return;
     const map = mapInstanceRef.current;
 
     routeOverlaysRef.current.forEach((o) => o.setMap(null));
     routeOverlaysRef.current = [];
 
-    const latlngs = route.map(
+    const markerLatLngs = route.map(
       (p) => new window.naver.maps.LatLng(p.lat, p.lng),
     );
+    const serverLines = routeLines?.filter((line) => line.coordinates.length >= 2) ?? [];
+    const pathLatLngs: any[] = [];
 
-    const polyline = new window.naver.maps.Polyline({
-      map,
-      path: latlngs,
-      strokeColor: "#2E7DF2",
-      strokeStyle: "shortdash",
-      strokeWeight: 3,
-      strokeOpacity: 0.9,
-    });
-    routeOverlaysRef.current.push(polyline);
+    if (serverLines.length > 0) {
+      serverLines.forEach((line) => {
+        const path = line.coordinates.map(([longitude, latitude]) => {
+          const point = new window.naver.maps.LatLng(latitude, longitude);
+          pathLatLngs.push(point);
+          return point;
+        });
+        routeOverlaysRef.current.push(
+          new window.naver.maps.Polyline({
+            map,
+            path,
+            strokeColor: ROUTE_COLORS[line.mode],
+            strokeWeight: line.mode === "WALK" ? 3 : 5,
+            strokeStyle: line.mode === "WALK" ? "shortdash" : "solid",
+            strokeOpacity: 0.9,
+          }),
+        );
+      });
+    } else if (markerLatLngs.length >= 2) {
+      routeOverlaysRef.current.push(
+        new window.naver.maps.Polyline({
+          map,
+          path: markerLatLngs,
+          strokeColor: "#2E7DF2",
+          strokeStyle: "shortdash",
+          strokeWeight: 3,
+          strokeOpacity: 0.9,
+        }),
+      );
+    }
 
     route.forEach((p) => {
+      const duplicatesEndpoint = [startMarker, endMarker].some(
+        (endpoint) =>
+          endpoint &&
+          Math.abs(endpoint.lat - p.lat) < 0.0000001 &&
+          Math.abs(endpoint.lng - p.lng) < 0.0000001,
+      );
+      if (duplicatesEndpoint) return;
       const active = activeOrder === p.order;
       const size = active ? 42 : 34;
       const marker = new window.naver.maps.Marker({
@@ -219,15 +325,78 @@ export default function NaverMap({
       routeOverlaysRef.current.push(marker);
     });
 
+    const endpointPoints: any[] = [];
+    const transferLatLngs = (transferPoints ?? []).map((point) => {
+      const position = new window.naver.maps.LatLng(point.lat, point.lng);
+      const modeLabel = point.mode === "SUBWAY" ? "지하철" : point.mode === "TRAIN" ? "열차" : "버스";
+      routeOverlaysRef.current.push(
+        new window.naver.maps.Marker({
+          position,
+          zIndex: 110,
+          map,
+          title: `${point.name} · ${modeLabel}${point.lineName ? ` ${point.lineName}` : ""}`,
+          icon: {
+            content: '<div style="display:grid;width:34px;height:34px;place-items:center;border:3px solid #fff;border-radius:50%;background:#F59E0B;color:#fff;font-size:10px;font-weight:800;box-shadow:0 3px 8px rgba(0,0,0,.28)">환승</div>',
+            anchor: new window.naver.maps.Point(17, 17),
+          },
+        }),
+      );
+      return position;
+    });
+    if (startMarker) {
+      const position = new window.naver.maps.LatLng(startMarker.lat, startMarker.lng);
+      endpointPoints.push(position);
+      routeOverlaysRef.current.push(
+        new window.naver.maps.Marker({
+          position,
+          zIndex: 80,
+          map,
+          title: `출발 · ${startMarker.name}`,
+          icon: {
+            content: '<div style="display:grid;width:34px;height:34px;place-items:center;border:3px solid #fff;border-radius:50%;background:#18181b;color:#fff;font-size:11px;font-weight:800;box-shadow:0 3px 8px rgba(0,0,0,.28)">출발</div>',
+            anchor: new window.naver.maps.Point(17, 17),
+          },
+        }),
+      );
+    }
+    if (endMarker) {
+      const position = new window.naver.maps.LatLng(endMarker.lat, endMarker.lng);
+      endpointPoints.push(position);
+      routeOverlaysRef.current.push(
+        new window.naver.maps.Marker({
+          position,
+          zIndex: 90,
+          map,
+          title: `도착 · ${endMarker.name}`,
+          icon: {
+            content: '<div style="position:relative;width:30px;height:38px"><span style="position:absolute;left:5px;top:2px;width:3px;height:32px;background:#18181b"></span><span style="position:absolute;left:8px;top:3px;width:18px;height:13px;background:#fff;border:2px solid #18181b"></span><span style="position:absolute;left:1px;bottom:0;width:12px;height:5px;border-radius:50%;background:#18181b"></span></div>',
+            anchor: new window.naver.maps.Point(7, 38),
+          },
+        }),
+      );
+    }
+
     const bounds = new window.naver.maps.LatLngBounds();
-    latlngs.forEach((ll: any) => bounds.extend(ll));
+    [...markerLatLngs, ...pathLatLngs, ...endpointPoints, ...transferLatLngs].forEach((point: any) => bounds.extend(point));
     map.fitBounds(bounds, { top: 56, right: 56, bottom: 56, left: 56 });
 
     return () => {
       routeOverlaysRef.current.forEach((o) => o.setMap(null));
       routeOverlaysRef.current = [];
     };
-  }, [mapReady, route, activeOrder]);
+  }, [mapReady, mapError, route, routeLines, transferPoints, startMarker, endMarker, activeOrder]);
 
-  return <div ref={mapRef} className={className} />;
+  return (
+    <div className={`relative ${className ?? ""}`}>
+      <div ref={mapRef} className="h-full w-full" />
+      {mapError && (
+        <div className="absolute inset-0 z-20 grid place-items-center bg-zinc-100 px-6 text-center">
+          <div>
+            <p className="text-sm font-semibold text-zinc-600">지도를 불러오지 못했습니다.</p>
+            <p className="mt-1 text-xs text-zinc-400">지도 API 설정을 확인해 주세요.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
