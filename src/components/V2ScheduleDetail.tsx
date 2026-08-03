@@ -203,6 +203,7 @@ export default function V2ScheduleDetail({ scheduleId }: { scheduleId: string })
               ? "저녁 추천"
               : null,
           waitingMinutesBefore: stop.waitingMinutesBefore,
+          warnings: stop.warnings ?? [],
         };
       }) ?? [],
     [day?.stops, dayMarkers],
@@ -287,6 +288,7 @@ export default function V2ScheduleDetail({ scheduleId }: { scheduleId: string })
   }, [dayRouteLines, route]);
   const progress = places.length > 1 ? (activeIndex / (places.length - 1)) * 100 : 0;
   const activeTransit = places[activeIndex]?.inboundTransit;
+  const activePlace = places[activeIndex];
 
   useEffect(() => {
     function recalculateOffset() {
@@ -517,6 +519,21 @@ export default function V2ScheduleDetail({ scheduleId }: { scheduleId: string })
                 ))}
               </div>
             </div>
+
+            {activePlace && activePlace.warnings.length > 0 && (
+              <section className="mt-2 rounded-2xl bg-amber-50 px-4 py-3">
+                <h3 className="text-sm font-bold text-amber-900">
+                  {activePlace.title} 확인 사항
+                </h3>
+                <ul className="mt-1.5 space-y-1">
+                  {activePlace.warnings.map((warning) => (
+                    <li key={warning} className="text-xs leading-relaxed text-amber-800">
+                      {warning}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {day.finalTransit && (
               <section className="mt-2">
