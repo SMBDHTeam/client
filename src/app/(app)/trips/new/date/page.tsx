@@ -1,14 +1,68 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import DateRangeCalendar from "@/components/DateRangeCalendar";
+import LocationPickerSheet from "@/components/LocationPickerSheet";
+import PageFade from "@/components/PageFade";
+import type { LocationPoint } from "@/types/api";
+import { readDraft, writeDraft } from "@/store/tripDraft";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 function formatPoint(date: Date) {
   return `${date.getMonth() + 1}월 ${date.getDate()}일 ${WEEKDAYS[date.getDay()]}`;
+}
+
+function toISODate(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function LocationField({
+  label,
+  value,
+  onOpen,
+}: {
+  label: string;
+  value: LocationPoint | null;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-full items-center gap-3 rounded-2xl border-2 border-zinc-200 bg-white p-3 text-left transition-colors hover:border-[#2E7DF2]"
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#EAF2FE] text-[#2E7DF2]">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <circle cx="12" cy="10" r="2.4" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs text-zinc-400">{label}</span>
+        <span
+          className={`block truncate text-base font-semibold ${
+            value ? "text-zinc-900" : "text-zinc-400"
+          }`}
+        >
+          {value?.name ?? "장소를 검색해 주세요"}
+        </span>
+      </span>
+      <span className="shrink-0 text-zinc-300" aria-hidden>
+        ›
+      </span>
+    </button>
+  );
 }
 
 export default function TripDatePage() {
@@ -17,8 +71,22 @@ export default function TripDatePage() {
   const [end, setEnd] = useState<Date | null>(null);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("18:00");
+  const [startLocation, setStartLocation] = useState<LocationPoint | null>(null);
+  const [picker, setPicker] = useState<"start" | null>(null);
 
-  const nights = start && end ? Math.round((end.getTime() - start.getTime()) / 86400000) : 0;
+  useEffect(() => {
+    const draft0 = readDraft();
+    if (draft0.startDate) setStart(new Date(`${draft0.startDate}T00:00:00`));
+    if (draft0.endDate) setEnd(new Date(`${draft0.endDate}T00:00:00`));
+    if (draft0.dailyStartTime) setStartTime(draft0.dailyStartTime.slice(0, 5));
+    if (draft0.dailyEndTime) setEndTime(draft0.dailyEndTime.slice(0, 5));
+    if (draft0.startLocation) setStartLocation(draft0.startLocation);
+  }, []);
+
+  const nights =
+    start && end ? Math.round((end.getTime() - start.getTime()) / 86400000) : 0;
+  const tooLong = nights > 3;
+  const ready = Boolean(start && end && !tooLong && startLocation);
 
   function handleSelect(date: Date) {
     if (!start || (start && end)) {
@@ -34,8 +102,21 @@ export default function TripDatePage() {
     setEnd(date);
   }
 
+  function handleNext() {
+    if (!ready || !start || !end || !startLocation) return;
+    writeDraft({
+      startDate: toISODate(start),
+      endDate: toISODate(end),
+      dailyStartTime: startTime,
+      dailyEndTime: endTime,
+      startLocation,
+      endLocation: startLocation,
+    });
+    router.push("/trips/new/step1");
+  }
+
   return (
-    <div className="flex flex-1 flex-col">
+    <PageFade className="flex flex-1 flex-col">
       <AppHeader title="여행 날짜" />
 
       <div className="flex flex-1 flex-col gap-6 px-5 pb-6">
@@ -67,42 +148,46 @@ export default function TripDatePage() {
 
         {start && end && (
           <>
-            <p className="text-center text-sm font-medium text-[#2E7DF2]">
-              ● {nights}박 {nights + 1}일 선택됨
-            </p>
+            {tooLong ? (
+              <p className="text-center text-sm font-medium text-[#F16E5E]">
+                여행 기간은 최대 4일까지 선택할 수 있어요
+              </p>
+            ) : (
+              <p className="text-center text-sm font-medium text-[#2E7DF2]">
+                ● {nights}박 {nights + 1}일 선택됨
+              </p>
+            )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <label className="rounded-2xl border-2 border-zinc-200 bg-white p-3">
-                <p className="text-xs text-zinc-400">출발 시간</p>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="mt-1 w-full text-base font-bold outline-none"
-                />
-              </label>
-              <label className="rounded-2xl border-2 border-zinc-200 bg-white p-3">
-                <p className="text-xs text-zinc-400">도착 시간</p>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="mt-1 w-full text-base font-bold outline-none"
-                />
-              </label>
-            </div>
+
+            <section className="flex flex-col gap-3 border-t border-zinc-100 pt-5">
+              <h2 className="text-sm font-semibold">출발지</h2>
+              <LocationField
+                label="출발지"
+                value={startLocation}
+                onOpen={() => setPicker("start")}
+              />
+            </section>
           </>
         )}
 
         <button
           type="button"
-          disabled={!start || !end}
-          onClick={() => router.push("/trips/new/step1")}
+          disabled={!ready}
+          onClick={handleNext}
           className="mt-auto w-full rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B] py-3.5 text-center font-medium text-white transition-opacity disabled:opacity-40"
         >
           다음
         </button>
       </div>
-    </div>
+
+      {picker && (
+        <LocationPickerSheet
+          title="출발지 선택"
+          initial={startLocation}
+          onClose={() => setPicker(null)}
+          onSelect={setStartLocation}
+        />
+      )}
+    </PageFade>
   );
 }

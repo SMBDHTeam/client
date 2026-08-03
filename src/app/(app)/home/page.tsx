@@ -1,12 +1,15 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import HomeHeader from "@/components/HomeHeader";
+import PageFade from "@/components/PageFade";
 import { POPULAR_DESTINATIONS, COMMUNITY_POSTS } from "@/mocks/home";
 import searchIcon from "@/assets/icons/search-256.png";
 
 export default function HomePage() {
   return (
-    <div className="flex flex-1 flex-col bg-[#F6F8FC] text-zinc-900">
+    <PageFade className="flex flex-1 flex-col bg-[#F6F8FC] text-zinc-900">
       <HomeHeader />
 
       <div className="space-y-6 px-5 pt-2 pb-8">
@@ -79,6 +82,6 @@ export default function HomePage() {
           </ul>
         </section>
       </div>
-    </div>
+    </PageFade>
   );
 }
