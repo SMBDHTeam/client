@@ -1,5 +1,5 @@
 import type { PlaceSearchItem, PlaceSearchResponse, ResolvedPlace } from "@/types/api/place";
-import { ApiError, requestJson } from "./client";
+import { requestJson } from "./client";
 import { assertScheduleV2Available, scheduleV2Mode } from "./config";
 import { mockResolvePlace, mockSearchPlaces } from "./mock-schedule-v2";
 
@@ -37,24 +37,25 @@ export async function searchPlaces(keyword: string, signal?: AbortSignal) {
     return { items: await enrichPlaceImages(response.items, signal) };
   }
   const query = encodeURIComponent(keyword);
-  try {
-    return await requestJson<PlaceSearchResponse>(
-      `/places?keyword=${query}&scope=ALL&size=20`,
-      { signal },
-    );
-  } catch (cause) {
-    if (
-      !(cause instanceof ApiError) ||
-      cause.payload.code !== "EXTERNAL_PROVIDER_UNAVAILABLE"
-    ) {
-      throw cause;
-    }
 
-    return requestJson<PlaceSearchResponse>(
-      `/places?keyword=${query}&scope=INTERNAL&size=20`,
-      { signal },
-    );
+  // 네이버 지역검색을 1차로 쓴다. 관광 API 적재분만으로는 커버리지가 좁아
+  // "부산역" 같은 질의에서도 결과가 거의 나오지 않았다.
+  try {
+    const response = await fetch(`/api/places/search?keyword=${query}`, { signal });
+    if (!response.ok) throw new Error("장소를 검색하지 못했습니다.");
+    const payload = (await response.json()) as PlaceSearchResponse;
+    if (payload.items.length > 0) {
+      return { items: await enrichPlaceImages(payload.items, signal) };
+    }
+  } catch (cause) {
+    if (signal?.aborted) throw cause;
   }
+
+  // 네이버가 실패하거나 결과가 없으면 내부 적재분으로 되돌아간다.
+  return requestJson<PlaceSearchResponse>(
+    `/places?keyword=${query}&scope=INTERNAL&size=20`,
+    { signal },
+  );
 }
 
 export function resolvePlace(place: PlaceSearchItem) {

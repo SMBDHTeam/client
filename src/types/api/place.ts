@@ -1,6 +1,6 @@
 import type { LocationInput } from "./common";
 
-export type PlaceSource = "TOUR_API" | "KAKAO_LOCAL";
+export type PlaceSource = "TOUR_API" | "KAKAO_LOCAL" | "NAVER_LOCAL";
 
 export type PlaceSearchItem = LocationInput & {
   placeId: number | null;
