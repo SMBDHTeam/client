@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import PageFade from "@/components/PageFade";
+import PageFade from "@/components/ui/PageFade";
 import { getSchedules } from "@/lib/api";
 import type { ScheduleListItem } from "@/types/api";
 import {

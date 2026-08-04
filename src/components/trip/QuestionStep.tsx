@@ -15,8 +15,8 @@ import {
   Route as RouteIcon,
   type LucideIcon,
 } from "lucide-react";
-import PageFade from "@/components/PageFade";
-import StepProgress from "@/components/StepProgress";
+import PageFade from "@/components/ui/PageFade";
+import StepProgress from "@/components/trip/StepProgress";
 import { getTripQuestions } from "@/lib/api";
 import type { TripAnswer, TripQuestion } from "@/types/api";
 import { readDraft, writeDraft } from "@/store/tripDraft";

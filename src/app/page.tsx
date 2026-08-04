@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
-const IntroScene = dynamic(() => import("@/components/IntroScene"), {
+const IntroScene = dynamic(() => import("@/components/map/IntroScene"), {
   ssr: false,
 });
 

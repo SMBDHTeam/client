@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import PageFade from "@/components/PageFade";
+import PageFade from "@/components/ui/PageFade";
 import { getSchedules, searchPlaces, updateSchedule } from "@/lib/api";
 import type {
   PlaceSummary,

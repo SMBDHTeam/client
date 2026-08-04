@@ -4,70 +4,11 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
-
-type Coord = [number, number];
-type Polygon = Coord[][];
-
-type District = {
-  name: string;
-  code: string;
-  polygons: Polygon[];
-  centroid: [number, number];
-};
-
-type BBox = { cx: number; cy: number; scale: number };
+import { getBBox, simplify, calcCentroid } from "@/lib/geoUtils";
+import type { Coord, Polygon, District, BBox } from "@/lib/geoUtils";
+import { CENTERS, DISTRICT_COLORS } from "@/constants/districts";
 
 export type DistrictSelection = { code: string; name: string; lat: number; lng: number };
-
-const CENTERS: Record<string, { lat: number; lng: number }> = {
-  "21010": { lat: 35.0979, lng: 129.0328 },
-  "21020": { lat: 35.0969, lng: 129.0054 },
-  "21030": { lat: 35.1235, lng: 129.044 },
-  "21040": { lat: 35.0896, lng: 129.0694 },
-  "21050": { lat: 35.1619, lng: 129.0536 },
-  "21060": { lat: 35.2056, lng: 129.0836 },
-  "21070": { lat: 35.1349, lng: 129.0837 },
-  "21080": { lat: 35.2368, lng: 128.9992 },
-  "21090": { lat: 35.163, lng: 129.1652 },
-  "21100": { lat: 35.0895, lng: 128.9745 },
-  "21110": { lat: 35.2458, lng: 129.0924 },
-  "21120": { lat: 35.1432, lng: 128.9216 },
-  "21130": { lat: 35.1763, lng: 129.0814 },
-  "21140": { lat: 35.1555, lng: 129.1136 },
-  "21150": { lat: 35.1498, lng: 128.9937 },
-  "21310": { lat: 35.2447, lng: 129.2171 },
-};
-
-const COLORS = [
-  "#60a5fa", "#34d399", "#fbbf24", "#f472b6", "#a78bfa", "#38bdf8", "#fb923c", "#4ade80",
-  "#e879f9", "#facc15", "#2dd4bf", "#818cf8", "#f87171", "#a3e635", "#fb7185", "#c084fc",
-];
-
-function getBBox(districts: Pick<District, "polygons">[]): BBox {
-  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-  for (const d of districts)
-    for (const poly of d.polygons)
-      for (const ring of poly)
-        for (const [lng, lat] of ring) {
-          if (lng < minLng) minLng = lng;
-          if (lng > maxLng) maxLng = lng;
-          if (lat < minLat) minLat = lat;
-          if (lat > maxLat) maxLat = lat;
-        }
-  return { cx: (minLng + maxLng) / 2, cy: (minLat + maxLat) / 2, scale: 9 / Math.max(maxLng - minLng, maxLat - minLat) };
-}
-
-function simplify(ring: Coord[], tol = 0.002): Coord[] {
-  if (ring.length <= 4) return ring;
-  const out: Coord[] = [ring[0]];
-  for (let i = 1; i < ring.length - 1; i++) {
-    const [px, py] = out[out.length - 1];
-    const [cx, cy] = ring[i];
-    if (Math.abs(cx - px) + Math.abs(cy - py) > tol) out.push(ring[i]);
-  }
-  out.push(ring[ring.length - 1]);
-  return out;
-}
 
 function makeGeo(polygons: Polygon[], bbox: BBox): THREE.ExtrudeGeometry {
   const shapes = polygons.map((poly) => {
@@ -84,17 +25,6 @@ function makeGeo(polygons: Polygon[], bbox: BBox): THREE.ExtrudeGeometry {
     return shape;
   });
   return new THREE.ExtrudeGeometry(shapes, { depth: 0.28, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 1 });
-}
-
-function calcCentroid(polygons: Polygon[], bbox: BBox): [number, number] {
-  const largest = polygons.reduce((a, c) => (c[0].length > a[0].length ? c : a));
-  const ring = largest[0];
-  let sx = 0, sy = 0;
-  for (const [lng, lat] of ring) {
-    sx += lng;
-    sy += lat;
-  }
-  return [(sx / ring.length - bbox.cx) * bbox.scale, (sy / ring.length - bbox.cy) * bbox.scale];
 }
 
 function CameraController({
@@ -252,7 +182,7 @@ function Scene({
             key={d.code}
             district={d}
             bbox={bbox}
-            color={COLORS[i % COLORS.length]}
+            color={DISTRICT_COLORS[i % DISTRICT_COLORS.length]}
             selected={selected === d.code}
             onSelect={() => onSelect(d.code)}
           />

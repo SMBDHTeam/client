@@ -17,11 +17,11 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { DistrictSelection } from "@/components/BusanDistrictPicker";
-import MapTiler3D, { type MapTiler3DMarker } from "@/components/MapTiler3D";
-import MapViewToggle, { type MapView } from "@/components/MapViewToggle";
-import NaverMap from "@/components/NaverMap";
-import PageFade from "@/components/PageFade";
+import type { DistrictSelection } from "@/components/map/BusanDistrictPicker";
+import MapTiler3D, { type MapTiler3DMarker } from "@/components/map/MapTiler3D";
+import MapViewToggle, { type MapView } from "@/components/map/MapViewToggle";
+import NaverMap from "@/components/map/NaverMap";
+import PageFade from "@/components/ui/PageFade";
 import searchIcon from "@/assets/icons/search-256.png";
 import { searchLocations, searchPlaces } from "@/lib/api";
 import type { LocationSearchItem, PlaceSummary } from "@/types/api";
@@ -32,7 +32,7 @@ import {
 } from "@/store/tripDraft";
 
 const BusanDistrictPicker = dynamic(
-  () => import("@/components/BusanDistrictPicker"),
+  () => import("@/components/map/BusanDistrictPicker"),
   {
     ssr: false,
     loading: () => (

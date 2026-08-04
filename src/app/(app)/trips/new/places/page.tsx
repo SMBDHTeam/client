@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import PageFade from "@/components/PageFade";
+import PageFade from "@/components/ui/PageFade";
 import searchIcon from "@/assets/icons/search-256.png";
 
 export default function AiPlacesIntroPage() {

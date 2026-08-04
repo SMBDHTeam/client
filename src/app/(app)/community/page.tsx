@@ -1,7 +1,7 @@
 "use client";
 
-import AppHeader from "@/components/AppHeader";
-import PageFade from "@/components/PageFade";
+import AppHeader from "@/components/navigation/AppHeader";
+import PageFade from "@/components/ui/PageFade";
 
 export default function CommunityPage() {
   return (

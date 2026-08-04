@@ -1,4 +1,4 @@
-import BottomNav from "@/components/BottomNav";
+import BottomNav from "@/components/navigation/BottomNav";
 
 export default function AppTabLayout({
     children,

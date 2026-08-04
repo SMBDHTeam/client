@@ -1,4 +1,4 @@
-import QuestionStep from "@/components/QuestionStep";
+import QuestionStep from "@/components/trip/QuestionStep";
 
 export default function AiStep2Page() {
   return (

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AppHeader from "@/components/AppHeader";
-import DateRangeCalendar from "@/components/DateRangeCalendar";
-import LocationPickerSheet from "@/components/LocationPickerSheet";
-import PageFade from "@/components/PageFade";
+import AppHeader from "@/components/navigation/AppHeader";
+import DateRangeCalendar from "@/components/sheet/DateRangeCalendar";
+import LocationPickerSheet from "@/components/sheet/LocationPickerSheet";
+import PageFade from "@/components/ui/PageFade";
 import type { LocationPoint } from "@/types/api";
 import { readDraft, writeDraft } from "@/store/tripDraft";
 

@@ -7,79 +7,9 @@ import { Sparkles, OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import nubiWordmark from '@/assets/icons/nubi_wordmark_stacked_color.png';
-
-type Coord = [number, number];
-type Polygon = Coord[][];
-
-interface District {
-  name: string;
-  code: string;
-  polygons: Polygon[];
-  centroid: [number, number];
-}
-
-interface BBox { cx: number; cy: number; scale: number; }
-
-function getBBox(districts: Omit<District, 'centroid'>[]): BBox {
-  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-  for (const d of districts)
-    for (const poly of d.polygons)
-      for (const ring of poly)
-        for (const [lng, lat] of ring) {
-          if (lng < minLng) minLng = lng;
-          if (lng > maxLng) maxLng = lng;
-          if (lat < minLat) minLat = lat;
-          if (lat > maxLat) maxLat = lat;
-        }
-  return { cx: (minLng + maxLng) / 2, cy: (minLat + maxLat) / 2, scale: 9 / Math.max(maxLng - minLng, maxLat - minLat) };
-}
-
-function simplify(ring: Coord[], tol = 0.002): Coord[] {
-  if (ring.length <= 4) return ring;
-  const out: Coord[] = [ring[0]];
-  for (let i = 1; i < ring.length - 1; i++) {
-    const [px, py] = out[out.length - 1];
-    const [cx, cy] = ring[i];
-    if (Math.abs(cx - px) + Math.abs(cy - py) > tol) out.push(ring[i]);
-  }
-  out.push(ring[ring.length - 1]);
-  return out;
-}
-
-function makeGeo(polygons: Polygon[], bbox: BBox): THREE.ExtrudeGeometry {
-  const shapes = polygons.map(poly => {
-    const shape = new THREE.Shape(
-      simplify(poly[0]).map(([lng, lat]) => new THREE.Vector2((lng - bbox.cx) * bbox.scale, (lat - bbox.cy) * bbox.scale))
-    );
-    for (let h = 1; h < poly.length; h++) {
-      const pts = simplify(poly[h]);
-      if (pts.length < 3) continue;
-      shape.holes.push(new THREE.Path(pts.map(([lng, lat]) => new THREE.Vector2((lng - bbox.cx) * bbox.scale, (lat - bbox.cy) * bbox.scale))));
-    }
-    return shape;
-  });
-  const geo = new THREE.ExtrudeGeometry(shapes, { depth: 0.35, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 });
-
-  geo.computeBoundingBox();
-  const box = geo.boundingBox!;
-  const w = box.max.x - box.min.x;
-  const h = box.max.y - box.min.y;
-  const uvAttr = geo.attributes.uv;
-  const pos = geo.attributes.position;
-  for (let i = 0; i < uvAttr.count; i++) {
-    uvAttr.setXY(i, (pos.getX(i) - box.min.x) / w, (pos.getY(i) - box.min.y) / h);
-  }
-  uvAttr.needsUpdate = true;
-  return geo;
-}
-
-function calcCentroid(polygons: Polygon[], bbox: BBox): [number, number] {
-  const largest = polygons.reduce((a, c) => c[0].length > a[0].length ? c : a);
-  const ring = largest[0];
-  let sx = 0, sy = 0;
-  for (const [lng, lat] of ring) { sx += lng; sy += lat; }
-  return [(sx / ring.length - bbox.cx) * bbox.scale, (sy / ring.length - bbox.cy) * bbox.scale];
-}
+import { getBBox, simplify, calcCentroid } from '@/lib/geoUtils';
+import type { Coord, Polygon, District, BBox } from '@/lib/geoUtils';
+import { LANDMARK_MAP, DISTRICT_COLORS } from '@/constants/districts';
 
 type PaletteMode =
   | { type: 'list'; colors: string[] }
@@ -92,7 +22,7 @@ type PaletteMode =
 const PALETTES: { name: string; mode: PaletteMode; bg?: string }[] = [
   {
     name: '비비드',
-    mode: { type: 'list', colors: ['#60a5fa','#34d399','#fbbf24','#f472b6','#a78bfa','#38bdf8','#fb923c','#4ade80','#e879f9','#facc15','#2dd4bf','#818cf8','#f87171','#a3e635','#fb7185','#c084fc'] },
+    mode: { type: 'list', colors: DISTRICT_COLORS },
   },
   {
     name: '그라데이션',
@@ -117,25 +47,6 @@ const PALETTES: { name: string; mode: PaletteMode; bg?: string }[] = [
     bg: 'linear-gradient(160deg, #030712 0%, #0f0f1a 50%, #0c0a1e 100%)',
   },
 ];
-
-const LANDMARK_MAP: Record<string, string> = {
-  '중구': '용두산공원 · 부산타워',
-  '서구': '송도 구름산책로',
-  '동구': '이바구길 168계단',
-  '영도구': '태종대',
-  '부산진구': '서면',
-  '동래구': '동래읍성',
-  '남구': '오륙도',
-  '북구': '화명 생태공원',
-  '해운대구': '해운대 해수욕장',
-  '사하구': '감천문화마을',
-  '금정구': '범어사',
-  '강서구': '을숙도',
-  '연제구': '부산시청',
-  '수영구': '광안대교',
-  '사상구': '삼락생태공원',
-  '기장군': '해동용궁사',
-};
 
 function hexToRgb(hex: string) {
   const n = parseInt(hex.replace('#',''), 16);
@@ -174,6 +85,33 @@ function getPieceColor(
   if (mode.type === 'gold') return '#d97706';
   if (mode.type === 'huewave') return hslToHex((index * 22) % 360, 85, 62);
   return mode.base;
+}
+
+function makeGeo(polygons: Polygon[], bbox: BBox): THREE.ExtrudeGeometry {
+  const shapes = polygons.map(poly => {
+    const shape = new THREE.Shape(
+      simplify(poly[0]).map(([lng, lat]) => new THREE.Vector2((lng - bbox.cx) * bbox.scale, (lat - bbox.cy) * bbox.scale))
+    );
+    for (let h = 1; h < poly.length; h++) {
+      const pts = simplify(poly[h]);
+      if (pts.length < 3) continue;
+      shape.holes.push(new THREE.Path(pts.map(([lng, lat]) => new THREE.Vector2((lng - bbox.cx) * bbox.scale, (lat - bbox.cy) * bbox.scale))));
+    }
+    return shape;
+  });
+  const geo = new THREE.ExtrudeGeometry(shapes, { depth: 0.35, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 });
+
+  geo.computeBoundingBox();
+  const box = geo.boundingBox!;
+  const w = box.max.x - box.min.x;
+  const h = box.max.y - box.min.y;
+  const uvAttr = geo.attributes.uv;
+  const pos = geo.attributes.position;
+  for (let i = 0; i < uvAttr.count; i++) {
+    uvAttr.setXY(i, (pos.getX(i) - box.min.x) / w, (pos.getY(i) - box.min.y) / h);
+  }
+  uvAttr.needsUpdate = true;
+  return geo;
 }
 
 function DistrictBlock({

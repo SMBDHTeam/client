@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AppHeader from "@/components/AppHeader";
-import GeneratingOverlay from "@/components/GeneratingOverlay";
-import PageFade from "@/components/PageFade";
+import AppHeader from "@/components/navigation/AppHeader";
+import GeneratingOverlay from "@/components/trip/GeneratingOverlay";
+import PageFade from "@/components/ui/PageFade";
 import { getTripQuestions } from "@/lib/api";
 import type { TripQuestion } from "@/types/api";
 import { readDraft, type TripDraft } from "@/store/tripDraft";

@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import HomeHeader from "@/components/HomeHeader";
-import PageFade from "@/components/PageFade";
+import HomeHeader from "@/components/navigation/HomeHeader";
+import PageFade from "@/components/ui/PageFade";
 import { POPULAR_DESTINATIONS, COMMUNITY_POSTS } from "@/mocks/home";
 import searchIcon from "@/assets/icons/search-256.png";
 

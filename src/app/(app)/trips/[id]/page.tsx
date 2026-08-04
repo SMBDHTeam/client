@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import CourseCarousel from "@/components/CourseCarousel";
-import MapTiler3D from "@/components/MapTiler3D";
-import MapViewToggle, { type MapView } from "@/components/MapViewToggle";
-import NaverMap from "@/components/NaverMap";
-import PageFade from "@/components/PageFade";
-import PlaceDetailSheet from "@/components/PlaceDetailSheet";
+import CourseCarousel from "@/components/trip/CourseCarousel";
+import MapTiler3D from "@/components/map/MapTiler3D";
+import MapViewToggle, { type MapView } from "@/components/map/MapViewToggle";
+import NaverMap from "@/components/map/NaverMap";
+import PageFade from "@/components/ui/PageFade";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 import { getScheduleMap, getSchedules, createShare, ApiError } from "@/lib/api";
 import type { Schedule, ScheduleListItem, ScheduleMap, Transit } from "@/types/api";
 import { dateRange, stopColor } from "@/lib/scheduleFormat";
