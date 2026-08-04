@@ -93,8 +93,7 @@ export default function IntroScene({
       if (e.data === "auth-success") {
         window.removeEventListener("message", onMessage);
         const { getSession } = await import("next-auth/react");
-        const session = await getSession();
-        console.log("[Auth] session:", session);
+        await getSession();
         setPhase("assembling");
         const lastIndex = Math.max(districts.length - 1, 0);
         const assembleSeconds = 1.2 + lastIndex * 0.04 + lastIndex * 0.03;
