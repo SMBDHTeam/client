@@ -10,6 +10,7 @@ import {
   MapPin,
   Palette,
   ShoppingBag,
+  Trash2,
   Trees,
   Utensils,
 } from "lucide-react";
@@ -22,8 +23,8 @@ import MapTiler3D, { type MapTiler3DMarker } from "@/components/map/MapTiler3D";
 import MapViewToggle, { type MapView } from "@/components/map/MapViewToggle";
 import NaverMap from "@/components/map/NaverMap";
 import PageFade from "@/components/ui/PageFade";
-import searchIcon from "@/assets/icons/search-256.png";
-import { searchLocations, searchPlaces } from "@/lib/api";
+import searchIcon from "@/assets/icons/search.png";
+import { searchLocations, searchPlaces } from "@/services";
 import type { LocationSearchItem, PlaceSummary } from "@/types/api";
 import {
   readDraft,
@@ -427,7 +428,7 @@ export default function AiPlacesSearchPage() {
             )}
           </div>
         ) : (
-          <div className="relative h-110 w-full shrink-0 overflow-hidden rounded-3xl bg-zinc-50 ring-1 ring-black/5">
+          <div className="relative h-[min(27.5rem,42dvh)] w-full shrink-0 overflow-hidden rounded-3xl bg-zinc-50 ring-1 ring-black/5">
             <AnimatePresence>
               {showRegionMap && selectedDistrict ? (
                 <motion.div
@@ -538,7 +539,7 @@ export default function AiPlacesSearchPage() {
         )}
 
         {mode === "search" && (
-          <div className="relative h-96 w-full shrink-0">
+          <div className="relative h-[min(24rem,35dvh)] w-full shrink-0">
             {mapView === "2d" ? (
               <NaverMap
                 center={mapCenter}
@@ -600,21 +601,7 @@ export default function AiPlacesSearchPage() {
                     aria-label="삭제"
                     className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-400 hover:bg-black/5"
                   >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      aria-hidden
-                    >
-                      <path
-                        d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0-.7 12.1a2 2 0 0 1-2 1.9H8.7a2 2 0 0 1-2-1.9L6 7"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <Trash2 size={16} aria-hidden />
                   </button>
                 </li>
               ))}

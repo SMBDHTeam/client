@@ -8,9 +8,10 @@ import MapViewToggle, { type MapView } from "@/components/map/MapViewToggle";
 import NaverMap from "@/components/map/NaverMap";
 import PageFade from "@/components/ui/PageFade";
 import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
-import { getScheduleMap, getSchedules, createShare, ApiError } from "@/lib/api";
+import { ChevronDown, Pencil, Share2 } from "lucide-react";
+import { getScheduleMap, getSchedules, createShare, ApiError } from "@/services";
 import type { Schedule, ScheduleListItem, ScheduleMap, Transit } from "@/types/api";
-import { dateRange, stopColor } from "@/lib/scheduleFormat";
+import { dateRange, stopColor } from "@/utils/scheduleFormat";
 
 type Schedulish = Schedule | ScheduleListItem;
 
@@ -198,16 +199,7 @@ export default function TripDetailPage() {
                     onClick={() => router.push(`/trips/${id}/edit`)}
                     className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-600 hover:bg-black/5"
                 >
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden>
-                        <path
-                            d="M4 20h4L18.5 9.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                        <path d="m13 6 3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    </svg>
+                    <Pencil size={19} aria-hidden />
                 </button>
                 <button
                     type="button"
@@ -215,17 +207,7 @@ export default function TripDetailPage() {
                     onClick={handleShare}
                     className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-600 hover:bg-black/5"
                 >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-                        <circle cx="18" cy="5" r="3" stroke="currentColor" strokeWidth="1.8" />
-                        <circle cx="6" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
-                        <circle cx="18" cy="19" r="3" stroke="currentColor" strokeWidth="1.8" />
-                        <path
-                            d="M8.6 10.5 15.4 6.5M8.6 13.5 15.4 17.5"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                        />
-                    </svg>
+                    <Share2 size={20} aria-hidden />
                 </button>
             </header>
 
@@ -306,24 +288,11 @@ export default function TripDetailPage() {
                         </div>
                         <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-[#2E7DF2]">
                             {summaryOpen ? "접기" : "자세히"}
-                            <svg
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
+                            <ChevronDown
+                                size={18}
                                 aria-hidden
-                                className={`transition-transform ${
-                                    summaryOpen ? "rotate-180" : ""
-                                }`}
-                            >
-                                <path
-                                    d="m6 9 6 6 6-6"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                />
-                            </svg>
+                                className={`transition-transform ${summaryOpen ? "rotate-180" : ""}`}
+                            />
                         </span>
                     </button>
 

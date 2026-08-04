@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import PageFade from "@/components/ui/PageFade";
-import searchIcon from "@/assets/icons/search-256.png";
+import searchIcon from "@/assets/icons/search.png";
 
 export default function AiPlacesIntroPage() {
     const router = useRouter();
@@ -15,15 +15,11 @@ export default function AiPlacesIntroPage() {
 
     useEffect(() => {
         let cancelled = false;
-        fetch("/animation/Travel Icons - Map.json")
+        fetch("/animation/map-icons.json")
             .then((r) => r.json())
-            .then((data) => {
-                if (!cancelled) setTravelIconData(data);
-            })
+            .then((data) => { if (!cancelled) setTravelIconData(data); })
             .catch(() => {});
-        return () => {
-            cancelled = true;
-        };
+        return () => { cancelled = true; };
     }, []);
 
     return (

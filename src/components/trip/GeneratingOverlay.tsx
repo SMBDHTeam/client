@@ -8,6 +8,15 @@ export default function GeneratingOverlay() {
   const [animationData, setAnimationData] = useState<object | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    fetch("/animation/train.json")
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled) setAnimationData(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
     const id = setInterval(() => {
       setPercent((p) => {
         if (p >= 95) return p;
@@ -16,19 +25,6 @@ export default function GeneratingOverlay() {
       });
     }, 220);
     return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/animation/Background Full Screen-Train.json")
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled) setAnimationData(data);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   return (

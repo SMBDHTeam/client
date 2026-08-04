@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Flag, MapPin } from "lucide-react";
 import type { ScheduleDay, ScheduleStop, Transit } from "@/types/api";
 import {
     fareLabel,
@@ -10,7 +11,7 @@ import {
     stopColor,
     stripHtml,
     transitModeMeta,
-} from "@/lib/scheduleFormat";
+} from "@/utils/scheduleFormat";
 
 type CarouselItem =
     | {
@@ -90,30 +91,11 @@ function CourseCard({
                     active ? "scale-100" : "scale-[0.97] opacity-90"
                 }`}
             >
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 m-auto size-28 text-white/15"
-                >
-                    {item.role === "start" ? (
-                        <path
-                            d="M6 21V4m0 0h11l-2.2 3L17 10H6"
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                    ) : (
-                        <path
-                            d="M12 21s-7-6.3-7-11.5A7 7 0 0 1 19 9.5C19 14.7 12 21 12 21Zm0-8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                    )}
-                </svg>
+                {item.role === "start" ? (
+                    <Flag aria-hidden className="pointer-events-none absolute inset-0 m-auto size-28 text-white/15" />
+                ) : (
+                    <MapPin aria-hidden className="pointer-events-none absolute inset-0 m-auto size-28 text-white/15" />
+                )}
 
                 <div className="relative flex flex-1 flex-col justify-end gap-1 p-4 pt-8">
                     <span className="w-fit rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-bold text-white">
@@ -337,15 +319,7 @@ export default function CourseCarousel({
                         onClick={() => selectIndex(activeIndex - 1, true)}
                         className="absolute top-1/2 left-1 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-zinc-600 shadow-md backdrop-blur hover:bg-white"
                     >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path
-                                d="M15 6 9 12l6 6"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
+                        <ChevronLeft size={16} aria-hidden />
                     </button>
                 )}
 
@@ -356,15 +330,7 @@ export default function CourseCarousel({
                         onClick={() => selectIndex(activeIndex + 1, true)}
                         className="absolute top-1/2 right-1 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-zinc-600 shadow-md backdrop-blur hover:bg-white"
                     >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path
-                                d="m9 6 6 6-6 6"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
+                        <ChevronRight size={16} aria-hidden />
                     </button>
                 )}
             </div>

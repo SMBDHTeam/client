@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import NaverMap from "@/components/map/NaverMap";
-import searchIcon from "@/assets/icons/search-256.png";
-import { searchLocations } from "@/lib/api";
+import searchIcon from "@/assets/icons/search.png";
+import { searchLocations } from "@/services";
 import type { LocationPoint, LocationSearchItem } from "@/types/api";
 
 export default function LocationPickerSheet({

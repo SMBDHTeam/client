@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import PageFade from "@/components/ui/PageFade";
 import StepProgress from "@/components/trip/StepProgress";
-import { getTripQuestions } from "@/lib/api";
+import { getTripQuestions } from "@/services";
 import type { TripAnswer, TripQuestion } from "@/types/api";
 import { readDraft, writeDraft } from "@/store/tripDraft";
 

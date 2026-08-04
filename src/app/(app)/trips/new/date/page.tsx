@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { MapPin } from "lucide-react";
 import AppHeader from "@/components/navigation/AppHeader";
 import DateRangeCalendar from "@/components/sheet/DateRangeCalendar";
 import LocationPickerSheet from "@/components/sheet/LocationPickerSheet";
@@ -38,15 +39,7 @@ function LocationField({
       className="flex w-full items-center gap-3 rounded-2xl border-2 border-zinc-200 bg-white p-3 text-left transition-colors hover:border-[#2E7DF2]"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#EAF2FE] text-[#2E7DF2]">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path
-            d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <circle cx="12" cy="10" r="2.4" stroke="currentColor" strokeWidth="1.8" />
-        </svg>
+        <MapPin size={18} aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-xs text-zinc-400">{label}</span>

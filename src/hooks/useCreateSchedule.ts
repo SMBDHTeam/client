@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createSchedule, ApiError } from "@/lib/api";
+import { createSchedule, ApiError } from "@/services";
 import { buildCreateRequest, clearDraft, readDraft } from "@/store/tripDraft";
 
 export function useCreateSchedule() {

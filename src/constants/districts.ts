@@ -1,3 +1,19 @@
+import haeundaeImg from "@/assets/images/haeundae.jpg";
+import gwanganImg from "@/assets/images/gwangan.jpg";
+import gamcheonImg from "@/assets/images/gamcheon.jpg";
+import templeImg from "@/assets/images/temple.jpg";
+import parkImg from "@/assets/images/hwamyeong.jpg";
+import park2Img from "@/assets/images/samnak.jpg";
+
+export const TEXTURE_MAP: Record<string, string> = {
+  해운대구: haeundaeImg.src,
+  수영구: gwanganImg.src,
+  사하구: gamcheonImg.src,
+  기장군: templeImg.src,
+  북구: parkImg.src,
+  사상구: park2Img.src,
+};
+
 export const DISTRICT_COLORS = [
   "#60a5fa", "#34d399", "#fbbf24", "#f472b6", "#a78bfa", "#38bdf8", "#fb923c", "#4ade80",
   "#e879f9", "#facc15", "#2dd4bf", "#818cf8", "#f87171", "#a3e635", "#fb7185", "#c084fc",

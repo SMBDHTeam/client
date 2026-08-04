@@ -1,70 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getPlace, ApiError } from "@/lib/api";
+import { CircleDollarSign, Clock, Moon, MapPin, SquareParking } from "lucide-react";
+import { getPlace, ApiError } from "@/services";
 import type { PlaceDetail, PlaceImage } from "@/types/api";
-import { stripHtml } from "@/lib/scheduleFormat";
+import { stripHtml } from "@/utils/scheduleFormat";
 
-function InfoIcon({ kind }: { kind: "hours" | "closed" | "fee" | "parking" }) {
-  const paths: Record<typeof kind, React.ReactNode> = {
-    hours: (
-      <>
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-        <path
-          d="M12 7v5l3.5 2"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </>
-    ),
-    closed: (
-      <path
-        d="M12 21a8.5 8.5 0 0 1-8.5-8.5A8.5 8.5 0 0 1 12.9 4a6.5 6.5 0 0 0 7.1 9.6A8.48 8.48 0 0 1 12 21Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    ),
-    fee: (
-      <>
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-        <path
-          d="M9.5 9.5c0-1.1 1-2 2.5-2s2.5.7 2.5 1.7-.8 1.4-2 1.8c-1.4.5-2.5 1-2.5 2.2 0 1 1 1.8 2.5 1.8s2.5-.8 2.5-1.9"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          strokeLinecap="round"
-        />
-      </>
-    ),
-    parking: (
-      <>
-        <rect
-          x="4"
-          y="4"
-          width="16"
-          height="16"
-          rx="4"
-          stroke="currentColor"
-          strokeWidth="1.6"
-        />
-        <path
-          d="M10 16V8h2.8a2.2 2.2 0 1 1 0 4.4H10"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </>
-    ),
-  };
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      {paths[kind]}
-    </svg>
-  );
+const INFO_ICONS = {
+  hours: Clock,
+  closed: Moon,
+  fee: CircleDollarSign,
+  parking: SquareParking,
+} as const;
+
+function InfoIcon({ kind }: { kind: keyof typeof INFO_ICONS }) {
+  const Icon = INFO_ICONS[kind];
+  return <Icon size={16} aria-hidden />;
 }
 
 function HeroGallery({
@@ -123,15 +74,7 @@ function HeroGallery({
         <h2 className="text-xl font-bold text-white drop-shadow-sm">{name}</h2>
         {address && (
           <p className="mt-1 flex items-center gap-1 text-xs font-medium text-white/85">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M12 21s-7-6.3-7-11.5A7 7 0 0 1 19 9.5C19 14.7 12 21 12 21Zm0-8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <MapPin size={13} aria-hidden />
             {address}
           </p>
         )}

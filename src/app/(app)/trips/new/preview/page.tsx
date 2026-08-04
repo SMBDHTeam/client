@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import AppHeader from "@/components/navigation/AppHeader";
 import GeneratingOverlay from "@/components/trip/GeneratingOverlay";
 import PageFade from "@/components/ui/PageFade";
-import { getTripQuestions } from "@/lib/api";
+import { getTripQuestions } from "@/services";
 import type { TripQuestion } from "@/types/api";
 import { readDraft, type TripDraft } from "@/store/tripDraft";
 import { useCreateSchedule } from "@/hooks/useCreateSchedule";

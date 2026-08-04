@@ -4,8 +4,8 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
-import { getBBox, simplify, calcCentroid } from "@/lib/geoUtils";
-import type { Coord, Polygon, District, BBox } from "@/lib/geoUtils";
+import { getBBox, simplify, calcCentroid } from "@/utils/geoUtils";
+import type { Polygon, District, BBox } from "@/utils/geoUtils";
 import { CENTERS, DISTRICT_COLORS } from "@/constants/districts";
 
 export type DistrictSelection = { code: string; name: string; lat: number; lng: number };
@@ -235,11 +235,8 @@ export default function BusanDistrictPicker({
         const ds: District[] = raw.map((d) => ({ ...d, centroid: calcCentroid(d.polygons, box) }));
         setDistricts(ds);
         setBbox(box);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+      });
+    return () => { cancelled = true; };
   }, []);
 
   function handleSelect(code: string) {

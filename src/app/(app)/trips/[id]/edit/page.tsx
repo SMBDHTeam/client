@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Search, Trash2 } from "lucide-react";
 import PageFade from "@/components/ui/PageFade";
-import { getSchedules, searchPlaces, updateSchedule } from "@/lib/api";
+import { getSchedules, searchPlaces, updateSchedule } from "@/services";
 import type {
   PlaceSummary,
   Schedule,
@@ -252,15 +253,7 @@ export default function EditSchedulePage() {
                     aria-label="삭제"
                     className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-400 hover:bg-black/5"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                      <path
-                        d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0-.7 12.1a2 2 0 0 1-2 1.9H8.7a2 2 0 0 1-2-1.9L6 7"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <Trash2 size={16} aria-hidden />
                   </button>
                 </li>
               ))}
@@ -273,10 +266,7 @@ export default function EditSchedulePage() {
             Day {activeDay}에 장소 추가
           </h2>
           <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2.5">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0 text-zinc-400">
-              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8" />
-              <path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
+            <Search size={16} aria-hidden className="shrink-0 text-zinc-400" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
