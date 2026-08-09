@@ -54,42 +54,35 @@ export function clearDraft() {
 }
 
 export function buildCreateRequest(draft: TripDraft): CreateScheduleRequest {
-  const {
-    startDate,
-    endDate,
-    dailyStartTime,
-    dailyEndTime,
-    startLocation,
-    endLocation,
-    answers,
-    mustVisitPlaces,
-  } = draft;
+  const { startDate, endDate, startLocation, answers, mustVisitPlaces } = draft;
 
   if (!startDate || !endDate) throw new Error("여행 날짜를 선택해 주세요.");
-  if (!dailyStartTime || !dailyEndTime)
-    throw new Error("여행 시간을 선택해 주세요.");
   if (!startLocation) throw new Error("출발지를 선택해 주세요.");
-  if (!endLocation) throw new Error("도착지를 선택해 주세요.");
 
-  const selectedAnswers = Object.entries(answers).flatMap(([questionId, answerId]) =>
-    (Array.isArray(answerId) ? answerId : [answerId]).map((id) => ({
+  const selectedAnswers = Object.entries(answers)
+    .map(([questionId, answerId]) => ({
       questionId,
-      answerId: id,
-    })),
-  );
+      answerIds: Array.isArray(answerId) ? answerId : [answerId],
+    }))
+    .filter((a) => a.answerIds.length > 0);
   if (selectedAnswers.length === 0)
     throw new Error("여행 취향 질문에 답해 주세요.");
 
   const req: CreateScheduleRequest = {
     startDate,
     endDate,
-    dailyStartTime,
-    dailyEndTime,
     startLocation,
-    endLocation,
+    lodgingPlan: [],
     selectedAnswers,
+    fixedEvents: [],
+    dayOverrides: [],
   };
-  const ids = mustVisitPlaces.map((p) => p.id);
-  if (ids.length > 0) req.mustVisitPlaceIds = ids;
+  if (mustVisitPlaces.length > 0) {
+    req.mustVisitPlaces = mustVisitPlaces.map((p) => ({
+      name: p.name,
+      longitude: p.longitude,
+      latitude: p.latitude,
+    }));
+  }
   return req;
 }

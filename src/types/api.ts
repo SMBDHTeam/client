@@ -269,7 +269,7 @@ export type ScheduleListResponse = ItemsResponse<ScheduleListItem>;
 
 export type SelectedAnswer = {
   questionId: string;
-  answerId: string;
+  answerIds: string[];
 };
 
 export type CreateScheduleDay = {
@@ -283,12 +283,12 @@ export type CreateScheduleDay = {
 export type CreateScheduleRequest = {
   startDate: string;
   endDate: string;
-  dailyStartTime: string;
-  dailyEndTime: string;
   startLocation: LocationPoint;
-  endLocation: LocationPoint;
+  lodgingPlan: unknown[];
   selectedAnswers: SelectedAnswer[];
-  mustVisitPlaceIds?: number[];
+  mustVisitPlaces?: LocationPoint[];
+  fixedEvents: unknown[];
+  dayOverrides: unknown[];
   days?: CreateScheduleDay[];
 };
 
