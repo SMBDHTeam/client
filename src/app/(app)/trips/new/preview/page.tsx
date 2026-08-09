@@ -43,6 +43,12 @@ function hasPastDateRange(startDate?: string, endDate?: string) {
   );
 }
 
+function missingCoreTripInfo(
+  draft: ReturnType<typeof useTripDraft>["draft"],
+) {
+  return !draft.startDate || !draft.endDate || !draft.startLocation;
+}
+
 export default function TripPreviewPage() {
   const router = useRouter();
   const { draft, hydrated, setPreview, updateDraft } = useTripDraft();
@@ -54,6 +60,13 @@ export default function TripPreviewPage() {
 
   const loadPreview = useCallback(
     async (preferExisting: boolean) => {
+      if (missingCoreTripInfo(draft)) {
+        setPreviewState(null);
+        setError("여행 날짜와 출발 위치를 다시 선택해 주세요.");
+        setLoading(false);
+        router.replace("/trips/new/date");
+        return;
+      }
       if (hasPastDateRange(draft.startDate, draft.endDate)) {
         updateDraft({
           startDate: undefined,
@@ -95,6 +108,12 @@ export default function TripPreviewPage() {
       } catch (cause) {
         if (cause instanceof ApiError && cause.payload.fieldErrors?.length) {
           setError(cause.payload.fieldErrors.map((item) => item.message).join(" "));
+        } else if (
+          cause instanceof ApiError &&
+          cause.payload.code === "INVALID_SCHEDULE_PREVIEW_REQUEST" &&
+          missingCoreTripInfo(draft)
+        ) {
+          setError("여행 날짜와 출발 위치를 다시 선택해 주세요.");
         } else if (
           cause instanceof ApiError &&
           cause.payload.code === "INVALID_SCHEDULE_PREVIEW_REQUEST" &&
