@@ -12,7 +12,6 @@ import { scheduleV2Mode } from "@/lib/api/config";
 import type { SchedulePreview, TripDraftState } from "@/types/api/schedule-preview";
 
 const STORAGE_KEY = `tour:trip-draft:v2:${scheduleV2Mode}`;
-const TODAY_IN_SEOUL = "2026-08-09";
 
 const INITIAL_DRAFT: TripDraftState = {
   lodgingPlan: { mode: "UNDECIDED" },
@@ -43,33 +42,6 @@ function invalidatePreview(draft: TripDraftState): TripDraftState {
   return next;
 }
 
-function isPastDate(value?: string) {
-  return Boolean(value && value < TODAY_IN_SEOUL);
-}
-
-function sanitizeHydratedDraft(draft: TripDraftState): TripDraftState {
-  if (!isPastDate(draft.startDate) && !isPastDate(draft.endDate)) {
-    return draft;
-  }
-  return {
-    ...draft,
-    startDate: undefined,
-    endDate: undefined,
-    startLocation: undefined,
-    startTime: undefined,
-    lodgingPlan: { mode: "UNDECIDED" },
-    endConstraint: undefined,
-    fixedEvents: [],
-    dayOverrides: [],
-    customPrompt: undefined,
-    selectedPlaces: [],
-    mustVisitPlaceIds: [],
-    previewId: undefined,
-    previewExpiresAt: undefined,
-    idempotencyKey: undefined,
-  };
-}
-
 export function TripDraftProvider({ children }: { children: React.ReactNode }) {
   const [draft, setDraft] = useState<TripDraftState>(INITIAL_DRAFT);
   const [hydrated, setHydrated] = useState(false);
@@ -79,12 +51,7 @@ export function TripDraftProvider({ children }: { children: React.ReactNode }) {
       const stored = sessionStorage.getItem(STORAGE_KEY);
       if (stored) {
         try {
-          setDraft(
-            sanitizeHydratedDraft({
-              ...INITIAL_DRAFT,
-              ...(JSON.parse(stored) as TripDraftState),
-            }),
-          );
+          setDraft({ ...INITIAL_DRAFT, ...(JSON.parse(stored) as TripDraftState) });
         } catch {
           sessionStorage.removeItem(STORAGE_KEY);
         }

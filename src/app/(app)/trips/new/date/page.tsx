@@ -10,10 +10,8 @@ import { useTripDraft } from "@/store/trip-draft";
 import type { LocationInput } from "@/types/api/common";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-const TODAY_IN_SEOUL = "2026-08-09";
 
 function parseDate(value?: string) {
-  if (value && value < TODAY_IN_SEOUL) return null;
   return value ? new Date(`${value}T00:00:00`) : null;
 }
 

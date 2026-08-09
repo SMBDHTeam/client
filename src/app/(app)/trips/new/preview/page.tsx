@@ -11,8 +11,6 @@ import { useTripDraft } from "@/store/trip-draft";
 import type { TripQuestion } from "@/types/api/question";
 import type { CreateSchedulePreviewRequest, SchedulePreview } from "@/types/api/schedule-preview";
 
-const TODAY_IN_SEOUL = "2026-08-09";
-
 function previewRequestFromDraft(
   draft: ReturnType<typeof useTripDraft>["draft"],
 ): CreateSchedulePreviewRequest {
@@ -36,16 +34,9 @@ function locationLabel(name: string | undefined, source: string) {
   return source === "PLANNER_DECIDES" ? "AI가 동선에 맞춰 결정" : "미정";
 }
 
-function hasPastDateRange(startDate?: string, endDate?: string) {
-  return Boolean(
-    (startDate && startDate < TODAY_IN_SEOUL) ||
-      (endDate && endDate < TODAY_IN_SEOUL),
-  );
-}
-
 export default function TripPreviewPage() {
   const router = useRouter();
-  const { draft, hydrated, setPreview, updateDraft } = useTripDraft();
+  const { draft, hydrated, setPreview } = useTripDraft();
   const [preview, setPreviewState] = useState<SchedulePreview | null>(null);
   const [questions, setQuestions] = useState<TripQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,26 +45,6 @@ export default function TripPreviewPage() {
 
   const loadPreview = useCallback(
     async (preferExisting: boolean) => {
-      if (hasPastDateRange(draft.startDate, draft.endDate)) {
-        updateDraft({
-          startDate: undefined,
-          endDate: undefined,
-          startLocation: undefined,
-          startTime: undefined,
-          lodgingPlan: { mode: "UNDECIDED" },
-          endConstraint: undefined,
-          fixedEvents: [],
-          dayOverrides: [],
-          customPrompt: undefined,
-          selectedPlaces: [],
-          mustVisitPlaceIds: [],
-        });
-        setPreviewState(null);
-        setError("지난 날짜 일정은 확인할 수 없습니다. 여행 날짜를 다시 선택해 주세요.");
-        setLoading(false);
-        router.replace("/trips/new/date");
-        return;
-      }
       setLoading(true);
       setError(null);
       try {
@@ -95,12 +66,6 @@ export default function TripPreviewPage() {
       } catch (cause) {
         if (cause instanceof ApiError && cause.payload.fieldErrors?.length) {
           setError(cause.payload.fieldErrors.map((item) => item.message).join(" "));
-        } else if (
-          cause instanceof ApiError &&
-          cause.payload.code === "INVALID_SCHEDULE_PREVIEW_REQUEST" &&
-          hasPastDateRange(draft.startDate, draft.endDate)
-        ) {
-          setError("지난 날짜 일정은 확인할 수 없습니다. 여행 날짜를 다시 선택해 주세요.");
         } else {
           setError(cause instanceof Error ? cause.message : "입력 조건을 확인하지 못했습니다.");
         }
@@ -108,7 +73,7 @@ export default function TripPreviewPage() {
         setLoading(false);
       }
     },
-    [draft, router, setPreview, updateDraft],
+    [draft, setPreview],
   );
 
   useEffect(() => {
