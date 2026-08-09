@@ -17,7 +17,6 @@ type DateRangeCalendarProps = {
   end: Date | null;
   onSelect: (date: Date) => void;
   initialMonth?: Date;
-  minDate?: Date;
 };
 
 export default function DateRangeCalendar({
@@ -25,10 +24,9 @@ export default function DateRangeCalendar({
   end,
   onSelect,
   initialMonth,
-  minDate,
 }: DateRangeCalendarProps) {
   const [viewedMonth, setViewedMonth] = useState(
-    () => initialMonth ?? start ?? minDate ?? new Date()
+    () => initialMonth ?? start ?? new Date()
   );
 
   const days = useMemo(() => {
@@ -47,34 +45,16 @@ export default function DateRangeCalendar({
     return date.getTime() > start.getTime() && date.getTime() < end.getTime();
   }
 
-  function isBeforeMinDate(date: Date) {
-    if (!minDate) return false;
-    return date.getTime() < minDate.getTime();
-  }
-
-  const minMonth = minDate
-    ? new Date(minDate.getFullYear(), minDate.getMonth(), 1)
-    : null;
-  const viewedMonthStart = new Date(
-    viewedMonth.getFullYear(),
-    viewedMonth.getMonth(),
-    1,
-  );
-  const previousMonthDisabled = Boolean(
-    minMonth && viewedMonthStart.getTime() <= minMonth.getTime(),
-  );
-
   return (
     <section>
       <div className="flex items-center justify-between">
         <button
           type="button"
           aria-label="이전 달"
-          disabled={previousMonthDisabled}
           onClick={() =>
             setViewedMonth(new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() - 1, 1))
           }
-          className="grid size-8 place-items-center rounded-full text-zinc-400 hover:bg-black/5 disabled:opacity-30 disabled:hover:bg-transparent"
+          className="grid size-8 place-items-center rounded-full text-zinc-400 hover:bg-black/5"
         >
           ‹
         </button>
@@ -111,17 +91,13 @@ export default function DateRangeCalendar({
           if (!date) return <span key={i} />;
           const edge = (start && sameDay(date, start)) || (end && sameDay(date, end));
           const within = inRange(date);
-          const disabled = isBeforeMinDate(date);
           return (
             <button
               key={i}
               type="button"
-              disabled={disabled}
               onClick={() => onSelect(date)}
               className={`mx-auto grid size-10 place-items-center rounded-full font-medium transition-colors ${
-                disabled
-                  ? "cursor-not-allowed text-zinc-300"
-                  : edge
+                edge
                   ? "bg-linear-to-br from-[#2E7DF2] to-[#17B89B] text-white"
                   : within
                     ? "bg-[#EAF2FE] text-[#2E7DF2]"

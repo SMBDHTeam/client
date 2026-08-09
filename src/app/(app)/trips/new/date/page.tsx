@@ -32,10 +32,6 @@ function differenceInDays(start: Date, end: Date) {
   return Math.round((end.getTime() - start.getTime()) / 86400000);
 }
 
-function todayAtMidnight() {
-  return new Date(`${TODAY_IN_SEOUL}T00:00:00`);
-}
-
 export default function TripDatePage() {
   const router = useRouter();
   const { draft, updateDraft } = useTripDraft();
@@ -46,7 +42,6 @@ export default function TripDatePage() {
   const [error, setError] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const nights = start && end ? differenceInDays(start, end) : 0;
-  const minDate = todayAtMidnight();
 
   useEffect(() => {
     if (!mapOpen) return;
@@ -67,10 +62,6 @@ export default function TripDatePage() {
 
   function handleSelect(date: Date) {
     setError(null);
-    if (date < minDate) {
-      setError("지난 날짜는 선택할 수 없어요.");
-      return;
-    }
     if (!start || end) {
       setStart(date);
       setEnd(null);
@@ -137,12 +128,7 @@ export default function TripDatePage() {
           </div>
         </div>
 
-        <DateRangeCalendar
-          start={start}
-          end={end}
-          onSelect={handleSelect}
-          minDate={minDate}
-        />
+        <DateRangeCalendar start={start} end={end} onSelect={handleSelect} />
 
         {start && end && (
           <p className="text-center text-sm font-medium text-[#2E7DF2]">
