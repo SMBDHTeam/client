@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import HomeHeader from "@/components/HomeHeader";
+import NewTripStartLink from "@/components/NewTripStartLink";
 import { POPULAR_DESTINATIONS, COMMUNITY_POSTS } from "@/mocks/home";
 import searchIcon from "@/assets/icons/search-256.png";
 
@@ -34,12 +35,11 @@ export default function HomePage() {
               <br />
               완벽한 여행 코스를 짜드려요
             </p>
-            <Link
-              href="/trips/new/date"
+            <NewTripStartLink
               className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-transform active:scale-95"
             >
               시작하기 <span aria-hidden>→</span>
-            </Link>
+            </NewTripStartLink>
           </div>
         </div>
 
