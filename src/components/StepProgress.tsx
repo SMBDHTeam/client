@@ -2,22 +2,35 @@
 
 import { useRouter } from "next/navigation";
 
-export default function StepProgress({ step, total }: { step: number; total: number }) {
+export default function StepProgress({
+  step,
+  total,
+  title,
+}: {
+  step: number;
+  total: number;
+  title?: string;
+}) {
   const router = useRouter();
   const percent = (step / total) * 100;
 
   return (
     <div className="px-5 pt-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="뒤로 가기"
-          className="-ml-1 grid size-8 place-items-center rounded-full text-2xl leading-none text-zinc-600 hover:bg-black/5"
+          className="-ml-1 grid size-8 shrink-0 place-items-center rounded-full text-2xl leading-none text-zinc-600 hover:bg-black/5"
         >
           ‹
         </button>
-        <span className="text-sm font-medium text-zinc-400">
+        {title && (
+          <h1 className="flex-1 truncate text-center text-base font-semibold">
+            {title}
+          </h1>
+        )}
+        <span className="shrink-0 text-sm font-medium text-zinc-400">
           {step}/{total}
         </span>
       </div>

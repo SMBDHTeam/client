@@ -12,6 +12,12 @@ function sameDay(a: Date, b: Date) {
   );
 }
 
+function startOfToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
 type DateRangeCalendarProps = {
   start: Date | null;
   end: Date | null;
@@ -44,6 +50,8 @@ export default function DateRangeCalendar({
     if (!start || !end) return false;
     return date.getTime() > start.getTime() && date.getTime() < end.getTime();
   }
+
+  const today = startOfToday();
 
   return (
     <section>
@@ -91,17 +99,21 @@ export default function DateRangeCalendar({
           if (!date) return <span key={i} />;
           const edge = (start && sameDay(date, start)) || (end && sameDay(date, end));
           const within = inRange(date);
+          const isPast = date.getTime() < today.getTime();
           return (
             <button
               key={i}
               type="button"
+              disabled={isPast}
               onClick={() => onSelect(date)}
               className={`mx-auto grid size-10 place-items-center rounded-full font-medium transition-colors ${
-                edge
-                  ? "bg-linear-to-br from-[#2E7DF2] to-[#17B89B] text-white"
-                  : within
-                    ? "bg-[#EAF2FE] text-[#2E7DF2]"
-                    : "text-zinc-800 hover:bg-black/5"
+                isPast
+                  ? "cursor-not-allowed text-zinc-300"
+                  : edge
+                    ? "bg-linear-to-br from-[#2E7DF2] to-[#17B89B] text-white"
+                    : within
+                      ? "bg-[#EAF2FE] text-[#2E7DF2]"
+                      : "text-zinc-800 hover:bg-black/5"
               }`}
             >
               {date.getDate()}
