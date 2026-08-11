@@ -64,6 +64,8 @@ export async function GET(request: Request) {
       address: cleanText(item.roadAddress || item.address),
       longitude: Number(item.mapx) / 10_000_000,
       latitude: Number(item.mapy) / 10_000_000,
+      externalId: `${item.mapx}-${item.mapy}`,
+      source: "NAVER_LOCAL",
     }));
 
   return Response.json({ items });
