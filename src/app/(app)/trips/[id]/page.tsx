@@ -65,7 +65,7 @@ function LegacyTripDetailPage() {
             <header className="flex items-center gap-2 px-5 pt-4 pb-2">
                 <button
                     type="button"
-                    onClick={() => router.back()}
+                    onClick={() => router.push("/trips")}
                     aria-label="뒤로 가기"
                     className="-ml-1 grid size-8 shrink-0 place-items-center rounded-full text-2xl leading-none text-zinc-600 hover:bg-black/5"
                 >

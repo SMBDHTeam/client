@@ -11,7 +11,7 @@ import {
 import { scheduleV2Mode } from "@/lib/api/config";
 import type { SchedulePreview, TripDraftState } from "@/types/api/schedule-preview";
 
-const STORAGE_KEY = `tour:trip-draft:v2:${scheduleV2Mode}`;
+export const TRIP_DRAFT_STORAGE_KEY = `tour:trip-draft:v2:${scheduleV2Mode}`;
 
 const INITIAL_DRAFT: TripDraftState = {
   lodgingPlan: { mode: "UNDECIDED" },
@@ -48,12 +48,12 @@ export function TripDraftProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
-      const stored = sessionStorage.getItem(STORAGE_KEY);
+      const stored = sessionStorage.getItem(TRIP_DRAFT_STORAGE_KEY);
       if (stored) {
         try {
           setDraft({ ...INITIAL_DRAFT, ...(JSON.parse(stored) as TripDraftState) });
         } catch {
-          sessionStorage.removeItem(STORAGE_KEY);
+          sessionStorage.removeItem(TRIP_DRAFT_STORAGE_KEY);
         }
       }
       setHydrated(true);
@@ -62,7 +62,7 @@ export function TripDraftProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (hydrated) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+    if (hydrated) sessionStorage.setItem(TRIP_DRAFT_STORAGE_KEY, JSON.stringify(draft));
   }, [draft, hydrated]);
 
   const updateDraft = useCallback((patch: Partial<TripDraftState>) => {
@@ -93,7 +93,7 @@ export function TripDraftProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const resetDraft = useCallback(() => {
-    sessionStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(TRIP_DRAFT_STORAGE_KEY);
     setDraft(INITIAL_DRAFT);
   }, []);
 
@@ -112,13 +112,7 @@ export function TripDraftProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <TripDraftContext.Provider value={value}>
-      {hydrated ? (
-        children
-      ) : (
-        <div className="flex flex-1 items-center justify-center" aria-label="입력 내용 복원 중">
-          <div className="size-9 animate-spin rounded-full border-4 border-zinc-200 border-t-[#2E7DF2]" />
-        </div>
-      )}
+      {children}
     </TripDraftContext.Provider>
   );
 }

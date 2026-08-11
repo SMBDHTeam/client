@@ -1,6 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ALL_TRIPS } from "@/mocks/trips";
+import { useTripDraft } from "@/store/trip-draft";
 import searchIcon from "@/assets/icons/search-256.png";
 
 const STATUS_STYLE: Record<string, string> = {
@@ -11,6 +15,8 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default function TripsPage() {
+    const router = useRouter();
+    const { resetDraft } = useTripDraft();
     const featured = ALL_TRIPS[0];
 
     return (
@@ -104,9 +110,10 @@ export default function TripsPage() {
                 </section>
 
                 <section className="grid grid-cols-2 gap-4">
-                    <Link
-                        href="/trips/new/date"
-                        className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 transition-colors hover:bg-zinc-50"
+                    <button
+                        type="button"
+                        onClick={() => { resetDraft(); router.push("/trips/new/date"); }}
+                        className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 text-left transition-colors hover:bg-zinc-50"
                     >
                         <div className="grid size-11 place-items-center rounded-xl bg-linear-to-br from-[#2E7DF2] to-[#17B89B] text-white">
                             <svg
@@ -130,7 +137,7 @@ export default function TripsPage() {
                         <p className="mt-0.5 text-xs text-zinc-400">
                             3분이면 완성
                         </p>
-                    </Link>
+                    </button>
 
                     <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
                         <div className="grid size-11 place-items-center rounded-xl bg-[#FCEAEA] text-[#F16E5E]">
