@@ -9,7 +9,7 @@ import type {
 } from "@/types/api/schedule-preview";
 import type { ScheduleResponse, ScheduleStop } from "@/types/api/schedule";
 import type { ScheduleMapResponse } from "@/types/api/schedule-map";
-import { placeCategoryLabel } from "@/lib/place-category";
+import { placeCategoryLabel } from "@/utils/place-category";
 
 const PREVIEW_STORAGE_PREFIX = "tour:v2:preview:";
 const SCHEDULE_STORAGE_PREFIX = "tour:v2:schedule:";

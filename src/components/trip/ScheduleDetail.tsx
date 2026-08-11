@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
-import NaverMap from "@/components/NaverMap";
+import NaverMap from "@/components/map/NaverMap";
 import { getSchedule, getScheduleMap } from "@/lib/api/schedules";
-import { placeCategoryLabel } from "@/lib/place-category";
+import { placeCategoryLabel } from "@/utils/place-category";
 import type { ScheduleResponse, ScheduleTransit } from "@/types/api/schedule";
 import type { ScheduleMapResponse } from "@/types/api/schedule-map";
 
@@ -129,7 +129,7 @@ function TransitPanel({ transit }: { transit: ScheduleTransit }) {
   );
 }
 
-export default function V2ScheduleDetail({ scheduleId }: { scheduleId: string }) {
+export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
   const router = useRouter();
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [mapData, setMapData] = useState<ScheduleMapResponse | null>(null);

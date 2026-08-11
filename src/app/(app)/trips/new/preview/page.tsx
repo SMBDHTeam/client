@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import AppHeader from "@/components/AppHeader";
+import AppHeader from "@/components/layout/AppHeader";
 import { ApiError } from "@/lib/api/client";
 import { scheduleV2Mode } from "@/lib/api/config";
 import { getTripQuestions } from "@/lib/api/questions";

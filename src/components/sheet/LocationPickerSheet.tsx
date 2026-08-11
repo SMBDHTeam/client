@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import NaverMap from "@/components/NaverMap";
+import NaverMap from "@/components/map/NaverMap";
 import { searchLocations } from "@/lib/api/locations";
 import type { LocationInput } from "@/types/api/common";
 

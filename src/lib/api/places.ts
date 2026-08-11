@@ -1,4 +1,4 @@
-import type { PlaceSearchItem, PlaceSearchResponse, ResolvedPlace } from "@/types/api/place";
+import type { PlaceSearchItem, PlaceSearchResponse, PlaceSummary, ResolvedPlace } from "@/types/api/place";
 import { requestJson } from "./client";
 import { assertScheduleV2Available, scheduleV2Mode } from "./config";
 import { mockResolvePlace, mockSearchPlaces } from "./mock-schedule-v2";
@@ -82,4 +82,28 @@ export function resolvePlace(place: PlaceSearchItem) {
       placeUrl: place.placeUrl,
     }),
   });
+}
+
+type PlaceGeoSearchParams = {
+  longitude?: number;
+  latitude?: number;
+  radius?: number;
+  keyword?: string;
+};
+
+function qs(params: Record<string, string | number | undefined>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  const str = search.toString();
+  return str ? `?${str}` : "";
+}
+
+export async function searchPlacesGeo(
+  params: PlaceGeoSearchParams,
+): Promise<{ items: PlaceSummary[] }> {
+  const res = await fetch(`/api/v1/places${qs({ ...params })}`);
+  if (!res.ok) throw new Error(`장소 검색 실패 (${res.status})`);
+  return res.json();
 }

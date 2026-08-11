@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { getItinerary } from "@/mocks/itinerary";
-import NaverMap from "@/components/NaverMap";
-import V2ScheduleDetail from "@/components/V2ScheduleDetail";
+import NaverMap from "@/components/map/NaverMap";
+import ScheduleDetail from "@/components/trip/ScheduleDetail";
 
 function LegacyTripDetailPage() {
     const router = useRouter();
@@ -264,6 +264,6 @@ function LegacyTripDetailPage() {
 
 export default function TripDetailPage() {
     const params = useParams<{ id: string }>();
-    if (!/^\d+$/.test(params.id)) return <V2ScheduleDetail scheduleId={params.id} />;
+    if (!/^\d+$/.test(params.id)) return <ScheduleDetail scheduleId={params.id} />;
     return <LegacyTripDetailPage />;
 }

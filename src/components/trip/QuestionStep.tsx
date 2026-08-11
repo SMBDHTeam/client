@@ -16,7 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import PageFade from "@/components/ui/PageFade";
-import StepProgress from "@/components/StepProgress";
+import StepProgress from "@/components/ui/StepProgress";
 import { getTripQuestions } from "@/lib/api/questions";
 import { useTripDraft } from "@/store/trip-draft";
 import type { TripQuestion, TripQuestionAnswer } from "@/types/api/question";

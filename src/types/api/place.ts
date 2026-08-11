@@ -22,3 +22,20 @@ export type ResolvedPlace = PlaceSearchItem & {
   resolved: true;
   operatingInfoAvailable: boolean;
 };
+
+export type PlaceSummary = {
+  id: number;
+  placeId: number;
+  source: string;
+  externalId: string;
+  name: string;
+  category: string | null;
+  categoryLabel: string | null;
+  address: string | null;
+  longitude: number;
+  latitude: number;
+  distanceMeters: number | null;
+  primaryImageUrl: string | null;
+  placeUrl: string | null;
+  resolved: boolean;
+};

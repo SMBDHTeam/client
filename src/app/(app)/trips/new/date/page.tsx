@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
+import AppHeader from "@/components/layout/AppHeader";
 import DateRangeCalendar from "@/components/sheet/DateRangeCalendar";
 import LocationPickerSheet from "@/components/sheet/LocationPickerSheet";
 import PageFade from "@/components/ui/PageFade";

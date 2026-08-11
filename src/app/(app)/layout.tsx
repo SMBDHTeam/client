@@ -1,4 +1,4 @@
-import AppTabShell from "@/components/AppTabShell";
+import AppShell from "@/components/layout/AppShell";
 import { TripDraftProvider } from "@/store/trip-draft";
 
 export default function AppTabLayout({
@@ -8,7 +8,7 @@ export default function AppTabLayout({
 }) {
   return (
     <TripDraftProvider>
-      <AppTabShell>{children}</AppTabShell>
+      <AppShell>{children}</AppShell>
     </TripDraftProvider>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Search, Trash2 } from "lucide-react";
 import { getItinerary, type ItineraryPlace } from "@/mocks/itinerary";
-import { searchPlaces, type PlaceSummary } from "@/services";
+import { searchPlacesGeo as searchPlaces, type PlaceSummary } from "@/lib/api/places";
 
 type EditableStop = ItineraryPlace & { key: string };
 

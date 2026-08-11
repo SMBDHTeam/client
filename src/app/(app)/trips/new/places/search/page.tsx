@@ -25,10 +25,10 @@ import NaverMap from "@/components/map/NaverMap";
 import PageFade from "@/components/ui/PageFade";
 import searchIcon from "@/assets/icons/search.png";
 import { resolvePlace, searchPlaces } from "@/lib/api/places";
-import { placeCategoryLabel } from "@/lib/place-category";
-import { searchPlaces as searchPlacesGeo, type PlaceSummary } from "@/services";
+import { placeCategoryLabel } from "@/utils/place-category";
+import { searchPlacesGeo } from "@/lib/api/places";
 import { useTripDraft } from "@/store/trip-draft";
-import type { PlaceSearchItem, PlaceSource } from "@/types/api/place";
+import type { PlaceSearchItem, PlaceSummary, PlaceSource } from "@/types/api/place";
 
 const BusanDistrictPicker = dynamic(
   () => import("@/components/map/BusanDistrictPicker"),
