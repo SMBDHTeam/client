@@ -8,10 +8,9 @@ import {
   useMemo,
   useState,
 } from "react";
-import { scheduleV2Mode } from "@/lib/api/config";
 import type { SchedulePreview, TripDraftState } from "@/types/api/schedule-preview";
 
-export const TRIP_DRAFT_STORAGE_KEY = `tour:trip-draft:v2:${scheduleV2Mode}`;
+export const TRIP_DRAFT_STORAGE_KEY = "tour:trip-draft:v2";
 
 const INITIAL_DRAFT: TripDraftState = {
   lodgingPlan: { mode: "UNDECIDED" },

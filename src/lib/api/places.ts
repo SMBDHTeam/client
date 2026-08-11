@@ -1,7 +1,5 @@
 import type { PlaceSearchItem, PlaceSearchResponse, PlaceSummary, ResolvedPlace } from "@/types/api/place";
 import { requestJson } from "./client";
-import { assertScheduleV2Available, scheduleV2Mode } from "./config";
-import { mockResolvePlace, mockSearchPlaces } from "./mock-schedule-v2";
 
 async function enrichPlaceImages(items: PlaceSearchItem[], signal?: AbortSignal) {
   if (items.length === 0 || items.every((item) => item.primaryImageUrl)) return items;
@@ -31,11 +29,6 @@ async function enrichPlaceImages(items: PlaceSearchItem[], signal?: AbortSignal)
 }
 
 export async function searchPlaces(keyword: string, signal?: AbortSignal) {
-  assertScheduleV2Available();
-  if (scheduleV2Mode === "mock") {
-    const response = await mockSearchPlaces(keyword);
-    return { items: await enrichPlaceImages(response.items, signal) };
-  }
   const query = encodeURIComponent(keyword);
 
   // 네이버 지역검색을 1차로 쓴다. 관광 API 적재분만으로는 커버리지가 좁아
@@ -59,7 +52,6 @@ export async function searchPlaces(keyword: string, signal?: AbortSignal) {
 }
 
 export function resolvePlace(place: PlaceSearchItem) {
-  assertScheduleV2Available();
   if (place.placeId !== null && place.resolved) {
     return Promise.resolve({
       ...place,
@@ -68,7 +60,6 @@ export function resolvePlace(place: PlaceSearchItem) {
       operatingInfoAvailable: true,
     } satisfies ResolvedPlace);
   }
-  if (scheduleV2Mode === "mock") return mockResolvePlace(place);
   return requestJson<ResolvedPlace>("/places/resolve", {
     method: "POST",
     body: JSON.stringify({

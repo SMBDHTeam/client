@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppHeader from "@/components/layout/AppHeader";
 import { ApiError } from "@/lib/api/client";
-import { scheduleV2Mode } from "@/lib/api/config";
 import { getTripQuestions } from "@/lib/api/questions";
 import { createSchedulePreview, getSchedulePreview } from "@/lib/api/schedule-previews";
 import { useTripDraft } from "@/store/trip-draft";
@@ -99,9 +98,6 @@ export default function TripPreviewPage() {
         <section>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold">이대로 만들까요?</h1>
-            {scheduleV2Mode === "mock" && (
-              <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-700">테스트</span>
-            )}
           </div>
           <p className="mt-1 text-sm text-zinc-500">선택한 내용과 하루 활동 시간을 확인해 주세요</p>
         </section>
