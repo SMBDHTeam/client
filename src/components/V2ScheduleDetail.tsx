@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Pencil } from "lucide-react";
 import NaverMap from "@/components/NaverMap";
 import { getSchedule, getScheduleMap } from "@/lib/api/schedules";
 import { placeCategoryLabel } from "@/lib/place-category";
@@ -353,6 +354,14 @@ export default function V2ScheduleDetail({ scheduleId }: { scheduleId: string })
           ‹
         </button>
         <h1 className="flex-1 text-center text-lg font-bold">Day {day.dayNo}</h1>
+        <button
+          type="button"
+          onClick={() => router.push(`/trips/${scheduleId}/edit`)}
+          aria-label="일정 수정"
+          className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-600 hover:bg-black/5"
+        >
+          <Pencil size={18} />
+        </button>
         <button
           type="button"
           aria-label="공유"

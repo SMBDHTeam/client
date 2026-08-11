@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Pencil } from "lucide-react";
 import { getItinerary } from "@/mocks/itinerary";
 import NaverMap from "@/components/NaverMap";
 import V2ScheduleDetail from "@/components/V2ScheduleDetail";
@@ -73,6 +74,14 @@ function LegacyTripDetailPage() {
                 <h1 className="flex-1 text-center text-lg font-bold">
                     Day {day.day}
                 </h1>
+                <button
+                    type="button"
+                    onClick={() => router.push(`/trips/${params.id}/edit`)}
+                    aria-label="일정 수정"
+                    className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-600 hover:bg-black/5"
+                >
+                    <Pencil size={18} />
+                </button>
                 <button
                     type="button"
                     aria-label="공유"
