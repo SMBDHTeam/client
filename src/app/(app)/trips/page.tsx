@@ -139,7 +139,10 @@ export default function TripsPage() {
                         </p>
                     </button>
 
-                    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+                    <Link
+                        href="/wishlist"
+                        className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 transition-colors hover:bg-zinc-50"
+                    >
                         <div className="grid size-11 place-items-center rounded-xl bg-[#FCEAEA] text-[#F16E5E]">
                             <svg
                                 width="20"
@@ -162,7 +165,7 @@ export default function TripsPage() {
                         <p className="mt-0.5 text-xs text-zinc-400">
                             위시리스트 8
                         </p>
-                    </div>
+                    </Link>
                 </section>
 
                 <section>
