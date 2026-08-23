@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import nubiLogo from "@/assets/icons/header/nubi-logo.png";
 import bellIcon from "@/assets/icons/notification-bell-inactive.png";
@@ -21,15 +22,15 @@ export default function HomeHeader() {
         >
           <Image src={bellIcon} alt="" width={30} height={30} />
         </button>
-        <button
-          type="button"
+        <Link
+          href="/profile"
           aria-label="내 정보"
-          className="size-9 overflow-hidden rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B]"
+          className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B]"
         >
           {profileImage && (
             <img src={profileImage} alt="프로필" className="size-full object-cover" referrerPolicy="no-referrer" />
           )}
-        </button>
+        </Link>
       </div>
     </header>
   );
