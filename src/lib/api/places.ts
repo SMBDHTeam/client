@@ -1,5 +1,15 @@
-import type { PlaceSearchItem, PlaceSearchResponse, PlaceSummary, ResolvedPlace } from "@/types/api/place";
+import type {
+  PlaceDetail,
+  PlaceSearchItem,
+  PlaceSearchResponse,
+  PlaceSummary,
+  ResolvedPlace,
+} from "@/types/api/place";
 import { requestJson } from "./client";
+
+export function getPlaceDetail(placeId: number) {
+  return requestJson<PlaceDetail>(`/places/${placeId}`);
+}
 
 async function enrichPlaceImages(items: PlaceSearchItem[], signal?: AbortSignal) {
   if (items.length === 0 || items.every((item) => item.primaryImageUrl)) return items;

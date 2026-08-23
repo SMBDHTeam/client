@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import NaverMap from "@/components/map/NaverMap";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 import { getSchedule, getScheduleMap } from "@/lib/api/schedules";
 import { placeCategoryLabel } from "@/utils/place-category";
 import type { ScheduleResponse, ScheduleTransit } from "@/types/api/schedule";
@@ -135,6 +136,7 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
   const [mapData, setMapData] = useState<ScheduleMapResponse | null>(null);
   const [dayIndex, setDayIndex] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState(0);
@@ -189,14 +191,17 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
         );
         return {
           id: stop.id,
+          placeId: stop.place.id,
           order: stop.order,
           lat: marker?.latitude ?? stop.place.latitude,
           lng: marker?.longitude ?? stop.place.longitude,
           color: MARKER_COLORS[index % MARKER_COLORS.length],
           gradient: CARD_GRADIENTS[index % CARD_GRADIENTS.length],
+          image: stop.place.primaryImageUrl ?? null,
           time: stop.arriveAt,
           title: stop.place.name,
-          subtitle: `${stop.place.categoryLabel ?? placeCategoryLabel(stop.place.category)} · 체류 ${stop.stayMinutes}분`,
+          categoryLabel: stop.place.categoryLabel ?? placeCategoryLabel(stop.place.category),
+          stayMinutes: stop.stayMinutes,
           inboundTransit: stop.inboundTransit,
           mealLabel: stop.mealTimeSlot === "LUNCH"
             ? "점심 추천"
@@ -442,35 +447,77 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
                   style={{ transform: `translateX(${offset}px)` }}
                 >
                   {places.map((place, index) => (
-                    <button
+                    <div
                       key={place.id}
-                      type="button"
                       onClick={() => goTo(index)}
-                      className={`relative flex h-48 w-[80%] shrink-0 flex-col justify-end overflow-hidden rounded-3xl bg-linear-to-br p-5 text-left text-white transition-opacity duration-300 ${place.gradient} ${
-                        index === activeIndex ? "" : "opacity-60"
+                      className={`w-[80%] shrink-0 cursor-pointer overflow-hidden rounded-3xl bg-white text-left shadow-sm ring-1 transition-all duration-300 ${
+                        index === activeIndex ? "ring-2 ring-[#2E7DF2]" : "opacity-60 ring-black/5"
                       }`}
                     >
-                      <span className="absolute top-4 left-4 grid size-7 place-items-center rounded-full bg-white text-sm font-bold text-zinc-900">
-                        {place.order}
-                      </span>
-                      <span className="absolute top-4 right-4 flex items-center gap-1.5">
-                        {place.mealLabel && (
-                          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-zinc-900">
-                            {place.mealLabel}
+                      <div
+                        className={`relative flex h-40 flex-col justify-between p-4 text-white ${
+                          !place.image ? `bg-linear-to-br ${place.gradient}` : ""
+                        }`}
+                        style={
+                          place.image
+                            ? {
+                                backgroundImage: `url(${place.image})`,
+                                backgroundSize: "cover",
+                                backgroundPosition: "center",
+                              }
+                            : undefined
+                        }
+                      >
+                        <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-black/30" />
+
+                        <div className="relative flex items-start justify-between">
+                          <span
+                            className="grid size-7 shrink-0 place-items-center rounded-full text-sm font-bold text-white shadow"
+                            style={{ background: place.color }}
+                          >
+                            {place.order}
                           </span>
+                          <span className="flex items-center gap-1.5">
+                            {place.mealLabel && (
+                              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-zinc-900">
+                                {place.mealLabel}
+                              </span>
+                            )}
+                            <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-zinc-700">
+                              {place.time}
+                            </span>
+                          </span>
+                        </div>
+
+                        <div className="relative">
+                          <p className="truncate text-base font-bold">{place.title}</p>
+                          <p className="truncate text-xs text-white/75">{place.categoryLabel}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2 p-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-medium text-zinc-500">
+                            체류 {place.stayMinutes}분
+                          </p>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDetailPlaceId(place.placeId);
+                            }}
+                            className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-500 hover:bg-zinc-200"
+                          >
+                            상세보기
+                          </button>
+                        </div>
+                        {place.waitingMinutesBefore > 0 && (
+                          <p className="text-xs text-zinc-400">
+                            식사 시간까지 {place.waitingMinutesBefore}분 여유
+                          </p>
                         )}
-                        <span className="rounded-full bg-black/30 px-2.5 py-1 text-sm font-semibold">
-                          {place.time}
-                        </span>
-                      </span>
-                      <span className="text-lg font-bold">{place.title}</span>
-                      <span className="mt-1 text-sm text-white/90">{place.subtitle}</span>
-                      {place.waitingMinutesBefore > 0 && (
-                        <span className="mt-1 text-xs text-white/80">
-                          식사 시간까지 {place.waitingMinutesBefore}분 여유
-                        </span>
-                      )}
-                    </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -557,6 +604,13 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
           </p>
         )}
       </div>
+
+      {detailPlaceId != null && (
+        <PlaceDetailSheet
+          placeId={detailPlaceId}
+          onClose={() => setDetailPlaceId(null)}
+        />
+      )}
     </div>
   );
 }

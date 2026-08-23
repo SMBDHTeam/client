@@ -56,6 +56,26 @@ export type RoutePath = {
   coordinates: [number, number][];
 };
 
+export type RouteLineSegment = {
+  mode: string;
+  lineName?: string | null;
+  coordinates: [number, number][];
+};
+
+export type TransferPoint = {
+  name: string;
+  lat: number;
+  lng: number;
+  mode: string;
+  lineName?: string | null;
+};
+
+export type MapMarker = {
+  name: string;
+  lat: number;
+  lng: number;
+};
+
 const PATH_STYLE: Record<
   string,
   { color: string; style: string; weight: number }
@@ -85,6 +105,10 @@ export default function NaverMap({
   onAddPlace?: () => void;
   route?: RoutePoint[];
   paths?: RoutePath[];
+  routeLines?: RouteLineSegment[];
+  transferPoints?: TransferPoint[];
+  startMarker?: MapMarker | null;
+  endMarker?: MapMarker | null;
   activeOrder?: number;
   showRouteLine?: boolean;
   activeRouteOrder?: number | null;

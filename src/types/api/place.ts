@@ -39,3 +39,32 @@ export type PlaceSummary = {
   placeUrl: string | null;
   resolved: boolean;
 };
+
+export type PlaceOperatingInfo = {
+  openingHoursText: string | null;
+  closedDaysText: string | null;
+  useFeeText: string | null;
+  parkingText: string | null;
+  requiresManualCheck: boolean;
+};
+
+export type PlaceImage = {
+  url: string;
+  thumbnailUrl: string | null;
+  copyrightType: string | null;
+};
+
+export type PlaceDetail = {
+  id: number;
+  name: string;
+  category: string | null;
+  categoryLabel: string | null;
+  address: string | null;
+  longitude: number;
+  latitude: number;
+  placeUrl: string | null;
+  primaryImageUrl: string | null;
+  overview: string | null;
+  operatingInfo: PlaceOperatingInfo | null;
+  images: PlaceImage[];
+};
