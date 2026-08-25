@@ -168,7 +168,6 @@ export default function LocationPickerSheet({
                 ? { lat: candidate.latitude, lng: candidate.longitude }
                 : undefined
             }
-            showAddAction={false}
             className="h-full w-full overflow-hidden rounded-2xl"
           />
         </div>
