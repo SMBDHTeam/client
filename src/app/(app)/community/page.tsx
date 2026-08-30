@@ -1,161 +1,25 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Grid3x3, LayoutGrid } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
 import PageFade from "@/components/ui/PageFade";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
+import { getFeed, getPost } from "@/lib/api/posts";
+import { ApiError } from "@/lib/api/client";
+import type { FeedPost, PostDetail } from "@/types/api/post";
 
-type Comment = {
+type LocalComment = {
   id: number;
   author: string;
   text: string;
 };
 
-type Post = {
-  id: number;
-  author: string;
-  avatar: string;
-  images: string[];
-  location: string;
-  description: string;
-  likes: number;
-  likedByMe: boolean;
-  comments: Comment[];
-  tags: CommunityTagId[];
-};
-
-const DUMMY_POSTS: Post[] = [
-  {
-    id: 1,
-    author: "여행자_민지",
-    avatar: "https://i.pravatar.cc/40?img=1",
-    images: ["https://picsum.photos/seed/busan1/600/600", "https://picsum.photos/seed/busan1b/600/600", "https://picsum.photos/seed/busan1c/600/600"],
-    location: "해운대 해수욕장",
-    description: "해운대에서 맞이한 일몰 🌅 부산 최고다",
-    likes: 42,
-    likedByMe: false,
-    tags: ["healing", "nature"],
-    comments: [
-      { id: 1, author: "바다사랑", text: "너무 예쁘다!!" },
-      { id: 2, author: "travel_99", text: "저도 가고싶어요 ㅠㅠ" },
-    ],
-  },
-  {
-    id: 2,
-    author: "부산_탐험가",
-    avatar: "https://i.pravatar.cc/40?img=2",
-    images: ["https://picsum.photos/seed/busan2/600/600", "https://picsum.photos/seed/busan2b/600/600"],
-    location: "광안리 해수욕장",
-    description: "광안대교랑 같이 찍은 사진 🌉",
-    likes: 87,
-    likedByMe: true,
-    tags: ["night", "healing"],
-    comments: [
-      { id: 1, author: "민수야", text: "광안대교 야경 진짜 최고" },
-    ],
-  },
-  {
-    id: 3,
-    author: "푸드러버",
-    avatar: "https://i.pravatar.cc/40?img=3",
-    images: ["https://picsum.photos/seed/busan3/600/600"],
-    location: "깡통시장",
-    description: "부산 깡통시장 야시장 🍢 먹거리 천국",
-    likes: 31,
-    likedByMe: false,
-    tags: ["food", "shopping"],
-    comments: [],
-  },
-  {
-    id: 4,
-    author: "감성여행",
-    avatar: "https://i.pravatar.cc/40?img=4",
-    images: ["https://picsum.photos/seed/busan4/600/600", "https://picsum.photos/seed/busan4b/600/600", "https://picsum.photos/seed/busan4c/600/600"],
-    location: "감천문화마을",
-    description: "알록달록 감천문화마을 🎨",
-    likes: 120,
-    likedByMe: false,
-    tags: ["history", "healing"],
-    comments: [
-      { id: 1, author: "사진작가", text: "구도가 너무 예쁘네요" },
-      { id: 2, author: "여행러", text: "감천은 진짜 포토스팟 맛집" },
-      { id: 3, author: "민지언니", text: "같이 가고 싶었는데ㅠ" },
-    ],
-  },
-  {
-    id: 5,
-    author: "해피트래블",
-    avatar: "https://i.pravatar.cc/40?img=5",
-    images: ["https://picsum.photos/seed/busan5/600/600", "https://picsum.photos/seed/busan5b/600/600"],
-    location: "태종대",
-    description: "태종대 절벽 위에서 본 풍경 😮",
-    likes: 56,
-    likedByMe: false,
-    tags: ["nature", "activity"],
-    comments: [],
-  },
-  {
-    id: 6,
-    author: "카페호퍼",
-    avatar: "https://i.pravatar.cc/40?img=6",
-    images: ["https://picsum.photos/seed/busan6/600/600"],
-    location: "흰여울문화마을",
-    description: "흰여울 카페에서 커피 한 잔 ☕ 뷰가 장난 아님",
-    likes: 78,
-    likedByMe: true,
-    tags: ["cafe", "healing"],
-    comments: [
-      { id: 1, author: "커피러버", text: "여기 어디 카페에요?" },
-    ],
-  },
-  {
-    id: 7,
-    author: "산악인_준호",
-    avatar: "https://i.pravatar.cc/40?img=7",
-    images: ["https://picsum.photos/seed/busan7/600/600", "https://picsum.photos/seed/busan7b/600/600"],
-    location: "금정산",
-    description: "금정산 등반 완료 🏔️ 뷰 실화냐",
-    likes: 19,
-    likedByMe: false,
-    tags: ["nature", "activity"],
-    comments: [],
-  },
-  {
-    id: 8,
-    author: "시장탐방",
-    avatar: "https://i.pravatar.cc/40?img=8",
-    images: ["https://picsum.photos/seed/busan8/600/600", "https://picsum.photos/seed/busan8b/600/600", "https://picsum.photos/seed/busan8c/600/600"],
-    location: "자갈치시장",
-    description: "자갈치시장에서 회 한 접시 🐟",
-    likes: 63,
-    likedByMe: false,
-    tags: ["food", "shopping"],
-    comments: [
-      { id: 1, author: "맛집헌터", text: "얼마였어요?" },
-      { id: 2, author: "회고수", text: "신선해 보인다" },
-    ],
-  },
-  {
-    id: 9,
-    author: "야경킬러",
-    avatar: "https://i.pravatar.cc/40?img=9",
-    images: ["https://picsum.photos/seed/busan9/600/600"],
-    location: "부산타워",
-    description: "부산타워에서 내려다 본 야경 ✨",
-    likes: 95,
-    likedByMe: false,
-    tags: ["night"],
-    comments: [
-      { id: 1, author: "밤산책러", text: "야경 미쳤다" },
-    ],
-  },
-];
-
 const ASPECT_RATIOS = ["aspect-[3/4]", "aspect-square", "aspect-[4/5]", "aspect-[3/4]", "aspect-square", "aspect-[4/5]"];
 
-function GridTile({ post, onClick, index }: { post: Post; onClick: () => void; index: number }) {
+function GridTile({ post, onClick, index }: { post: FeedPost; onClick: () => void; index: number }) {
   const aspectClass = ASPECT_RATIOS[index % ASPECT_RATIOS.length];
   return (
     <button
@@ -163,36 +27,71 @@ function GridTile({ post, onClick, index }: { post: Post; onClick: () => void; i
       onClick={onClick}
       className={`group relative mb-2 w-full overflow-hidden rounded-2xl bg-zinc-100 ${aspectClass}`}
     >
-      <img
-        src={post.images[0]}
-        alt={post.location}
-        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-      />
+      {post.thumbnailUrl && (
+        <img
+          src={post.thumbnailUrl}
+          alt={post.placeName ?? post.content}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      )}
       <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
-      {post.images.length > 1 && (
+      {post.mediaCount > 1 && (
         <div className="absolute right-2 top-2 flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5">
-          <span className="text-[10px] font-semibold text-white">{post.images.length}</span>
+          <span className="text-[10px] font-semibold text-white">{post.mediaCount}</span>
         </div>
       )}
       <div className="absolute bottom-0 left-0 right-0 p-3">
-        <p className="truncate text-xs font-semibold text-white drop-shadow">{post.location}</p>
+        <p className="truncate text-xs font-semibold text-white drop-shadow">{post.placeName ?? post.content}</p>
         <div className="mt-0.5 flex gap-2 text-[11px] text-white/80">
-          <span className="flex items-center gap-0.5"><Heart size={10} className="fill-white/80 stroke-none" /> {post.likes}</span>
-          <span className="flex items-center gap-0.5"><MessageCircle size={10} /> {post.comments.length}</span>
+          <span className="flex items-center gap-0.5"><Heart size={10} className="fill-white/80 stroke-none" /> {post.likeCount}</span>
+          <span className="flex items-center gap-0.5"><MessageCircle size={10} /> {post.commentCount}</span>
         </div>
       </div>
     </button>
   );
 }
 
+function SquareGridTile({ post, onClick }: { post: FeedPost; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative aspect-square w-full overflow-hidden bg-zinc-100"
+    >
+      {post.thumbnailUrl && (
+        <img
+          src={post.thumbnailUrl}
+          alt={post.placeName ?? post.content}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      )}
+      {post.mediaCount > 1 && (
+        <div className="absolute right-1.5 top-1.5 flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5">
+          <span className="text-[10px] font-semibold text-white">{post.mediaCount}</span>
+        </div>
+      )}
+      <div className="absolute inset-0 flex items-center justify-center gap-4 bg-black/0 opacity-0 transition-opacity duration-200 group-hover:bg-black/30 group-hover:opacity-100">
+        <span className="flex items-center gap-1 text-xs font-semibold text-white">
+          <Heart size={13} className="fill-white stroke-none" /> {post.likeCount}
+        </span>
+        <span className="flex items-center gap-1 text-xs font-semibold text-white">
+          <MessageCircle size={13} className="fill-white stroke-none" /> {post.commentCount}
+        </span>
+      </div>
+    </button>
+  );
+}
+
 function CommentSheet({
-  post,
+  commentCount,
+  comments,
   onClose,
   onAddComment,
 }: {
-  post: Post;
+  commentCount: number;
+  comments: LocalComment[];
   onClose: () => void;
-  onAddComment: (postId: number, text: string) => void;
+  onAddComment: (text: string) => void;
 }) {
   const [commentText, setCommentText] = useState("");
   const commentsEndRef = useRef<HTMLDivElement>(null);
@@ -200,7 +99,7 @@ function CommentSheet({
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!commentText.trim()) return;
-    onAddComment(post.id, commentText.trim());
+    onAddComment(commentText.trim());
     setCommentText("");
     setTimeout(() => {
       commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -217,16 +116,16 @@ function CommentSheet({
       transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
     >
       <div className="flex items-center border-b px-4 py-3">
-        <h3 className="flex-1 text-sm font-bold">댓글 {post.comments.length}개</h3>
+        <h3 className="flex-1 text-sm font-bold">댓글 {commentCount}개</h3>
         <button type="button" onClick={onClose} className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100">
           <X size={16} />
         </button>
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        {post.comments.length === 0 && (
+        {comments.length === 0 && (
           <p className="text-xs text-zinc-400">첫 댓글을 남겨보세요</p>
         )}
-        {post.comments.map((c) => (
+        {comments.map((c) => (
           <div key={c.id} className="flex gap-2 text-sm">
             <span className="font-semibold shrink-0">{c.author}</span>
             <span className="text-zinc-700">{c.text}</span>
@@ -257,17 +156,39 @@ function CommentSheet({
 
 function ModalContent({
   post,
+  detail,
+  detailLoading,
+  detailError,
   onClose,
-  onToggleLike,
-  onAddComment,
 }: {
-  post: Post;
+  post: FeedPost;
+  detail: PostDetail | null;
+  detailLoading: boolean;
+  detailError: string | null;
   onClose: () => void;
-  onToggleLike: (id: number) => void;
-  onAddComment: (postId: number, text: string) => void;
 }) {
   const [imgIndex, setImgIndex] = useState(0);
   const [showComments, setShowComments] = useState(false);
+  const [likedOverride, setLikedOverride] = useState<boolean | null>(null);
+  const [comments, setComments] = useState<LocalComment[]>([]);
+
+  const baseLiked = detail?.liked ?? post.liked;
+  const baseLikeCount = detail?.likeCount ?? post.likeCount;
+  const baseCommentCount = detail?.commentCount ?? post.commentCount;
+
+  const liked = likedOverride ?? baseLiked;
+  const likeCount = baseLikeCount + (liked === baseLiked ? 0 : liked ? 1 : -1);
+  const commentCount = baseCommentCount + comments.length;
+
+  function toggleLike() {
+    setLikedOverride(!liked);
+  }
+
+  function addComment(text: string) {
+    setComments((prev) => [...prev, { id: Date.now(), author: "나", text }]);
+  }
+
+  const images = detail ? detail.mediaList.map((m) => m.url) : post.thumbnailUrl ? [post.thumbnailUrl] : [];
 
   return (
     <div
@@ -276,37 +197,51 @@ function ModalContent({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center gap-3 border-b px-4 py-3">
-        <img src={post.avatar} alt={post.author} className="size-8 rounded-full object-cover" />
+        {post.author.profileImageUrl && (
+          <img src={post.author.profileImageUrl} alt={post.author.nickname} className="size-8 rounded-full object-cover" />
+        )}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold leading-tight">{post.author}</p>
-          <p className="flex items-center gap-1 text-xs text-zinc-400"><MapPin size={10} />{post.location}</p>
+          <p className="text-sm font-semibold leading-tight">{post.author.nickname}</p>
+          {post.placeName && (
+            <p className="flex items-center gap-1 text-xs text-zinc-400"><MapPin size={10} />{post.placeName}</p>
+          )}
         </div>
         <button type="button" onClick={onClose} className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100"><X size={16} /></button>
       </div>
 
-      <div className="relative aspect-square w-full overflow-hidden">
+      <div className="relative aspect-square w-full overflow-hidden bg-zinc-100">
+        {detailLoading && (
+          <div className="absolute inset-0 grid place-items-center">
+            <div className="size-8 animate-spin rounded-full border-4 border-zinc-200 border-t-[#2E7DF2]" />
+          </div>
+        )}
+        {detailError && !detailLoading && (
+          <div className="absolute inset-0 grid place-items-center px-6 text-center text-xs text-red-500">
+            {detailError}
+          </div>
+        )}
         <div
           className="flex h-full transition-transform duration-300 ease-in-out"
           style={{ transform: `translateX(-${imgIndex * 100}%)` }}
         >
-          {post.images.map((src, i) => (
-            <img key={i} src={src} alt={`${post.location} ${i + 1}`} className="h-full w-full shrink-0 object-cover" />
+          {images.map((src, i) => (
+            <img key={i} src={src} alt={`${post.placeName ?? "게시물"} ${i + 1}`} className="h-full w-full shrink-0 object-cover" />
           ))}
         </div>
-        {post.images.length > 1 && (
+        {images.length > 1 && (
           <>
             {imgIndex > 0 && (
               <button type="button" onClick={() => setImgIndex((i) => i - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 grid size-7 place-items-center rounded-full bg-white/90 text-zinc-800 shadow">
                 <ChevronLeft size={16} />
               </button>
             )}
-            {imgIndex < post.images.length - 1 && (
+            {imgIndex < images.length - 1 && (
               <button type="button" onClick={() => setImgIndex((i) => i + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 grid size-7 place-items-center rounded-full bg-white/90 text-zinc-800 shadow">
                 <ChevronRight size={16} />
               </button>
             )}
             <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
-              {post.images.map((_, i) => (
+              {images.map((_, i) => (
                 <button key={i} type="button" onClick={() => setImgIndex(i)} className={`size-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/40"}`} />
               ))}
             </div>
@@ -315,35 +250,30 @@ function ModalContent({
       </div>
 
       <div className="flex items-center gap-3 px-4 pt-3 pb-1">
-        <button type="button" onClick={() => onToggleLike(post.id)} className="transition-transform active:scale-90">
-          <Heart size={24} className={post.likedByMe ? "fill-red-500 stroke-red-500" : "stroke-zinc-700"} />
+        <button type="button" onClick={toggleLike} className="transition-transform active:scale-90">
+          <Heart size={24} className={liked ? "fill-red-500 stroke-red-500" : "stroke-zinc-700"} />
         </button>
         <button type="button" onClick={() => setShowComments(true)} className="text-zinc-700">
           <MessageCircle size={24} />
         </button>
-        <span className="ml-1 text-sm font-semibold">{post.likes}명이 좋아해요</span>
+        <span className="ml-1 text-sm font-semibold">{likeCount}명이 좋아해요</span>
       </div>
 
       <div className="px-4 pb-2">
-        <span className="text-sm font-semibold">{post.author}</span>
-        <span className="text-sm text-zinc-700"> {post.description}</span>
+        <span className="text-sm font-semibold">{post.author.nickname}</span>
+        <span className="text-sm text-zinc-700"> {detail?.content ?? post.content}</span>
       </div>
 
       <div className="px-4 pb-4 space-y-1 overflow-hidden" style={{ height: "52px" }}>
-        {post.comments.slice(0, 2).map((c) => (
+        {comments.slice(0, 2).map((c) => (
           <div key={c.id} className="flex gap-2 text-sm">
             <span className="font-semibold shrink-0">{c.author}</span>
             <span className="text-zinc-700 truncate">{c.text}</span>
           </div>
         ))}
-        {post.comments.length > 2 && (
-          <button type="button" onClick={() => setShowComments(true)} className="text-xs text-zinc-400 mt-0.5">
-            댓글 {post.comments.length}개 모두 보기
-          </button>
-        )}
-        {post.comments.length === 0 && (
+        {comments.length === 0 && (
           <button type="button" onClick={() => setShowComments(true)} className="text-xs text-zinc-400">
-            첫 댓글을 남겨보세요
+            댓글 {commentCount}개 보기
           </button>
         )}
       </div>
@@ -351,9 +281,10 @@ function ModalContent({
       <AnimatePresence>
         {showComments && (
           <CommentSheet
-            post={post}
+            commentCount={commentCount}
+            comments={comments}
             onClose={() => setShowComments(false)}
-            onAddComment={onAddComment}
+            onAddComment={addComment}
           />
         )}
       </AnimatePresence>
@@ -363,14 +294,16 @@ function ModalContent({
 
 function PostModal({
   post,
+  detail,
+  detailLoading,
+  detailError,
   onClose,
-  onToggleLike,
-  onAddComment,
 }: {
-  post: Post;
+  post: FeedPost;
+  detail: PostDetail | null;
+  detailLoading: boolean;
+  detailError: string | null;
   onClose: () => void;
-  onToggleLike: (id: number) => void;
-  onAddComment: (postId: number, text: string) => void;
 }) {
   return (
     <motion.div
@@ -383,20 +316,91 @@ function PostModal({
     >
       <ModalContent
         post={post}
+        detail={detail}
+        detailLoading={detailLoading}
+        detailError={detailError}
         onClose={onClose}
-        onToggleLike={onToggleLike}
-        onAddComment={onAddComment}
       />
     </motion.div>
   );
 }
 
 export default function CommunityPage() {
-  const [posts, setPosts] = useState<Post[]>(DUMMY_POSTS);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const { data: session, status } = useSession();
+  const userId = session?.user?.id;
+
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [nextCursor, setNextCursor] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [feedError, setFeedError] = useState<string | null>(null);
+
+  const [selectedFeedPost, setSelectedFeedPost] = useState<FeedPost | null>(null);
+  const [detail, setDetail] = useState<PostDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+
   const [activeTag, setActiveTag] = useState<CommunityTagId | null>(null);
+  const [viewMode, setViewMode] = useState<"tile" | "grid">("tile");
   const tagScrollRef = useRef<HTMLDivElement>(null);
   const tagDragRef = useRef({ dragging: false, startX: 0, scrollLeft: 0 });
+
+  const loadFeedRequestRef = useRef(0);
+
+  const loadFeed = useCallback(async () => {
+    const requestId = ++loadFeedRequestRef.current;
+    setLoading(true);
+    setFeedError(null);
+    try {
+      const res = await getFeed({ size: 20 }, userId);
+      if (loadFeedRequestRef.current !== requestId) return;
+      setPosts(res.items);
+      setNextCursor(res.nextCursor);
+    } catch (err) {
+      if (loadFeedRequestRef.current !== requestId) return;
+      setFeedError(err instanceof ApiError ? err.payload.message : "피드를 불러오지 못했습니다.");
+    } finally {
+      if (loadFeedRequestRef.current === requestId) setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (status === "loading") return;
+    queueMicrotask(() => {
+      void loadFeed();
+    });
+  }, [status, loadFeed]);
+
+  async function loadMore() {
+    if (nextCursor == null || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await getFeed({ cursor: nextCursor, size: 20 }, userId);
+      setPosts((prev) => [...prev, ...res.items]);
+      setNextCursor(res.nextCursor);
+    } catch (err) {
+      setFeedError(err instanceof ApiError ? err.payload.message : "피드를 불러오지 못했습니다.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  function openPost(post: FeedPost) {
+    setSelectedFeedPost(post);
+    setDetail(null);
+    setDetailError(null);
+    setDetailLoading(true);
+    getPost(post.id, userId)
+      .then((res) => setDetail(res))
+      .catch((err) => setDetailError(err instanceof ApiError ? err.payload.message : "게시물을 불러오지 못했습니다."))
+      .finally(() => setDetailLoading(false));
+  }
+
+  function closePost() {
+    setSelectedFeedPost(null);
+    setDetail(null);
+    setDetailError(null);
+  }
 
   function onTagMouseDown(e: React.MouseEvent) {
     const el = tagScrollRef.current;
@@ -418,46 +422,10 @@ export default function CommunityPage() {
     if (tagScrollRef.current) tagScrollRef.current.style.cursor = "grab";
   }
 
-  const filteredPosts = activeTag
-    ? posts.filter((p) => p.tags.includes(activeTag))
-    : posts;
+  const activeTagLabel = activeTag ? COMMUNITY_TAGS.find((t) => t.id === activeTag)?.label ?? null : null;
+  const filteredPosts = activeTagLabel ? posts.filter((p) => p.hashtags.includes(activeTagLabel)) : posts;
 
-  function toggleLike(id: number) {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, likedByMe: !p.likedByMe, likes: p.likedByMe ? p.likes - 1 : p.likes + 1 }
-          : p,
-      ),
-    );
-    if (selectedPost?.id === id) {
-      setSelectedPost((prev) =>
-        prev
-          ? { ...prev, likedByMe: !prev.likedByMe, likes: prev.likedByMe ? prev.likes - 1 : prev.likes + 1 }
-          : null,
-      );
-    }
-  }
-
-  function addComment(postId: number, text: string) {
-    const newComment: Comment = {
-      id: Date.now(),
-      author: "나",
-      text,
-    };
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p,
-      ),
-    );
-    setSelectedPost((prev) =>
-      prev?.id === postId
-        ? { ...prev, comments: [...prev.comments, newComment] }
-        : prev,
-    );
-  }
-
-  const topPosts = [...posts].sort((a, b) => b.likes - a.likes).slice(0, 5);
+  const topPosts = [...posts].sort((a, b) => b.likeCount - a.likeCount).slice(0, 5);
   const popularScrollRef = useRef<HTMLDivElement>(null);
   const popularDragRef = useRef({ dragging: false, startX: 0, scrollLeft: 0 });
 
@@ -526,7 +494,19 @@ export default function CommunityPage() {
         <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-white to-transparent" />
       </div>
 
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      <div className="flex flex-1 flex-col overflow-y-auto scrollbar-none">
+      {loading ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20">
+          <div className="size-8 animate-spin rounded-full border-4 border-zinc-200 border-t-[#2E7DF2]" />
+          <p className="text-sm text-zinc-400">피드를 불러오는 중...</p>
+        </div>
+      ) : feedError ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20 px-6 text-center">
+          <p className="text-sm text-red-500">{feedError}</p>
+        </div>
+      ) : (
+        <>
+      {topPosts.length > 0 && (
       <section className="mb-5">
         <div className="flex items-center px-4 pb-2 pt-1">
           <h2 className="flex-1 text-sm font-bold text-zinc-800">인기 후기 🔥</h2>
@@ -551,61 +531,130 @@ export default function CommunityPage() {
             <button
               key={post.id}
               type="button"
-              onClick={() => setSelectedPost(post)}
+              onClick={() => openPost(post)}
               className="group relative h-48 w-36 shrink-0 overflow-hidden rounded-2xl bg-zinc-100"
             >
-              <img
-                src={post.images[0]}
-                alt={post.location}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
+              {post.thumbnailUrl && (
+                <img
+                  src={post.thumbnailUrl}
+                  alt={post.placeName ?? post.content}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              )}
               <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                <p className="truncate text-[11px] font-semibold text-white">{post.location}</p>
+                <p className="truncate text-[11px] font-semibold text-white">{post.placeName ?? post.content}</p>
                 <div className="mt-0.5 flex items-center gap-1 text-[10px] text-white/80">
                   <Heart size={9} className="fill-red-400 stroke-none" />
-                  <span>{post.likes}</span>
+                  <span>{post.likeCount}</span>
                 </div>
               </div>
               <div className="absolute left-2 top-2">
-                <img src={post.avatar} alt={post.author} className="size-6 rounded-full border border-white object-cover" />
+                {post.author.profileImageUrl && (
+                  <img src={post.author.profileImageUrl} alt={post.author.nickname} className="size-6 rounded-full border border-white object-cover" />
+                )}
               </div>
             </button>
           ))}
         </div>
       </section>
+      )}
 
       <section>
-        <h2 className="px-4 pb-2 text-sm font-bold text-zinc-800">최신 피드</h2>
+        <div className="flex items-center px-4 pb-2">
+          <h2 className="flex-1 text-sm font-bold text-zinc-800">최신 피드</h2>
+          <div className="flex gap-1 rounded-full bg-zinc-100 p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode("tile")}
+              aria-label="타일형 보기"
+              className={`grid size-6 place-items-center rounded-full transition-colors ${
+                viewMode === "tile" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400"
+              }`}
+            >
+              <LayoutGrid size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              aria-label="그리드형 보기"
+              className={`grid size-6 place-items-center rounded-full transition-colors ${
+                viewMode === "grid" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400"
+              }`}
+            >
+              <Grid3x3 size={13} />
+            </button>
+          </div>
+        </div>
         {filteredPosts.length === 0 ? (
           <p className="py-12 text-center text-sm text-zinc-400">해당 태그의 게시물이 없어요</p>
         ) : (
-          <div className="flex gap-2 px-3 pb-6">
-            {[0, 1].map((col) => (
-              <div key={col} className="flex flex-1 flex-col">
-                {filteredPosts
-                  .filter((_, i) => i % 2 === col)
-                  .map((post, i) => (
-                    <GridTile
-                      key={post.id}
-                      post={post}
-                      index={col === 0 ? i * 2 : i * 2 + 1}
-                      onClick={() => setSelectedPost(post)}
-                    />
-                  ))}
-              </div>
-            ))}
+          <AnimatePresence mode="wait" initial={false}>
+            {viewMode === "tile" ? (
+              <motion.div
+                key="tile"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1, ease: "easeOut" }}
+                className="flex gap-2 px-3 pb-6"
+              >
+                {[0, 1].map((col) => (
+                  <div key={col} className="flex flex-1 flex-col">
+                    {filteredPosts
+                      .filter((_, i) => i % 2 === col)
+                      .map((post, i) => (
+                        <GridTile
+                          key={post.id}
+                          post={post}
+                          index={col === 0 ? i * 2 : i * 2 + 1}
+                          onClick={() => openPost(post)}
+                        />
+                      ))}
+                  </div>
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="grid"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1, ease: "easeOut" }}
+                className="grid grid-cols-3 gap-0.5 pb-6"
+              >
+                {filteredPosts.map((post) => (
+                  <SquareGridTile key={post.id} post={post} onClick={() => openPost(post)} />
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
+
+        {!activeTagLabel && nextCursor != null && (
+          <div className="flex justify-center pb-8">
+            <button
+              type="button"
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-200 disabled:opacity-50"
+            >
+              {loadingMore ? "불러오는 중..." : "더 보기"}
+            </button>
           </div>
         )}
       </section>
+        </>
+      )}
 
       <AnimatePresence>
-        {selectedPost && (
+        {selectedFeedPost && (
           <PostModal
-            post={selectedPost}
-            onClose={() => setSelectedPost(null)}
-            onToggleLike={toggleLike}
-            onAddComment={addComment}
+            post={selectedFeedPost}
+            detail={detail}
+            detailLoading={detailLoading}
+            detailError={detailError}
+            onClose={closePost}
           />
         )}
       </AnimatePresence>
