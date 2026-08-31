@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/axios";
 import { getSchedulePreview } from "@/lib/api/schedule-previews";
 import { createSchedule } from "@/lib/api/schedules";
 import { useTripDraft } from "@/store/trip-draft";

@@ -1,13 +1,12 @@
 import type { CreateSchedulePreviewRequest, SchedulePreview } from "@/types/api/schedule-preview";
-import { requestJson } from "./client";
+import apiClient from "./axios";
 
-export function createSchedulePreview(request: CreateSchedulePreviewRequest) {
-  return requestJson<SchedulePreview>("/schedule-previews", {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
+export async function createSchedulePreview(request: CreateSchedulePreviewRequest) {
+  const { data } = await apiClient.post<SchedulePreview>("/schedule-previews", request);
+  return data;
 }
 
-export function getSchedulePreview(previewId: string) {
-  return requestJson<SchedulePreview>(`/schedule-previews/${previewId}`);
+export async function getSchedulePreview(previewId: string) {
+  const { data } = await apiClient.get<SchedulePreview>(`/schedule-previews/${previewId}`);
+  return data;
 }

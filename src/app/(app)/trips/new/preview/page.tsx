@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppHeader from "@/components/layout/AppHeader";
-import { ApiError } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/axios";
 import { getTripQuestions } from "@/lib/api/questions";
 import { createSchedulePreview, getSchedulePreview } from "@/lib/api/schedule-previews";
 import { useTripDraft } from "@/store/trip-draft";

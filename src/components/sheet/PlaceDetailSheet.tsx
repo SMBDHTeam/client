@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CircleDollarSign, Clock, Moon, MapPin, SquareParking } from "lucide-react";
-import { ApiError } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/axios";
 import { getPlaceDetail } from "@/lib/api/places";
 import type { PlaceDetail, PlaceImage } from "@/types/api/place";
 

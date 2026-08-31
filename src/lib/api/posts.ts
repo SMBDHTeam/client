@@ -1,7 +1,15 @@
 import type { CreatePostRequest, FeedResponse, PostDetail } from "@/types/api/post";
 import { apiBaseUrl } from "./config";
-import { ApiError } from "./client";
-import { requestJson } from "./client";
+import { ApiError } from "./axios";
+import apiClient from "./axios";
+
+type FeedParams = {
+  cursor?: number;
+  size?: number;
+  feed?: string;
+  placeId?: number;
+  hashtag?: string;
+};
 
 type UploadedMedia = {
   url: string;
@@ -14,57 +22,32 @@ export async function uploadMedia(files: File[], userId: string): Promise<Upload
     form.append("files", file);
   }
 
-  const response = await fetch(`${apiBaseUrl}/media`, {
-    method: "POST",
+  const { data } = await apiClient.post<{ items: UploadedMedia[] }>("/media", form, {
     headers: { "X-User-Id": userId },
-    body: form,
   });
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({
-      code: "UPLOAD_ERROR",
-      message: "이미지 업로드에 실패했습니다.",
-    }));
-    throw new ApiError(response.status, payload);
-  }
-
-  const data = (await response.json()) as { items: UploadedMedia[] };
   return data.items;
 }
 
-type FeedParams = {
-  cursor?: number;
-  size?: number;
-  feed?: string;
-  placeId?: number;
-  hashtag?: string;
-};
-
-function buildQuery(params: Record<string, string | number | undefined>) {
-  const qs = Object.entries(params)
-    .filter(([, v]) => v !== undefined)
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-    .join("&");
-  return qs ? `?${qs}` : "";
-}
-
-export function getFeed(params: FeedParams = {}, userId?: string) {
-  const query = buildQuery(params as Record<string, string | number | undefined>);
-  return requestJson<FeedResponse>(`/posts${query}`, {
+export async function getFeed(params: FeedParams = {}, userId?: string) {
+  const { data } = await apiClient.get<FeedResponse>("/posts", {
+    params,
     headers: userId ? { "X-User-Id": userId } : {},
   });
+  return data;
 }
 
-export function getPost(postId: number, userId?: string) {
-  return requestJson<PostDetail>(`/posts/${postId}`, {
+export async function getPost(postId: number, userId?: string) {
+  const { data } = await apiClient.get<PostDetail>(`/posts/${postId}`, {
     headers: userId ? { "X-User-Id": userId } : {},
   });
+  return data;
 }
 
-export function createPost(body: CreatePostRequest, userId: string) {
-  return requestJson<PostDetail>("/posts", {
-    method: "POST",
-    body: JSON.stringify(body),
+export async function createPost(body: CreatePostRequest, userId: string) {
+  const { data } = await apiClient.post<PostDetail>("/posts", body, {
     headers: { "X-User-Id": userId },
   });
+  return data;
 }
+
+export { ApiError, apiBaseUrl };

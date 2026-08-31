@@ -5,10 +5,11 @@ import type {
   PlaceSummary,
   ResolvedPlace,
 } from "@/types/api/place";
-import { requestJson } from "./client";
+import apiClient from "./axios";
 
-export function getPlaceDetail(placeId: number) {
-  return requestJson<PlaceDetail>(`/places/${placeId}`);
+export async function getPlaceDetail(placeId: number) {
+  const { data } = await apiClient.get<PlaceDetail>(`/places/${placeId}`);
+  return data;
 }
 
 async function enrichPlaceImages(items: PlaceSearchItem[], signal?: AbortSignal) {
@@ -41,8 +42,6 @@ async function enrichPlaceImages(items: PlaceSearchItem[], signal?: AbortSignal)
 export async function searchPlaces(keyword: string, signal?: AbortSignal) {
   const query = encodeURIComponent(keyword);
 
-  // 네이버 지역검색을 1차로 쓴다. 관광 API 적재분만으로는 커버리지가 좁아
-  // "부산역" 같은 질의에서도 결과가 거의 나오지 않았다.
   try {
     const response = await fetch(`/api/places/search?keyword=${query}`, { signal });
     if (!response.ok) throw new Error("장소를 검색하지 못했습니다.");
@@ -54,14 +53,14 @@ export async function searchPlaces(keyword: string, signal?: AbortSignal) {
     if (signal?.aborted) throw cause;
   }
 
-  // 네이버가 실패하거나 결과가 없으면 내부 적재분으로 되돌아간다.
-  return requestJson<PlaceSearchResponse>(
+  const { data } = await apiClient.get<PlaceSearchResponse>(
     `/places?keyword=${query}&scope=INTERNAL&size=20`,
     { signal },
   );
+  return data;
 }
 
-export function resolvePlace(place: PlaceSearchItem) {
+export async function resolvePlace(place: PlaceSearchItem) {
   if (place.placeId !== null && place.resolved) {
     return Promise.resolve({
       ...place,
@@ -70,19 +69,17 @@ export function resolvePlace(place: PlaceSearchItem) {
       operatingInfoAvailable: true,
     } satisfies ResolvedPlace);
   }
-  return requestJson<ResolvedPlace>("/places/resolve", {
-    method: "POST",
-    body: JSON.stringify({
-      source: place.source,
-      externalId: place.externalId,
-      name: place.name,
-      category: place.category,
-      address: place.address,
-      longitude: place.longitude,
-      latitude: place.latitude,
-      placeUrl: place.placeUrl,
-    }),
+  const { data } = await apiClient.post<ResolvedPlace>("/places/resolve", {
+    source: place.source,
+    externalId: place.externalId,
+    name: place.name,
+    category: place.category,
+    address: place.address,
+    longitude: place.longitude,
+    latitude: place.latitude,
+    placeUrl: place.placeUrl,
   });
+  return data;
 }
 
 type PlaceGeoSearchParams = {
@@ -92,19 +89,17 @@ type PlaceGeoSearchParams = {
   keyword?: string;
 };
 
-function qs(params: Record<string, string | number | undefined>): string {
+export async function searchPlacesGeo(params: PlaceGeoSearchParams): Promise<{ items: PlaceSummary[] }> {
+  const res = await fetch(`/api/v1/places${buildQs(params)}`);
+  if (!res.ok) throw new Error(`장소 검색 실패 (${res.status})`);
+  return res.json();
+}
+
+function buildQs(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== "") search.set(key, String(value));
   }
   const str = search.toString();
   return str ? `?${str}` : "";
-}
-
-export async function searchPlacesGeo(
-  params: PlaceGeoSearchParams,
-): Promise<{ items: PlaceSummary[] }> {
-  const res = await fetch(`/api/v1/places${qs({ ...params })}`);
-  if (!res.ok) throw new Error(`장소 검색 실패 (${res.status})`);
-  return res.json();
 }

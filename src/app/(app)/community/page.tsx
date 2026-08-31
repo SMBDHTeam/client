@@ -8,7 +8,7 @@ import AppHeader from "@/components/layout/AppHeader";
 import PageFade from "@/components/ui/PageFade";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
 import { getFeed, getPost } from "@/lib/api/posts";
-import { ApiError } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/axios";
 import type { FeedPost, PostDetail } from "@/types/api/post";
 
 type LocalComment = {

@@ -1,11 +1,11 @@
 import type { TripQuestionsResponse } from "@/types/api/question";
-import { requestJson } from "./client";
+import apiClient from "./axios";
 
 let questionsRequest: Promise<TripQuestionsResponse> | null = null;
 
 export function getTripQuestions() {
   if (!questionsRequest) {
-    questionsRequest = requestJson<TripQuestionsResponse>("/trip-questions");
+    questionsRequest = apiClient.get<TripQuestionsResponse>("/trip-questions").then((res) => res.data);
     questionsRequest.catch(() => { questionsRequest = null; });
   }
   return questionsRequest;
