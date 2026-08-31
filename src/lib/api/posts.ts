@@ -95,6 +95,20 @@ export async function unbookmarkPost(postId: number, userId: string): Promise<{ 
   return data;
 }
 
+export async function likeComment(postId: number, commentId: number, userId: string): Promise<LikeResponse> {
+  const { data } = await apiClient.post<LikeResponse>(`/posts/${postId}/comments/${commentId}/likes`, null, {
+    headers: { "X-User-Id": userId },
+  });
+  return data;
+}
+
+export async function unlikeComment(postId: number, commentId: number, userId: string): Promise<LikeResponse> {
+  const { data } = await apiClient.delete<LikeResponse>(`/posts/${postId}/comments/${commentId}/likes`, {
+    headers: { "X-User-Id": userId },
+  });
+  return data;
+}
+
 export async function likePost(postId: number, userId: string): Promise<LikeResponse> {
   const { data } = await apiClient.post<LikeResponse>(`/posts/${postId}/likes`, null, {
     headers: { "X-User-Id": userId },

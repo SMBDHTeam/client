@@ -3,8 +3,65 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
-import { bookmarkPost, createComment, getComments, likePost, unbookmarkPost, unlikePost } from "@/lib/api/posts";
+import { bookmarkPost, createComment, getComments, likeComment, unlikeComment, likePost, unbookmarkPost, unlikePost } from "@/lib/api/posts";
 import type { FeedPost, PostComment, PostDetail } from "@/types/api/post";
+
+function CommentItem({
+  comment,
+  postId,
+  userId,
+  onReply,
+  isReply,
+}: {
+  comment: PostComment;
+  postId: number;
+  userId: string | undefined;
+  onReply: (commentId: number, nickname: string) => void;
+  isReply?: boolean;
+}) {
+  const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
+  const liked = likeState?.liked ?? comment.liked;
+  const likeCount = likeState?.likeCount ?? comment.likeCount;
+
+  async function toggleLike() {
+    if (!userId) return;
+    try {
+      const result = liked
+        ? await unlikeComment(postId, comment.id, userId)
+        : await likeComment(postId, comment.id, userId);
+      setLikeState(result);
+    } catch {
+      //
+    }
+  }
+
+  return (
+    <div className={`flex gap-2 text-sm ${isReply ? "pl-9" : ""}`}>
+      {comment.author.profileImageUrl ? (
+        <img src={comment.author.profileImageUrl} alt={comment.author.nickname} className="size-7 shrink-0 rounded-full object-cover" />
+      ) : (
+        <div className="size-7 shrink-0 rounded-full bg-zinc-200" />
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <span className="font-semibold">{comment.author.nickname}</span>
+            <span className="ml-1.5 text-zinc-700">{comment.content}</span>
+          </div>
+          <button type="button" onClick={toggleLike} className="shrink-0 flex items-center gap-0.5 text-zinc-400 active:scale-90 transition-transform">
+            <Heart size={13} className={liked ? "fill-red-500 stroke-red-500" : ""} />
+            {likeCount > 0 && <span className="text-[11px]">{likeCount}</span>}
+          </button>
+        </div>
+        {!isReply && (
+          <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="mt-0.5 text-xs text-zinc-400">
+            답글 달기
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function CommentSheet({
   postId,
@@ -21,6 +78,8 @@ function CommentSheet({
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ id: number; nickname: string } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,14 +90,32 @@ function CommentSheet({
       .finally(() => setLoading(false));
   }, [postId, userId]);
 
+  function handleReply(commentId: number, nickname: string) {
+    setReplyTo({ id: commentId, nickname });
+    inputRef.current?.focus();
+  }
+
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!commentText.trim() || !userId || submitting) return;
     setSubmitting(true);
     try {
-      const newComment = await createComment(postId, { content: commentText.trim() }, userId);
-      setComments((prev) => [...prev, newComment]);
+      const newComment = await createComment(
+        postId,
+        { content: commentText.trim(), parentId: replyTo?.id },
+        userId,
+      );
+      if (replyTo) {
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === replyTo.id ? { ...c, replies: [...c.replies, newComment] } : c,
+          ),
+        );
+      } else {
+        setComments((prev) => [...prev, newComment]);
+      }
       setCommentText("");
+      setReplyTo(null);
       setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: "smooth" }), 0);
     } catch {
       //
@@ -62,41 +139,49 @@ function CommentSheet({
           <X size={16} />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
         {loading && <div className="flex justify-center py-4"><div className="size-5 animate-spin rounded-full border-2 border-zinc-200 border-t-[#2E7DF2]" /></div>}
         {!loading && comments.length === 0 && (
           <p className="text-xs text-zinc-400">첫 댓글을 남겨보세요</p>
         )}
         {comments.map((c) => (
-          <div key={c.id} className="flex gap-2 text-sm">
-            {c.author.profileImageUrl && (
-              <img src={c.author.profileImageUrl} alt={c.author.nickname} className="size-7 shrink-0 rounded-full object-cover" />
-            )}
-            <div>
-              <span className="font-semibold">{c.author.nickname}</span>
-              <span className="ml-1.5 text-zinc-700">{c.content}</span>
-            </div>
+          <div key={c.id} className="space-y-3">
+            <CommentItem comment={c} postId={postId} userId={userId} onReply={handleReply} />
+            {c.replies.map((reply) => (
+              <CommentItem key={reply.id} comment={reply} postId={postId} userId={userId} onReply={handleReply} isReply />
+            ))}
           </div>
         ))}
         <div ref={commentsEndRef} />
       </div>
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t px-4 py-3">
-        <input
-          type="text"
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          placeholder="댓글 달기..."
-          className="flex-1 text-sm outline-none placeholder:text-zinc-400"
-          autoFocus
-        />
-        <button
-          type="submit"
-          disabled={!commentText.trim() || submitting}
-          className="grid size-8 place-items-center rounded-full text-blue-500 transition-colors disabled:text-zinc-300"
-        >
-          <Send size={16} />
-        </button>
-      </form>
+      <div className="border-t">
+        {replyTo && (
+          <div className="flex items-center justify-between bg-zinc-50 px-4 py-2">
+            <span className="text-xs text-zinc-500">{replyTo.nickname}에게 답글</span>
+            <button type="button" onClick={() => setReplyTo(null)} className="text-zinc-400">
+              <X size={13} />
+            </button>
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-3">
+          <input
+            ref={inputRef}
+            type="text"
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder={replyTo ? `${replyTo.nickname}에게 답글...` : "댓글 달기..."}
+            className="flex-1 text-sm outline-none placeholder:text-zinc-400"
+            autoFocus
+          />
+          <button
+            type="submit"
+            disabled={!commentText.trim() || submitting}
+            className="grid size-8 place-items-center rounded-full text-blue-500 transition-colors disabled:text-zinc-300"
+          >
+            <Send size={16} />
+          </button>
+        </form>
+      </div>
     </motion.div>
   );
 }
