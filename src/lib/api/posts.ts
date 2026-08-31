@@ -1,4 +1,4 @@
-import type { CreatePostRequest, FeedResponse, PostDetail } from "@/types/api/post";
+import type { CreatePostRequest, FeedResponse, PostDetail, LikeResponse } from "@/types/api/post";
 import { apiBaseUrl } from "./config";
 import { ApiError } from "./axios";
 import apiClient from "./axios";
@@ -45,6 +45,20 @@ export async function getPost(postId: number, userId?: string) {
 
 export async function createPost(body: CreatePostRequest, userId: string) {
   const { data } = await apiClient.post<PostDetail>("/posts", body, {
+    headers: { "X-User-Id": userId },
+  });
+  return data;
+}
+
+export async function likePost(postId: number, userId: string): Promise<LikeResponse> {
+  const { data } = await apiClient.post<LikeResponse>(`/posts/${postId}/likes`, null, {
+    headers: { "X-User-Id": userId },
+  });
+  return data;
+}
+
+export async function unlikePost(postId: number, userId: string): Promise<LikeResponse> {
+  const { data } = await apiClient.delete<LikeResponse>(`/posts/${postId}/likes`, {
     headers: { "X-User-Id": userId },
   });
   return data;

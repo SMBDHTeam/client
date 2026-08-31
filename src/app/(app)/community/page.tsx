@@ -7,7 +7,7 @@ import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Grid3
 import AppHeader from "@/components/layout/AppHeader";
 import PageFade from "@/components/ui/PageFade";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
-import { getFeed, getPost } from "@/lib/api/posts";
+import { getFeed, getPost, likePost, unlikePost } from "@/lib/api/posts";
 import { ApiError } from "@/lib/api/axios";
 import type { FeedPost, PostDetail } from "@/types/api/post";
 
@@ -160,28 +160,28 @@ function ModalContent({
   detailLoading,
   detailError,
   onClose,
+  onToggleLike,
 }: {
   post: FeedPost;
   detail: PostDetail | null;
   detailLoading: boolean;
   detailError: string | null;
   onClose: () => void;
+  onToggleLike: (postId: number, currentlyLiked: boolean) => Promise<{ likeCount: number; liked: boolean } | null>;
 }) {
   const [imgIndex, setImgIndex] = useState(0);
   const [showComments, setShowComments] = useState(false);
-  const [likedOverride, setLikedOverride] = useState<boolean | null>(null);
+  const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
   const [comments, setComments] = useState<LocalComment[]>([]);
 
-  const baseLiked = detail?.liked ?? post.liked;
-  const baseLikeCount = detail?.likeCount ?? post.likeCount;
+  const baseLiked = likeState?.liked ?? detail?.liked ?? post.liked;
+  const baseLikeCount = likeState?.likeCount ?? detail?.likeCount ?? post.likeCount;
   const baseCommentCount = detail?.commentCount ?? post.commentCount;
-
-  const liked = likedOverride ?? baseLiked;
-  const likeCount = baseLikeCount + (liked === baseLiked ? 0 : liked ? 1 : -1);
   const commentCount = baseCommentCount + comments.length;
 
-  function toggleLike() {
-    setLikedOverride(!liked);
+  async function toggleLike() {
+    const result = await onToggleLike(post.id, baseLiked);
+    if (result) setLikeState(result);
   }
 
   function addComment(text: string) {
@@ -251,12 +251,12 @@ function ModalContent({
 
       <div className="flex items-center gap-3 px-4 pt-3 pb-1">
         <button type="button" onClick={toggleLike} className="transition-transform active:scale-90">
-          <Heart size={24} className={liked ? "fill-red-500 stroke-red-500" : "stroke-zinc-700"} />
+          <Heart size={24} className={baseLiked ? "fill-red-500 stroke-red-500" : "stroke-zinc-700"} />
         </button>
         <button type="button" onClick={() => setShowComments(true)} className="text-zinc-700">
           <MessageCircle size={24} />
         </button>
-        <span className="ml-1 text-sm font-semibold">{likeCount}명이 좋아해요</span>
+        <span className="ml-1 text-sm font-semibold">{baseLikeCount}명이 좋아해요</span>
       </div>
 
       <div className="px-4 pb-2">
@@ -298,12 +298,14 @@ function PostModal({
   detailLoading,
   detailError,
   onClose,
+  onToggleLike,
 }: {
   post: FeedPost;
   detail: PostDetail | null;
   detailLoading: boolean;
   detailError: string | null;
   onClose: () => void;
+  onToggleLike: (postId: number, currentlyLiked: boolean) => Promise<{ likeCount: number; liked: boolean } | null>;
 }) {
   return (
     <motion.div
@@ -320,6 +322,7 @@ function PostModal({
         detailLoading={detailLoading}
         detailError={detailError}
         onClose={onClose}
+        onToggleLike={onToggleLike}
       />
     </motion.div>
   );
@@ -400,6 +403,15 @@ export default function CommunityPage() {
     setSelectedFeedPost(null);
     setDetail(null);
     setDetailError(null);
+  }
+
+  async function handleToggleLike(postId: number, currentlyLiked: boolean) {
+    if (!userId) return null;
+    try {
+      return currentlyLiked ? await unlikePost(postId, userId) : await likePost(postId, userId);
+    } catch {
+      return null;
+    }
   }
 
   function onTagMouseDown(e: React.MouseEvent) {
@@ -655,6 +667,7 @@ export default function CommunityPage() {
             detailLoading={detailLoading}
             detailError={detailError}
             onClose={closePost}
+            onToggleLike={handleToggleLike}
           />
         )}
       </AnimatePresence>

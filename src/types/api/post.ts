@@ -56,3 +56,8 @@ export type CreatePostRequest = {
   mediaList: PostMedia[];
   placeTags: PostPlaceTag[];
 };
+
+export type LikeResponse = {
+  likeCount: number;
+  liked: boolean;
+};
