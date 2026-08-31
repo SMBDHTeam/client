@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
-import { Bell, ChevronRight, Heart, HelpCircle, Info, LogOut, MapPin } from "lucide-react";
+import { Bell, Bookmark, ChevronRight, Heart, HelpCircle, Info, LogOut, MapPin } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
 import { ALL_TRIPS, PAST_TRIPS } from "@/mocks/trips";
 import { WISHLIST_PLACES } from "@/mocks/wishlist";
@@ -68,12 +68,22 @@ export default function ProfilePage() {
           </Link>
           <Link
             href="/wishlist"
-            className="flex items-center gap-3 px-4 py-3.5"
+            className="flex items-center gap-3 border-b border-zinc-100 px-4 py-3.5"
           >
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-zinc-100 text-zinc-500">
               <Heart size={16} aria-hidden />
             </span>
             <span className="flex-1 text-sm font-medium text-zinc-700">찜한 장소</span>
+            <ChevronRight size={16} className="text-zinc-300" aria-hidden />
+          </Link>
+          <Link
+            href="/profile/bookmarks"
+            className="flex items-center gap-3 px-4 py-3.5"
+          >
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-zinc-100 text-zinc-500">
+              <Bookmark size={16} aria-hidden />
+            </span>
+            <span className="flex-1 text-sm font-medium text-zinc-700">북마크</span>
             <ChevronRight size={16} className="text-zinc-300" aria-hidden />
           </Link>
         </div>

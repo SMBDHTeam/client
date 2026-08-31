@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Grid3x3, LayoutGrid } from "lucide-react";
+import { Heart, MessageCircle, ChevronLeft, ChevronRight, Grid3x3, LayoutGrid } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
 import PageFade from "@/components/ui/PageFade";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
-import { createComment, getComments, getFeed, getPopularFeed, getPost, likePost, unlikePost } from "@/lib/api/posts";
+import { getFeed, getPopularFeed, getPost } from "@/lib/api/posts";
 import { ApiError } from "@/lib/api/axios";
-import type { FeedPost, PostComment, PostDetail } from "@/types/api/post";
+import type { FeedPost, PostDetail } from "@/types/api/post";
+import PostModal from "@/components/community/PostModal";
 
 
 const ASPECT_RATIOS = ["aspect-[3/4]", "aspect-square", "aspect-[4/5]", "aspect-[3/4]", "aspect-square", "aspect-[4/5]"];
@@ -77,265 +78,6 @@ function SquareGridTile({ post, onClick }: { post: FeedPost; onClick: () => void
   );
 }
 
-function CommentSheet({
-  postId,
-  commentCount,
-  userId,
-  onClose,
-}: {
-  postId: number;
-  commentCount: number;
-  userId: string | undefined;
-  onClose: () => void;
-}) {
-  const [comments, setComments] = useState<PostComment[]>([]);
-  const [commentText, setCommentText] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const commentsEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    getComments(postId, { size: 30 }, userId)
-      .then((res) => setComments(res.items))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [postId, userId]);
-
-  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!commentText.trim() || !userId || submitting) return;
-    setSubmitting(true);
-    try {
-      const newComment = await createComment(postId, { content: commentText.trim() }, userId);
-      setComments((prev) => [...prev, newComment]);
-      setCommentText("");
-      setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: "smooth" }), 0);
-    } catch {
-      //
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <motion.div
-      className="absolute inset-x-0 bottom-0 z-10 flex flex-col overflow-hidden rounded-t-2xl bg-white"
-      style={{ height: "55dvh" }}
-      initial={{ clipPath: "inset(100% 0 0 0)" }}
-      animate={{ clipPath: "inset(0% 0 0 0)" }}
-      exit={{ clipPath: "inset(100% 0 0 0)" }}
-      transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-    >
-      <div className="flex items-center border-b px-4 py-3">
-        <h3 className="flex-1 text-sm font-bold">댓글 {commentCount}개</h3>
-        <button type="button" onClick={onClose} className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100">
-          <X size={16} />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        {loading && <div className="flex justify-center py-4"><div className="size-5 animate-spin rounded-full border-2 border-zinc-200 border-t-[#2E7DF2]" /></div>}
-        {!loading && comments.length === 0 && (
-          <p className="text-xs text-zinc-400">첫 댓글을 남겨보세요</p>
-        )}
-        {comments.map((c) => (
-          <div key={c.id} className="flex gap-2 text-sm">
-            {c.author.profileImageUrl && (
-              <img src={c.author.profileImageUrl} alt={c.author.nickname} className="size-7 shrink-0 rounded-full object-cover" />
-            )}
-            <div>
-              <span className="font-semibold">{c.author.nickname}</span>
-              <span className="ml-1.5 text-zinc-700">{c.content}</span>
-            </div>
-          </div>
-        ))}
-        <div ref={commentsEndRef} />
-      </div>
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t px-4 py-3">
-        <input
-          type="text"
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          placeholder="댓글 달기..."
-          className="flex-1 text-sm outline-none placeholder:text-zinc-400"
-          autoFocus
-        />
-        <button
-          type="submit"
-          disabled={!commentText.trim() || submitting}
-          className="grid size-8 place-items-center rounded-full text-blue-500 transition-colors disabled:text-zinc-300"
-        >
-          <Send size={16} />
-        </button>
-      </form>
-    </motion.div>
-  );
-}
-
-function ModalContent({
-  post,
-  detail,
-  detailLoading,
-  detailError,
-  onClose,
-  onToggleLike,
-  userId,
-}: {
-  post: FeedPost;
-  detail: PostDetail | null;
-  detailLoading: boolean;
-  detailError: string | null;
-  onClose: () => void;
-  onToggleLike: (postId: number, currentlyLiked: boolean) => Promise<{ likeCount: number; liked: boolean } | null>;
-  userId: string | undefined;
-}) {
-  const [imgIndex, setImgIndex] = useState(0);
-  const [showComments, setShowComments] = useState(false);
-  const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
-
-  const baseLiked = likeState?.liked ?? detail?.liked ?? post.liked;
-  const baseLikeCount = likeState?.likeCount ?? detail?.likeCount ?? post.likeCount;
-  const commentCount = detail?.commentCount ?? post.commentCount;
-
-  async function toggleLike() {
-    const result = await onToggleLike(post.id, baseLiked);
-    if (result) setLikeState(result);
-  }
-
-  const images = detail ? detail.mediaList.map((m) => m.url) : post.thumbnailUrl ? [post.thumbnailUrl] : [];
-
-  return (
-    <div
-      className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white"
-      style={{ maxHeight: "90dvh" }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="flex items-center gap-3 border-b px-4 py-3">
-        {post.author.profileImageUrl && (
-          <img src={post.author.profileImageUrl} alt={post.author.nickname} className="size-8 rounded-full object-cover" />
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold leading-tight">{post.author.nickname}</p>
-          {post.placeName && (
-            <p className="flex items-center gap-1 text-xs text-zinc-400"><MapPin size={10} />{post.placeName}</p>
-          )}
-        </div>
-        <button type="button" onClick={onClose} className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100"><X size={16} /></button>
-      </div>
-
-      <div className="relative aspect-square w-full overflow-hidden bg-zinc-100">
-        {detailLoading && (
-          <div className="absolute inset-0 grid place-items-center">
-            <div className="size-8 animate-spin rounded-full border-4 border-zinc-200 border-t-[#2E7DF2]" />
-          </div>
-        )}
-        {detailError && !detailLoading && (
-          <div className="absolute inset-0 grid place-items-center px-6 text-center text-xs text-red-500">
-            {detailError}
-          </div>
-        )}
-        <div
-          className="flex h-full transition-transform duration-300 ease-in-out"
-          style={{ transform: `translateX(-${imgIndex * 100}%)` }}
-        >
-          {images.map((src, i) => (
-            <img key={i} src={src} alt={`${post.placeName ?? "게시물"} ${i + 1}`} className="h-full w-full shrink-0 object-cover" />
-          ))}
-        </div>
-        {images.length > 1 && (
-          <>
-            {imgIndex > 0 && (
-              <button type="button" onClick={() => setImgIndex((i) => i - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 grid size-7 place-items-center rounded-full bg-white/90 text-zinc-800 shadow">
-                <ChevronLeft size={16} />
-              </button>
-            )}
-            {imgIndex < images.length - 1 && (
-              <button type="button" onClick={() => setImgIndex((i) => i + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 grid size-7 place-items-center rounded-full bg-white/90 text-zinc-800 shadow">
-                <ChevronRight size={16} />
-              </button>
-            )}
-            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
-              {images.map((_, i) => (
-                <button key={i} type="button" onClick={() => setImgIndex(i)} className={`size-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/40"}`} />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="flex items-center gap-3 px-4 pt-3 pb-1">
-        <button type="button" onClick={toggleLike} className="transition-transform active:scale-90">
-          <Heart size={24} className={baseLiked ? "fill-red-500 stroke-red-500" : "stroke-zinc-700"} />
-        </button>
-        <button type="button" onClick={() => setShowComments(true)} className="text-zinc-700">
-          <MessageCircle size={24} />
-        </button>
-        <span className="ml-1 text-sm font-semibold">{baseLikeCount}명이 좋아해요</span>
-      </div>
-
-      <div className="px-4 pb-2">
-        <span className="text-sm font-semibold">{post.author.nickname}</span>
-        <span className="text-sm text-zinc-700"> {detail?.content ?? post.content}</span>
-      </div>
-
-      <div className="px-4 pb-4">
-        <button type="button" onClick={() => setShowComments(true)} className="text-xs text-zinc-400">
-          댓글 {commentCount}개 보기
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {showComments && (
-          <CommentSheet
-            postId={post.id}
-            commentCount={commentCount}
-            userId={userId}
-            onClose={() => setShowComments(false)}
-          />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function PostModal({
-  post,
-  detail,
-  detailLoading,
-  detailError,
-  onClose,
-  onToggleLike,
-  userId,
-}: {
-  post: FeedPost;
-  detail: PostDetail | null;
-  detailLoading: boolean;
-  detailError: string | null;
-  onClose: () => void;
-  onToggleLike: (postId: number, currentlyLiked: boolean) => Promise<{ likeCount: number; liked: boolean } | null>;
-  userId: string | undefined;
-}) {
-  return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 sm:px-0"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      onClick={onClose}
-    >
-      <ModalContent
-        post={post}
-        detail={detail}
-        detailLoading={detailLoading}
-        detailError={detailError}
-        onClose={onClose}
-        onToggleLike={onToggleLike}
-        userId={userId}
-      />
-    </motion.div>
-  );
-}
 
 export default function CommunityPage() {
   const { data: session, status } = useSession();
@@ -416,16 +158,7 @@ export default function CommunityPage() {
     setDetailError(null);
   }
 
-  async function handleToggleLike(postId: number, currentlyLiked: boolean) {
-    if (!userId) return null;
-    try {
-      return currentlyLiked ? await unlikePost(postId, userId) : await likePost(postId, userId);
-    } catch {
-      return null;
-    }
-  }
-
-  function onTagMouseDown(e: React.MouseEvent) {
+function onTagMouseDown(e: React.MouseEvent) {
     const el = tagScrollRef.current;
     if (!el) return;
     tagDragRef.current = { dragging: true, startX: e.pageX - el.offsetLeft, scrollLeft: el.scrollLeft };
@@ -678,7 +411,6 @@ export default function CommunityPage() {
             detailLoading={detailLoading}
             detailError={detailError}
             onClose={closePost}
-            onToggleLike={handleToggleLike}
             userId={userId}
           />
         )}

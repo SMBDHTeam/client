@@ -1,4 +1,4 @@
-import type { CommentListResponse, CreatePostRequest, FeedResponse, PostComment, PostDetail, LikeResponse } from "@/types/api/post";
+import type { CommentListResponse, CreatePostRequest, FeedPost, FeedResponse, PostComment, PostDetail, LikeResponse } from "@/types/api/post";
 import { apiBaseUrl } from "./config";
 import { ApiError } from "./axios";
 import apiClient from "./axios";
@@ -68,6 +68,28 @@ export async function getComments(postId: number, params: { cursor?: number; siz
 
 export async function createComment(postId: number, body: { content: string; parentId?: number }, userId: string): Promise<PostComment> {
   const { data } = await apiClient.post<PostComment>(`/posts/${postId}/comments`, body, {
+    headers: { "X-User-Id": userId },
+  });
+  return data;
+}
+
+export async function getMyBookmarks(params: { page?: number; size?: number } = {}, userId: string): Promise<{ items: FeedPost[] }> {
+  const { data } = await apiClient.get<{ items: FeedPost[] }>("/users/me/bookmarks", {
+    params,
+    headers: { "X-User-Id": userId },
+  });
+  return data;
+}
+
+export async function bookmarkPost(postId: number, userId: string): Promise<{ bookmarked: boolean }> {
+  const { data } = await apiClient.post<{ bookmarked: boolean }>(`/posts/${postId}/bookmarks`, null, {
+    headers: { "X-User-Id": userId },
+  });
+  return data;
+}
+
+export async function unbookmarkPost(postId: number, userId: string): Promise<{ bookmarked: boolean }> {
+  const { data } = await apiClient.delete<{ bookmarked: boolean }>(`/posts/${postId}/bookmarks`, {
     headers: { "X-User-Id": userId },
   });
   return data;
