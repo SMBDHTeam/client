@@ -327,7 +327,7 @@ function PostModal({
 
 export default function CommunityPage() {
   const { data: session, status } = useSession();
-  const userId = session?.user?.id;
+  const userId = session?.user?.id != null ? String(session.user.id) : undefined;
 
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [nextCursor, setNextCursor] = useState<number | null>(null);

@@ -2,20 +2,24 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { ChevronLeft, ImagePlus, X, ChevronRight, MapPin, ChevronDown } from "lucide-react";
 import { ALL_TRIPS, PAST_TRIPS, type MockPlace, type MockTrip } from "@/mocks/trips";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
+import { createPost, uploadMedia } from "@/lib/api/posts";
 
 const ALL = [...ALL_TRIPS, ...PAST_TRIPS];
 
 export default function CommunityNewPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
   const [imgIndex, setImgIndex] = useState(0);
   const [text, setText] = useState("");
   const [selectedTags, setSelectedTags] = useState<CommunityTagId[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const [step, setStep] = useState<"idle" | "trip" | "place">("idle");
   const [selectedTrip, setSelectedTrip] = useState<MockTrip | null>(null);
@@ -29,16 +33,17 @@ export default function CommunityNewPage() {
 
   function handleFiles(files: FileList | null) {
     if (!files) return;
-    const newUrls: string[] = [];
+    const newItems: { file: File; previewUrl: string }[] = [];
     Array.from(files).forEach((file) => {
       if (!file.type.startsWith("image/")) return;
-      newUrls.push(URL.createObjectURL(file));
+      newItems.push({ file, previewUrl: URL.createObjectURL(file) });
     });
-    setImages((prev) => [...prev, ...newUrls].slice(0, 10));
+    setImages((prev) => [...prev, ...newItems].slice(0, 10));
   }
 
   function removeImage(index: number) {
     setImages((prev) => {
+      URL.revokeObjectURL(prev[index].previewUrl);
       const next = prev.filter((_, i) => i !== index);
       setImgIndex((cur) => Math.min(cur, Math.max(next.length - 1, 0)));
       return next;
@@ -62,7 +67,33 @@ export default function CommunityNewPage() {
     setStep("idle");
   }
 
-  const canSubmit = text.trim().length > 0;
+  const canSubmit = text.trim().length > 0 && !submitting;
+
+  async function handleSubmit() {
+    if (!canSubmit || !session?.user?.id) return;
+    const userId = String(session.user.id);
+    setSubmitting(true);
+    try {
+      const uploaded = images.length > 0
+        ? await uploadMedia(images.map((img) => img.file), userId)
+        : [];
+      await createPost(
+        {
+          content: text.trim(),
+          mediaList: uploaded.map((m, i) => ({ url: m.url, mediaType: m.mediaType, sortOrder: i })),
+          placeTags: selectedPlace
+            ? [{ placeId: selectedPlace.id, latitude: 0, longitude: 0 }]
+            : [],
+        },
+        userId,
+      );
+      router.back();
+    } catch {
+      alert("게시물을 등록하지 못했습니다. 다시 시도해주세요.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col bg-white">
@@ -83,9 +114,10 @@ export default function CommunityNewPage() {
         <button
           type="button"
           disabled={!canSubmit || step !== "idle"}
+          onClick={handleSubmit}
           className="rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B] px-4 py-1.5 text-sm font-semibold text-white transition-opacity disabled:opacity-40"
         >
-          게시
+          {submitting ? "게시 중..." : "게시"}
         </button>
       </header>
 
@@ -153,8 +185,8 @@ export default function CommunityNewPage() {
                 className="flex h-full transition-transform duration-300 ease-in-out"
                 style={{ transform: `translateX(-${imgIndex * 100}%)` }}
               >
-                {images.map((src, i) => (
-                  <img key={i} src={src} alt="" className="h-full w-full shrink-0 object-cover" />
+                {images.map((img, i) => (
+                  <img key={i} src={img.previewUrl} alt="" className="h-full w-full shrink-0 object-cover" />
                 ))}
               </div>
 
