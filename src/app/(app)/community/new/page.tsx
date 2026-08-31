@@ -7,6 +7,7 @@ import { ChevronLeft, ImagePlus, X, ChevronRight, MapPin, ChevronDown } from "lu
 import { ALL_TRIPS, PAST_TRIPS, type MockPlace, type MockTrip } from "@/mocks/trips";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
 import { createPost, uploadMedia } from "@/lib/api/posts";
+import { toast } from "sonner";
 
 const ALL = [...ALL_TRIPS, ...PAST_TRIPS];
 
@@ -89,7 +90,7 @@ export default function CommunityNewPage() {
       );
       router.back();
     } catch {
-      alert("게시물을 등록하지 못했습니다. 다시 시도해주세요.");
+      toast.error("게시물을 등록하지 못했습니다. 다시 시도해주세요.");
     } finally {
       setSubmitting(false);
     }
