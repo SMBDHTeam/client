@@ -7,15 +7,10 @@ import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Grid3
 import AppHeader from "@/components/layout/AppHeader";
 import PageFade from "@/components/ui/PageFade";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
-import { getFeed, getPopularFeed, getPost, likePost, unlikePost } from "@/lib/api/posts";
+import { createComment, getComments, getFeed, getPopularFeed, getPost, likePost, unlikePost } from "@/lib/api/posts";
 import { ApiError } from "@/lib/api/axios";
-import type { FeedPost, PostDetail } from "@/types/api/post";
+import type { FeedPost, PostComment, PostDetail } from "@/types/api/post";
 
-type LocalComment = {
-  id: number;
-  author: string;
-  text: string;
-};
 
 const ASPECT_RATIOS = ["aspect-[3/4]", "aspect-square", "aspect-[4/5]", "aspect-[3/4]", "aspect-square", "aspect-[4/5]"];
 
@@ -83,27 +78,44 @@ function SquareGridTile({ post, onClick }: { post: FeedPost; onClick: () => void
 }
 
 function CommentSheet({
+  postId,
   commentCount,
-  comments,
+  userId,
   onClose,
-  onAddComment,
 }: {
+  postId: number;
   commentCount: number;
-  comments: LocalComment[];
+  userId: string | undefined;
   onClose: () => void;
-  onAddComment: (text: string) => void;
 }) {
+  const [comments, setComments] = useState<PostComment[]>([]);
   const [commentText, setCommentText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
-  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+  useEffect(() => {
+    setLoading(true);
+    getComments(postId, { size: 30 }, userId)
+      .then((res) => setComments(res.items))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [postId, userId]);
+
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!commentText.trim()) return;
-    onAddComment(commentText.trim());
-    setCommentText("");
-    setTimeout(() => {
-      commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 0);
+    if (!commentText.trim() || !userId || submitting) return;
+    setSubmitting(true);
+    try {
+      const newComment = await createComment(postId, { content: commentText.trim() }, userId);
+      setComments((prev) => [...prev, newComment]);
+      setCommentText("");
+      setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: "smooth" }), 0);
+    } catch {
+      //
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -122,13 +134,19 @@ function CommentSheet({
         </button>
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        {comments.length === 0 && (
+        {loading && <div className="flex justify-center py-4"><div className="size-5 animate-spin rounded-full border-2 border-zinc-200 border-t-[#2E7DF2]" /></div>}
+        {!loading && comments.length === 0 && (
           <p className="text-xs text-zinc-400">첫 댓글을 남겨보세요</p>
         )}
         {comments.map((c) => (
           <div key={c.id} className="flex gap-2 text-sm">
-            <span className="font-semibold shrink-0">{c.author}</span>
-            <span className="text-zinc-700">{c.text}</span>
+            {c.author.profileImageUrl && (
+              <img src={c.author.profileImageUrl} alt={c.author.nickname} className="size-7 shrink-0 rounded-full object-cover" />
+            )}
+            <div>
+              <span className="font-semibold">{c.author.nickname}</span>
+              <span className="ml-1.5 text-zinc-700">{c.content}</span>
+            </div>
           </div>
         ))}
         <div ref={commentsEndRef} />
@@ -144,7 +162,7 @@ function CommentSheet({
         />
         <button
           type="submit"
-          disabled={!commentText.trim()}
+          disabled={!commentText.trim() || submitting}
           className="grid size-8 place-items-center rounded-full text-blue-500 transition-colors disabled:text-zinc-300"
         >
           <Send size={16} />
@@ -161,6 +179,7 @@ function ModalContent({
   detailError,
   onClose,
   onToggleLike,
+  userId,
 }: {
   post: FeedPost;
   detail: PostDetail | null;
@@ -168,24 +187,19 @@ function ModalContent({
   detailError: string | null;
   onClose: () => void;
   onToggleLike: (postId: number, currentlyLiked: boolean) => Promise<{ likeCount: number; liked: boolean } | null>;
+  userId: string | undefined;
 }) {
   const [imgIndex, setImgIndex] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
-  const [comments, setComments] = useState<LocalComment[]>([]);
 
   const baseLiked = likeState?.liked ?? detail?.liked ?? post.liked;
   const baseLikeCount = likeState?.likeCount ?? detail?.likeCount ?? post.likeCount;
-  const baseCommentCount = detail?.commentCount ?? post.commentCount;
-  const commentCount = baseCommentCount + comments.length;
+  const commentCount = detail?.commentCount ?? post.commentCount;
 
   async function toggleLike() {
     const result = await onToggleLike(post.id, baseLiked);
     if (result) setLikeState(result);
-  }
-
-  function addComment(text: string) {
-    setComments((prev) => [...prev, { id: Date.now(), author: "나", text }]);
   }
 
   const images = detail ? detail.mediaList.map((m) => m.url) : post.thumbnailUrl ? [post.thumbnailUrl] : [];
@@ -264,27 +278,19 @@ function ModalContent({
         <span className="text-sm text-zinc-700"> {detail?.content ?? post.content}</span>
       </div>
 
-      <div className="px-4 pb-4 space-y-1 overflow-hidden" style={{ height: "52px" }}>
-        {comments.slice(0, 2).map((c) => (
-          <div key={c.id} className="flex gap-2 text-sm">
-            <span className="font-semibold shrink-0">{c.author}</span>
-            <span className="text-zinc-700 truncate">{c.text}</span>
-          </div>
-        ))}
-        {comments.length === 0 && (
-          <button type="button" onClick={() => setShowComments(true)} className="text-xs text-zinc-400">
-            댓글 {commentCount}개 보기
-          </button>
-        )}
+      <div className="px-4 pb-4">
+        <button type="button" onClick={() => setShowComments(true)} className="text-xs text-zinc-400">
+          댓글 {commentCount}개 보기
+        </button>
       </div>
 
       <AnimatePresence>
         {showComments && (
           <CommentSheet
+            postId={post.id}
             commentCount={commentCount}
-            comments={comments}
+            userId={userId}
             onClose={() => setShowComments(false)}
-            onAddComment={addComment}
           />
         )}
       </AnimatePresence>
@@ -299,6 +305,7 @@ function PostModal({
   detailError,
   onClose,
   onToggleLike,
+  userId,
 }: {
   post: FeedPost;
   detail: PostDetail | null;
@@ -306,6 +313,7 @@ function PostModal({
   detailError: string | null;
   onClose: () => void;
   onToggleLike: (postId: number, currentlyLiked: boolean) => Promise<{ likeCount: number; liked: boolean } | null>;
+  userId: string | undefined;
 }) {
   return (
     <motion.div
@@ -323,6 +331,7 @@ function PostModal({
         detailError={detailError}
         onClose={onClose}
         onToggleLike={onToggleLike}
+        userId={userId}
       />
     </motion.div>
   );
@@ -670,6 +679,7 @@ export default function CommunityPage() {
             detailError={detailError}
             onClose={closePost}
             onToggleLike={handleToggleLike}
+            userId={userId}
           />
         )}
       </AnimatePresence>

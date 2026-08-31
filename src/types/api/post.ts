@@ -61,3 +61,20 @@ export type LikeResponse = {
   likeCount: number;
   liked: boolean;
 };
+
+export type PostComment = {
+  id: number;
+  author: PostAuthor;
+  content: string;
+  likeCount: number;
+  liked: boolean;
+  createdAt: string;
+  deleted: boolean;
+  hiddenReason: string | null;
+  replies: PostComment[];
+};
+
+export type CommentListResponse = {
+  items: PostComment[];
+  nextCursor: number | null;
+};

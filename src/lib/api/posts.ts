@@ -1,4 +1,4 @@
-import type { CreatePostRequest, FeedResponse, PostDetail, LikeResponse } from "@/types/api/post";
+import type { CommentListResponse, CreatePostRequest, FeedResponse, PostComment, PostDetail, LikeResponse } from "@/types/api/post";
 import { apiBaseUrl } from "./config";
 import { ApiError } from "./axios";
 import apiClient from "./axios";
@@ -53,6 +53,21 @@ export async function getPost(postId: number, userId?: string) {
 
 export async function createPost(body: CreatePostRequest, userId: string) {
   const { data } = await apiClient.post<PostDetail>("/posts", body, {
+    headers: { "X-User-Id": userId },
+  });
+  return data;
+}
+
+export async function getComments(postId: number, params: { cursor?: number; size?: number } = {}, userId?: string): Promise<CommentListResponse> {
+  const { data } = await apiClient.get<CommentListResponse>(`/posts/${postId}/comments`, {
+    params,
+    headers: userId ? { "X-User-Id": userId } : {},
+  });
+  return data;
+}
+
+export async function createComment(postId: number, body: { content: string; parentId?: number }, userId: string): Promise<PostComment> {
+  const { data } = await apiClient.post<PostComment>(`/posts/${postId}/comments`, body, {
     headers: { "X-User-Id": userId },
   });
   return data;
