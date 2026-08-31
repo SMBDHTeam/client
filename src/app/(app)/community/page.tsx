@@ -7,7 +7,7 @@ import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Grid3
 import AppHeader from "@/components/layout/AppHeader";
 import PageFade from "@/components/ui/PageFade";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
-import { getFeed, getPost, likePost, unlikePost } from "@/lib/api/posts";
+import { getFeed, getPopularFeed, getPost, likePost, unlikePost } from "@/lib/api/posts";
 import { ApiError } from "@/lib/api/axios";
 import type { FeedPost, PostDetail } from "@/types/api/post";
 
@@ -337,6 +337,7 @@ export default function CommunityPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
+  const [popularPosts, setPopularPosts] = useState<FeedPost[]>([]);
 
   const [selectedFeedPost, setSelectedFeedPost] = useState<FeedPost | null>(null);
   const [detail, setDetail] = useState<PostDetail | null>(null);
@@ -371,8 +372,9 @@ export default function CommunityPage() {
     if (status === "loading") return;
     queueMicrotask(() => {
       void loadFeed();
+      void getPopularFeed({ size: 5 }, userId).then((res) => setPopularPosts(res.items)).catch(() => {});
     });
-  }, [status, loadFeed]);
+  }, [status, loadFeed, userId]);
 
   async function loadMore() {
     if (nextCursor == null || loadingMore) return;
@@ -437,7 +439,7 @@ export default function CommunityPage() {
   const activeTagLabel = activeTag ? COMMUNITY_TAGS.find((t) => t.id === activeTag)?.label ?? null : null;
   const filteredPosts = activeTagLabel ? posts.filter((p) => p.hashtags.includes(activeTagLabel)) : posts;
 
-  const topPosts = [...posts].sort((a, b) => b.likeCount - a.likeCount).slice(0, 5);
+  const topPosts = popularPosts;
   const popularScrollRef = useRef<HTMLDivElement>(null);
   const popularDragRef = useRef({ dragging: false, startX: 0, scrollLeft: 0 });
 

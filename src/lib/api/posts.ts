@@ -36,6 +36,14 @@ export async function getFeed(params: FeedParams = {}, userId?: string) {
   return data;
 }
 
+export async function getPopularFeed(params: { page?: number; size?: number } = {}, userId?: string) {
+  const { data } = await apiClient.get<FeedResponse>("/posts/popular", {
+    params,
+    headers: userId ? { "X-User-Id": userId } : {},
+  });
+  return data;
+}
+
 export async function getPost(postId: number, userId?: string) {
   const { data } = await apiClient.get<PostDetail>(`/posts/${postId}`, {
     headers: userId ? { "X-User-Id": userId } : {},
