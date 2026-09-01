@@ -80,9 +80,8 @@ function SquareGridTile({ post, onClick }: { post: FeedPost; onClick: () => void
 
 
 export default function CommunityPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
-  const userId = session?.user?.id != null ? String(session.user.id) : undefined;
 
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
@@ -103,7 +102,7 @@ export default function CommunityPage() {
     setLoading(true);
     setFeedError(null);
     try {
-      const res = await getFeed({ size: 20 }, userId);
+      const res = await getFeed({ size: 20 });
       if (loadFeedRequestRef.current !== requestId) return;
       setPosts(res.items);
       setNextCursor(res.nextCursor);
@@ -113,15 +112,15 @@ export default function CommunityPage() {
     } finally {
       if (loadFeedRequestRef.current === requestId) setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     if (status === "loading") return;
     queueMicrotask(() => {
       void loadFeed();
-      void getPopularFeed({ size: 5 }, userId).then((res) => setPopularPosts(res.items)).catch(() => {});
+      void getPopularFeed({ size: 5 }).then((res) => setPopularPosts(res.items)).catch(() => {});
     });
-  }, [status, loadFeed, userId]);
+  }, [status, loadFeed]);
 
   function openPost(post: FeedPost) {
     router.push(`/community/posts/${post.id}`);
@@ -131,7 +130,7 @@ export default function CommunityPage() {
     if (nextCursor == null || loadingMore) return;
     setLoadingMore(true);
     try {
-      const res = await getFeed({ cursor: nextCursor, size: 20 }, userId);
+      const res = await getFeed({ cursor: nextCursor, size: 20 });
       setPosts((prev) => [...prev, ...res.items]);
       setNextCursor(res.nextCursor);
     } catch (err) {
@@ -162,7 +161,7 @@ function onTagMouseDown(e: React.MouseEvent) {
   }
 
   const activeTagLabel = activeTag ? COMMUNITY_TAGS.find((t) => t.id === activeTag)?.label ?? null : null;
-  const filteredPosts = activeTagLabel ? posts.filter((p) => p.hashtags.includes(activeTagLabel)) : posts;
+  const filteredPosts = activeTagLabel ? posts.filter((p) => p.categories.includes(activeTagLabel)) : posts;
 
   const topPosts = popularPosts;
   const popularScrollRef = useRef<HTMLDivElement>(null);

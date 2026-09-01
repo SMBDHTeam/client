@@ -16,110 +16,82 @@ type UploadedMedia = {
   mediaType: "IMAGE" | "VIDEO";
 };
 
-export async function uploadMedia(files: File[], userId: string): Promise<UploadedMedia[]> {
+export async function uploadMedia(files: File[]): Promise<UploadedMedia[]> {
   const form = new FormData();
   for (const file of files) {
     form.append("files", file);
   }
 
-  const { data } = await apiClient.post<{ items: UploadedMedia[] }>("/media", form, {
-    headers: { "X-User-Id": userId },
-  });
-  return data.items;
+  const { data } = await apiClient.post<{ mediaList: UploadedMedia[] }>("/media", form);
+  return data.mediaList;
 }
 
-export async function getFeed(params: FeedParams = {}, userId?: string) {
-  const { data } = await apiClient.get<FeedResponse>("/posts", {
-    params,
-    headers: userId ? { "X-User-Id": userId } : {},
-  });
+export async function getFeed(params: FeedParams = {}) {
+  const { data } = await apiClient.get<FeedResponse>("/posts", { params });
   return data;
 }
 
-export async function getPopularFeed(params: { page?: number; size?: number } = {}, userId?: string) {
-  const { data } = await apiClient.get<FeedResponse>("/posts/popular", {
-    params,
-    headers: userId ? { "X-User-Id": userId } : {},
-  });
+export async function getPopularFeed(params: { page?: number; size?: number } = {}) {
+  const { data } = await apiClient.get<FeedResponse>("/posts/popular", { params });
   return data;
 }
 
-export async function getPost(postId: number, userId?: string) {
-  const { data } = await apiClient.get<PostDetail>(`/posts/${postId}`, {
-    headers: userId ? { "X-User-Id": userId } : {},
-  });
+export async function getPost(postId: number) {
+  const { data } = await apiClient.get<PostDetail>(`/posts/${postId}`);
   return data;
 }
 
-export async function createPost(body: CreatePostRequest, userId: string) {
-  const { data } = await apiClient.post<PostDetail>("/posts", body, {
-    headers: { "X-User-Id": userId },
-  });
+export async function createPost(body: CreatePostRequest) {
+  const { data } = await apiClient.post<PostDetail>("/posts", body);
   return data;
 }
 
-export async function getComments(postId: number, params: { cursor?: number; size?: number } = {}, userId?: string): Promise<CommentListResponse> {
-  const { data } = await apiClient.get<CommentListResponse>(`/posts/${postId}/comments`, {
-    params,
-    headers: userId ? { "X-User-Id": userId } : {},
-  });
+export async function deletePost(postId: number): Promise<void> {
+  await apiClient.delete(`/posts/${postId}`);
+}
+
+export async function getComments(postId: number, params: { cursor?: number; size?: number } = {}): Promise<CommentListResponse> {
+  const { data } = await apiClient.get<CommentListResponse>(`/posts/${postId}/comments`, { params });
   return data;
 }
 
-export async function createComment(postId: number, body: { content: string; parentId?: number }, userId: string): Promise<PostComment> {
-  const { data } = await apiClient.post<PostComment>(`/posts/${postId}/comments`, body, {
-    headers: { "X-User-Id": userId },
-  });
+export async function createComment(postId: number, body: { content: string; parentId?: number }): Promise<PostComment> {
+  const { data } = await apiClient.post<PostComment>(`/posts/${postId}/comments`, body);
   return data;
 }
 
-export async function getMyBookmarks(params: { page?: number; size?: number } = {}, userId: string): Promise<{ items: FeedPost[] }> {
-  const { data } = await apiClient.get<{ items: FeedPost[] }>("/users/me/bookmarks", {
-    params,
-    headers: { "X-User-Id": userId },
-  });
+export async function getMyBookmarks(params: { page?: number; size?: number } = {}): Promise<{ items: FeedPost[] }> {
+  const { data } = await apiClient.get<{ items: FeedPost[] }>("/users/me/bookmarks", { params });
   return data;
 }
 
-export async function bookmarkPost(postId: number, userId: string): Promise<{ bookmarked: boolean }> {
-  const { data } = await apiClient.post<{ bookmarked: boolean }>(`/posts/${postId}/bookmarks`, null, {
-    headers: { "X-User-Id": userId },
-  });
+export async function bookmarkPost(postId: number): Promise<{ bookmarked: boolean }> {
+  const { data } = await apiClient.post<{ bookmarked: boolean }>(`/posts/${postId}/bookmarks`, null);
   return data;
 }
 
-export async function unbookmarkPost(postId: number, userId: string): Promise<{ bookmarked: boolean }> {
-  const { data } = await apiClient.delete<{ bookmarked: boolean }>(`/posts/${postId}/bookmarks`, {
-    headers: { "X-User-Id": userId },
-  });
+export async function unbookmarkPost(postId: number): Promise<{ bookmarked: boolean }> {
+  const { data } = await apiClient.delete<{ bookmarked: boolean }>(`/posts/${postId}/bookmarks`);
   return data;
 }
 
-export async function likeComment(postId: number, commentId: number, userId: string): Promise<LikeResponse> {
-  const { data } = await apiClient.post<LikeResponse>(`/posts/${postId}/comments/${commentId}/likes`, null, {
-    headers: { "X-User-Id": userId },
-  });
+export async function likeComment(postId: number, commentId: number): Promise<LikeResponse> {
+  const { data } = await apiClient.post<LikeResponse>(`/posts/${postId}/comments/${commentId}/likes`, null);
   return data;
 }
 
-export async function unlikeComment(postId: number, commentId: number, userId: string): Promise<LikeResponse> {
-  const { data } = await apiClient.delete<LikeResponse>(`/posts/${postId}/comments/${commentId}/likes`, {
-    headers: { "X-User-Id": userId },
-  });
+export async function unlikeComment(postId: number, commentId: number): Promise<LikeResponse> {
+  const { data } = await apiClient.delete<LikeResponse>(`/posts/${postId}/comments/${commentId}/likes`);
   return data;
 }
 
-export async function likePost(postId: number, userId: string): Promise<LikeResponse> {
-  const { data } = await apiClient.post<LikeResponse>(`/posts/${postId}/likes`, null, {
-    headers: { "X-User-Id": userId },
-  });
+export async function likePost(postId: number): Promise<LikeResponse> {
+  const { data } = await apiClient.post<LikeResponse>(`/posts/${postId}/likes`, null);
   return data;
 }
 
-export async function unlikePost(postId: number, userId: string): Promise<LikeResponse> {
-  const { data } = await apiClient.delete<LikeResponse>(`/posts/${postId}/likes`, {
-    headers: { "X-User-Id": userId },
-  });
+export async function unlikePost(postId: number): Promise<LikeResponse> {
+  const { data } = await apiClient.delete<LikeResponse>(`/posts/${postId}/likes`);
   return data;
 }
 

@@ -18,53 +18,38 @@ export type UserSummary = {
   profileImageUrl: string | null;
 };
 
-export async function getUserProfile(userId: number, requesterId?: string): Promise<UserProfile> {
-  const { data } = await apiClient.get<UserProfile>(`/users/${userId}/profile`, {
-    headers: requesterId ? { "X-User-Id": requesterId } : {},
-  });
+export async function getUserProfile(userId: number): Promise<UserProfile> {
+  const { data } = await apiClient.get<UserProfile>(`/users/${userId}/profile`);
   return data;
 }
 
-export async function getUserPosts(userId: number, params: { cursor?: number; size?: number } = {}, requesterId?: string): Promise<FeedResponse> {
-  const { data } = await apiClient.get<FeedResponse>(`/users/${userId}/posts`, {
-    params,
-    headers: requesterId ? { "X-User-Id": requesterId } : {},
-  });
+export async function getUserPosts(userId: number, params: { cursor?: number; size?: number } = {}): Promise<FeedResponse> {
+  const { data } = await apiClient.get<FeedResponse>(`/users/${userId}/posts`, { params });
   return data;
 }
 
-export async function updateNickname(nickname: string, userId: string): Promise<UserProfile> {
-  const { data } = await apiClient.patch<UserProfile>("/users/me/nickname", { nickname }, {
-    headers: { "X-User-Id": userId },
-  });
+export async function updateNickname(nickname: string): Promise<UserProfile> {
+  const { data } = await apiClient.patch<UserProfile>("/users/me/nickname", { nickname });
   return data;
 }
 
-export async function updateProfileImage(profileImageUrl: string, userId: string): Promise<UserProfile> {
-  const { data } = await apiClient.patch<UserProfile>("/users/me/profile-image", { profileImageUrl }, {
-    headers: { "X-User-Id": userId },
-  });
+export async function updateProfileImage(profileImageUrl: string): Promise<UserProfile> {
+  const { data } = await apiClient.patch<UserProfile>("/users/me/profile-image", { profileImageUrl });
   return data;
 }
 
-export async function deleteProfileImage(userId: string): Promise<UserProfile> {
-  const { data } = await apiClient.delete<UserProfile>("/users/me/profile-image", {
-    headers: { "X-User-Id": userId },
-  });
+export async function deleteProfileImage(): Promise<UserProfile> {
+  const { data } = await apiClient.delete<UserProfile>("/users/me/profile-image");
   return data;
 }
 
-export async function followUser(userId: number, requesterId: string): Promise<{ followerCount: number; following: boolean }> {
-  const { data } = await apiClient.post(`/users/${userId}/follows`, null, {
-    headers: { "X-User-Id": requesterId },
-  });
+export async function followUser(userId: number): Promise<{ followerCount: number; following: boolean }> {
+  const { data } = await apiClient.post(`/users/${userId}/follows`, null);
   return data;
 }
 
-export async function unfollowUser(userId: number, requesterId: string): Promise<{ followerCount: number; following: boolean }> {
-  const { data } = await apiClient.delete(`/users/${userId}/follows`, {
-    headers: { "X-User-Id": requesterId },
-  });
+export async function unfollowUser(userId: number): Promise<{ followerCount: number; following: boolean }> {
+  const { data } = await apiClient.delete(`/users/${userId}/follows`);
   return data;
 }
 

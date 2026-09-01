@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X } from "lucide-react";
-import { getPost, likePost, unlikePost, bookmarkPost, unbookmarkPost, getComments, createComment, likeComment, unlikeComment } from "@/lib/api/posts";
+import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X, Trash2 } from "lucide-react";
+import { getPost, deletePost, likePost, unlikePost, bookmarkPost, unbookmarkPost, getComments, createComment, likeComment, unlikeComment } from "@/lib/api/posts";
 import { followUser, unfollowUser } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/axios";
 import type { PostComment, PostDetail } from "@/types/api/post";
+import { toast } from "sonner";
 
 function CommentItem({
   comment,
@@ -31,8 +32,8 @@ function CommentItem({
     if (!userId) return;
     try {
       const result = liked
-        ? await unlikeComment(postId, comment.id, userId)
-        : await likeComment(postId, comment.id, userId);
+        ? await unlikeComment(postId, comment.id)
+        : await likeComment(postId, comment.id);
       setLikeState(result);
     } catch { /* */ }
   }
@@ -80,6 +81,7 @@ export default function PostDetailPage() {
   const [bookmarked, setBookmarked] = useState<boolean | null>(null);
   const [following, setFollowing] = useState<boolean | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -93,7 +95,7 @@ export default function PostDetailPage() {
   useEffect(() => {
     const id = Number(postId);
     if (!id) return;
-    getPost(id, userId)
+    getPost(id)
       .then((res) => {
         setPost(res);
         setLikeState({ likeCount: res.likeCount, liked: res.liked });
@@ -107,7 +109,7 @@ export default function PostDetailPage() {
     setShowComments(true);
     if (comments.length === 0 && post) {
       setCommentsLoading(true);
-      getComments(post.id, { size: 30 }, userId)
+      getComments(post.id, { size: 30 })
         .then((res) => setComments(res.items))
         .catch(() => {})
         .finally(() => setCommentsLoading(false));
@@ -118,8 +120,8 @@ export default function PostDetailPage() {
     if (!userId || !post) return;
     try {
       const result = likeState?.liked
-        ? await unlikePost(post.id, userId)
-        : await likePost(post.id, userId);
+        ? await unlikePost(post.id)
+        : await likePost(post.id);
       setLikeState(result);
     } catch { /* */ }
   }
@@ -128,8 +130,8 @@ export default function PostDetailPage() {
     if (!userId || !post) return;
     try {
       const result = (bookmarked ?? post.bookmarked)
-        ? await unbookmarkPost(post.id, userId)
-        : await bookmarkPost(post.id, userId);
+        ? await unbookmarkPost(post.id)
+        : await bookmarkPost(post.id);
       setBookmarked(result.bookmarked);
     } catch { /* */ }
   }
@@ -139,11 +141,25 @@ export default function PostDetailPage() {
     setFollowLoading(true);
     try {
       const result = (following ?? false)
-        ? await unfollowUser(post.author.id, userId)
-        : await followUser(post.author.id, userId);
+        ? await unfollowUser(post.author.id)
+        : await followUser(post.author.id);
       setFollowing(result.following);
     } catch { /* */ } finally {
       setFollowLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!post || deleting) return;
+    if (!window.confirm("게시물을 삭제할까요? 삭제하면 되돌릴 수 없어요.")) return;
+    setDeleting(true);
+    try {
+      await deletePost(post.id);
+      toast.success("게시물을 삭제했어요.");
+      router.back();
+    } catch {
+      toast.error("게시물을 삭제하지 못했어요. 다시 시도해주세요.");
+      setDeleting(false);
     }
   }
 
@@ -157,7 +173,7 @@ export default function PostDetailPage() {
     if (!commentText.trim() || !userId || submitting || !post) return;
     setSubmitting(true);
     try {
-      const newComment = await createComment(post.id, { content: commentText.trim(), parentId: replyTo?.id }, userId);
+      const newComment = await createComment(post.id, { content: commentText.trim(), parentId: replyTo?.id });
       if (replyTo) {
         setComments((prev) => prev.map((c) => c.id === replyTo.id ? { ...c, replies: [...c.replies, newComment] } : c));
       } else {
@@ -201,6 +217,17 @@ export default function PostDetailPage() {
         <button type="button" onClick={() => router.back()} className="grid size-9 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100">
           <ChevronLeft size={22} />
         </button>
+        <div className="flex-1" />
+        {isMyPost && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="grid size-9 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100 disabled:opacity-40"
+          >
+            <Trash2 size={19} />
+          </button>
+        )}
       </header>
 
       {/* 스크롤 영역 */}
@@ -281,9 +308,9 @@ export default function PostDetailPage() {
 
         {/* 본문 */}
         <div className="px-4 pb-3">
-          {post.hashtags.length > 0 && (
+          {post.categories.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1.5">
-              {post.hashtags.map((tag) => (
+              {post.categories.map((tag) => (
                 <span key={tag} className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-[#2E7DF2]">#{tag}</span>
               ))}
             </div>

@@ -22,7 +22,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!userId || !userIdStr) return;
-    getUserProfile(userId, userIdStr)
+    getUserProfile(userId)
       .then(setProfile)
       .catch(() => {})
       .finally(() => setProfileLoading(false));

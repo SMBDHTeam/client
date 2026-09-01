@@ -25,7 +25,7 @@ export default function ProfileEditPage() {
 
   useEffect(() => {
     if (!userIdNum || !userId) return;
-    getUserProfile(userIdNum, userId).then((profile) => {
+    getUserProfile(userIdNum).then((profile) => {
       setNickname(profile.nickname);
       setOriginalNickname(profile.nickname);
       setPreviewImage(profile.profileImageUrl);
@@ -66,7 +66,7 @@ export default function ProfileEditPage() {
 
       if (nicknameChanged && nickname.trim()) {
         tasks.push(
-          updateNickname(nickname.trim(), userId).then(() =>
+          updateNickname(nickname.trim()).then(() =>
             update({ name: nickname.trim() })
           )
         );
@@ -74,15 +74,15 @@ export default function ProfileEditPage() {
 
       if (selectedFile) {
         tasks.push(
-          uploadMedia([selectedFile], userId).then((uploaded) =>
-            updateProfileImage(uploaded[0].url, userId).then(() =>
+          uploadMedia([selectedFile]).then((uploaded) =>
+            updateProfileImage(uploaded[0].url).then(() =>
               update({ image: uploaded[0].url })
             )
           )
         );
       } else if (imageDeleted && originalImage !== null) {
         tasks.push(
-          deleteProfileImage(userId).then(() => update({ image: null }))
+          deleteProfileImage().then(() => update({ image: null }))
         );
       }
 

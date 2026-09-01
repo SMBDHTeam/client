@@ -23,7 +23,7 @@ export type FeedPost = {
   thumbnailUrl: string | null;
   mediaCount: number;
   placeName: string | null;
-  hashtags: string[];
+  categories: string[];
   likeCount: number;
   commentCount: number;
   liked: boolean;
@@ -37,7 +37,7 @@ export type PostDetail = {
   content: string;
   mediaList: PostMedia[];
   placeTags: PostPlaceTag[];
-  hashtags: string[];
+  categories: string[];
   likeCount: number;
   commentCount: number;
   liked: boolean;

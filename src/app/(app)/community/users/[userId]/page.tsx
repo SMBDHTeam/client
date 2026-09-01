@@ -27,8 +27,8 @@ export default function UserProfilePage() {
     const id = Number(userId);
     if (!id) return;
     Promise.all([
-      getUserProfile(id, requesterId),
-      getUserPosts(id, { size: 18 }, requesterId),
+      getUserProfile(id),
+      getUserPosts(id, { size: 18 }),
     ])
       .then(([prof, feed]) => {
         setProfile(prof);
@@ -43,8 +43,8 @@ export default function UserProfilePage() {
     setFollowLoading(true);
     try {
       const result = profile.following
-        ? await unfollowUser(profile.id, requesterId)
-        : await followUser(profile.id, requesterId);
+        ? await unfollowUser(profile.id)
+        : await followUser(profile.id);
       setProfile((prev) => prev ? { ...prev, following: result.following, followerCount: result.followerCount } : prev);
     } catch {
       //

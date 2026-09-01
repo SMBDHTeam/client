@@ -72,22 +72,18 @@ export default function CommunityNewPage() {
 
   async function handleSubmit() {
     if (!canSubmit || !session?.user?.id) return;
-    const userId = String(session.user.id);
     setSubmitting(true);
     try {
       const uploaded = images.length > 0
-        ? await uploadMedia(images.map((img) => img.file), userId)
+        ? await uploadMedia(images.map((img) => img.file))
         : [];
-      await createPost(
-        {
-          content: text.trim(),
-          mediaList: uploaded.map((m, i) => ({ url: m.url, mediaType: m.mediaType, sortOrder: i })),
-          placeTags: selectedPlace
-            ? [{ placeId: selectedPlace.id, latitude: 0, longitude: 0 }]
-            : [],
-        },
-        userId,
-      );
+      await createPost({
+        content: text.trim(),
+        mediaList: uploaded.map((m, i) => ({ url: m.url, mediaType: m.mediaType, sortOrder: i })),
+        placeTags: selectedPlace
+          ? [{ placeId: selectedPlace.id, latitude: 0, longitude: 0 }]
+          : [],
+      });
       router.back();
     } catch {
       toast.error("게시물을 등록하지 못했습니다. 다시 시도해주세요.");

@@ -29,8 +29,8 @@ function CommentItem({
     if (!userId) return;
     try {
       const result = liked
-        ? await unlikeComment(postId, comment.id, userId)
-        : await likeComment(postId, comment.id, userId);
+        ? await unlikeComment(postId, comment.id)
+        : await likeComment(postId, comment.id);
       setLikeState(result);
     } catch {
       //
@@ -86,7 +86,7 @@ function CommentSheet({
 
   useEffect(() => {
     setLoading(true);
-    getComments(postId, { size: 30 }, userId)
+    getComments(postId, { size: 30 })
       .then((res) => setComments(res.items))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -105,7 +105,6 @@ function CommentSheet({
       const newComment = await createComment(
         postId,
         { content: commentText.trim(), parentId: replyTo?.id },
-        userId,
       );
       if (replyTo) {
         setComments((prev) =>
@@ -219,8 +218,8 @@ function ModalContent({
     setFollowLoading(true);
     try {
       const result = baseFollowing
-        ? await unfollowUser(post.author.id, userId)
-        : await followUser(post.author.id, userId);
+        ? await unfollowUser(post.author.id)
+        : await followUser(post.author.id);
       setFollowing(result.following);
     } catch {
       //
@@ -238,8 +237,8 @@ function ModalContent({
     if (!userId) return;
     try {
       const result = baseLiked
-        ? await unlikePost(post.id, userId)
-        : await likePost(post.id, userId);
+        ? await unlikePost(post.id)
+        : await likePost(post.id);
       setLikeState(result);
     } catch {
       //
@@ -250,8 +249,8 @@ function ModalContent({
     if (!userId) return;
     try {
       const result = baseBookmarked
-        ? await unbookmarkPost(post.id, userId)
-        : await bookmarkPost(post.id, userId);
+        ? await unbookmarkPost(post.id)
+        : await bookmarkPost(post.id);
       setBookmarked(result.bookmarked);
     } catch {
       //

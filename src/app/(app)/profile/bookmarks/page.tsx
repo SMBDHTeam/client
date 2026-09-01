@@ -25,7 +25,7 @@ export default function BookmarksPage() {
 
   useEffect(() => {
     if (!userId) return;
-    getMyBookmarks({}, userId)
+    getMyBookmarks({})
       .then((res) => setPosts(res.items))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -36,7 +36,7 @@ export default function BookmarksPage() {
     setDetail(null);
     setDetailError(null);
     setDetailLoading(true);
-    getPost(post.id, userId)
+    getPost(post.id)
       .then((res) => setDetail(res))
       .catch((err) => setDetailError(err instanceof ApiError ? err.payload.message : "게시물을 불러오지 못했습니다."))
       .finally(() => setDetailLoading(false));
