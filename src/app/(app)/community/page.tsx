@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, MessageCircle, ChevronLeft, ChevronRight, Grid3x3, LayoutGrid } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
 import PageFade from "@/components/ui/PageFade";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
-import { getFeed, getPopularFeed, getPost } from "@/lib/api/posts";
+import { getFeed, getPopularFeed } from "@/lib/api/posts";
 import { ApiError } from "@/lib/api/axios";
-import type { FeedPost, PostDetail } from "@/types/api/post";
-import PostModal from "@/components/community/PostModal";
+import type { FeedPost } from "@/types/api/post";
 
 
 const ASPECT_RATIOS = ["aspect-[3/4]", "aspect-square", "aspect-[4/5]", "aspect-[3/4]", "aspect-square", "aspect-[4/5]"];
@@ -81,6 +81,7 @@ function SquareGridTile({ post, onClick }: { post: FeedPost; onClick: () => void
 
 export default function CommunityPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const userId = session?.user?.id != null ? String(session.user.id) : undefined;
 
   const [posts, setPosts] = useState<FeedPost[]>([]);
@@ -89,11 +90,6 @@ export default function CommunityPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [popularPosts, setPopularPosts] = useState<FeedPost[]>([]);
-
-  const [selectedFeedPost, setSelectedFeedPost] = useState<FeedPost | null>(null);
-  const [detail, setDetail] = useState<PostDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
 
   const [activeTag, setActiveTag] = useState<CommunityTagId | null>(null);
   const [viewMode, setViewMode] = useState<"tile" | "grid">("tile");
@@ -127,6 +123,10 @@ export default function CommunityPage() {
     });
   }, [status, loadFeed, userId]);
 
+  function openPost(post: FeedPost) {
+    router.push(`/community/posts/${post.id}`);
+  }
+
   async function loadMore() {
     if (nextCursor == null || loadingMore) return;
     setLoadingMore(true);
@@ -139,23 +139,6 @@ export default function CommunityPage() {
     } finally {
       setLoadingMore(false);
     }
-  }
-
-  function openPost(post: FeedPost) {
-    setSelectedFeedPost(post);
-    setDetail(null);
-    setDetailError(null);
-    setDetailLoading(true);
-    getPost(post.id, userId)
-      .then((res) => setDetail(res))
-      .catch((err) => setDetailError(err instanceof ApiError ? err.payload.message : "게시물을 불러오지 못했습니다."))
-      .finally(() => setDetailLoading(false));
-  }
-
-  function closePost() {
-    setSelectedFeedPost(null);
-    setDetail(null);
-    setDetailError(null);
   }
 
 function onTagMouseDown(e: React.MouseEvent) {
@@ -403,18 +386,6 @@ function onTagMouseDown(e: React.MouseEvent) {
         </>
       )}
 
-      <AnimatePresence>
-        {selectedFeedPost && (
-          <PostModal
-            post={selectedFeedPost}
-            detail={detail}
-            detailLoading={detailLoading}
-            detailError={detailError}
-            onClose={closePost}
-            userId={userId}
-          />
-        )}
-      </AnimatePresence>
       </div>
     </PageFade>
   );

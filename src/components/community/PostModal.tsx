@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { bookmarkPost, createComment, getComments, likeComment, unlikeComment, likePost, unbookmarkPost, unlikePost } from "@/lib/api/posts";
+import { followUser, unfollowUser } from "@/lib/api/users";
 import type { FeedPost, PostComment, PostDetail } from "@/types/api/post";
 
 function CommentItem({
@@ -175,7 +177,7 @@ function CommentSheet({
           />
           <button
             type="submit"
-            disabled={!commentText.trim() || submitting}
+            disabled={!commentText.trim() || !userId || submitting}
             className="grid size-8 place-items-center rounded-full text-blue-500 transition-colors disabled:text-zinc-300"
           >
             <Send size={16} />
@@ -201,10 +203,31 @@ function ModalContent({
   onClose: () => void;
   userId: string | undefined;
 }) {
+  const router = useRouter();
   const [imgIndex, setImgIndex] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
   const [bookmarked, setBookmarked] = useState<boolean | null>(null);
+  const [following, setFollowing] = useState<boolean | null>(null);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  const isMyPost = userId != null && String(post.author.id) === userId;
+  const baseFollowing = following ?? false;
+
+  async function toggleFollow() {
+    if (!userId || isMyPost) return;
+    setFollowLoading(true);
+    try {
+      const result = baseFollowing
+        ? await unfollowUser(post.author.id, userId)
+        : await followUser(post.author.id, userId);
+      setFollowing(result.following);
+    } catch {
+      //
+    } finally {
+      setFollowLoading(false);
+    }
+  }
 
   const baseLiked = likeState?.liked ?? detail?.liked ?? post.liked;
   const baseLikeCount = likeState?.likeCount ?? detail?.likeCount ?? post.likeCount;
@@ -244,15 +267,33 @@ function ModalContent({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center gap-3 border-b px-4 py-3">
-        {post.author.profileImageUrl && (
-          <img src={post.author.profileImageUrl} alt={post.author.nickname} className="size-8 rounded-full object-cover" />
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold leading-tight">{post.author.nickname}</p>
-          {post.placeName && (
-            <p className="flex items-center gap-1 text-xs text-zinc-400"><MapPin size={10} />{post.placeName}</p>
+        <button type="button" onClick={() => { onClose(); router.push(`/community/users/${post.author.id}`); }} className="shrink-0">
+          {post.author.profileImageUrl ? (
+            <img src={post.author.profileImageUrl} alt={post.author.nickname} className="size-8 rounded-full object-cover" />
+          ) : (
+            <div className="size-8 rounded-full bg-zinc-200" />
           )}
+        </button>
+        <div className="flex-1 min-w-0">
+          <button type="button" onClick={() => { onClose(); router.push(`/community/users/${post.author.id}`); }} className="text-left">
+            <p className="text-sm font-semibold leading-tight">{post.author.nickname}</p>
+            {post.placeName && (
+              <p className="flex items-center gap-1 text-xs text-zinc-400"><MapPin size={10} />{post.placeName}</p>
+            )}
+          </button>
         </div>
+        {!isMyPost && (
+          <button
+            type="button"
+            onClick={toggleFollow}
+            disabled={followLoading}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              baseFollowing ? "border border-zinc-200 text-zinc-600" : "bg-[#2E7DF2] text-white"
+            }`}
+          >
+            {followLoading ? "..." : baseFollowing ? "팔로잉" : "팔로우"}
+          </button>
+        )}
         <button type="button" onClick={onClose} className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100"><X size={16} /></button>
       </div>
 
