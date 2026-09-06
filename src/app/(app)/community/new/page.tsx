@@ -1,15 +1,43 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ChevronLeft, ImagePlus, X, ChevronRight, MapPin, ChevronDown } from "lucide-react";
-import { ALL_TRIPS, PAST_TRIPS, type MockPlace, type MockTrip } from "@/mocks/trips";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
 import { createPost, uploadMedia } from "@/lib/api/posts";
+import { getSchedules, getSchedule } from "@/lib/api/schedules";
+import { searchPlaces, resolvePlace } from "@/lib/api/places";
+import NaverMap from "@/components/map/NaverMap";
+import { placeCategoryLabel } from "@/utils/place-category";
+import type { ScheduleSummary, ScheduleResponse, SchedulePlace } from "@/types/api/schedule";
+import type { PlaceSearchItem } from "@/types/api/place";
 import { toast } from "sonner";
 
-const ALL = [...ALL_TRIPS, ...PAST_TRIPS];
+type SelectedPlace = {
+  placeId: number;
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+};
+
+function formatDuration(dayCount: number) {
+  if (dayCount <= 1) return "당일";
+  return `${dayCount - 1}박${dayCount}일`;
+}
+
+function formatDateRange(startDate: string, endDate: string) {
+  const start = new Date(`${startDate}T00:00:00`);
+  const startLabel = `${start.getMonth() + 1}.${start.getDate()}`;
+  if (startDate === endDate) return startLabel;
+  const end = new Date(`${endDate}T00:00:00`);
+  return `${startLabel} - ${end.getMonth() + 1}.${end.getDate()}`;
+}
+
+function searchItemKey(item: PlaceSearchItem) {
+  return item.placeId !== null ? `place:${item.placeId}` : `${item.source}:${item.externalId}`;
+}
 
 export default function CommunityNewPage() {
   const router = useRouter();
@@ -23,8 +51,57 @@ export default function CommunityNewPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const [step, setStep] = useState<"idle" | "trip" | "place">("idle");
-  const [selectedTrip, setSelectedTrip] = useState<MockTrip | null>(null);
-  const [selectedPlace, setSelectedPlace] = useState<MockPlace | null>(null);
+  const [pickerTab, setPickerTab] = useState<"trip" | "search">("trip");
+
+  const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
+  const [schedulesLoading, setSchedulesLoading] = useState(true);
+  const [selectedSchedule, setSelectedSchedule] = useState<ScheduleSummary | null>(null);
+  const [scheduleDetail, setScheduleDetail] = useState<ScheduleResponse | null>(null);
+  const [scheduleDetailLoading, setScheduleDetailLoading] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<PlaceSearchItem[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [resolvingKey, setResolvingKey] = useState<string | null>(null);
+  const [activeSearchPlace, setActiveSearchPlace] = useState<PlaceSearchItem | null>(null);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>();
+
+  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
+
+  useEffect(() => {
+    getSchedules()
+      .then((res) => setSchedules(res.items))
+      .catch(() => setSchedules([]))
+      .finally(() => setSchedulesLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const keyword = searchQuery.trim();
+    if (keyword.length < 2) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await searchPlaces(keyword, controller.signal);
+        if (!controller.signal.aborted) setSearchResults(res.items);
+      } catch {
+        if (!controller.signal.aborted) setSearchResults([]);
+      } finally {
+        if (!controller.signal.aborted) setSearchLoading(false);
+      }
+    }, 300);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchQuery]);
+
+  const places = useMemo(() => {
+    if (!scheduleDetail) return [];
+    const map = new Map<number, SchedulePlace>();
+    scheduleDetail.days.forEach((day) => day.stops.forEach((stop) => map.set(stop.place.id, stop.place)));
+    return Array.from(map.values());
+  }, [scheduleDetail]);
 
   function toggleTag(id: CommunityTagId) {
     setSelectedTags((prev) =>
@@ -51,19 +128,61 @@ export default function CommunityNewPage() {
     });
   }
 
-  function pickTrip(trip: MockTrip) {
-    setSelectedTrip(trip);
-    setSelectedPlace(null);
-    setStep("place");
+  function openPicker() {
+    setPickerTab("trip");
+    setStep("trip");
   }
 
-  function pickPlace(place: MockPlace) {
-    setSelectedPlace(place);
+  function pickTrip(schedule: ScheduleSummary) {
+    setSelectedSchedule(schedule);
+    setStep("place");
+    setScheduleDetailLoading(true);
+    getSchedule(schedule.id)
+      .then(setScheduleDetail)
+      .catch(() => setScheduleDetail(null))
+      .finally(() => setScheduleDetailLoading(false));
+  }
+
+  function pickPlace(place: SchedulePlace) {
+    setSelectedPlace({
+      placeId: place.id,
+      name: place.name,
+      address: place.address,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    });
     setStep("idle");
   }
 
+  function focusSearchPlace(item: PlaceSearchItem) {
+    setActiveSearchPlace(item);
+    setMapCenter({ lat: item.latitude, lng: item.longitude });
+  }
+
+  async function selectSearchPlace(item: PlaceSearchItem) {
+    const key = searchItemKey(item);
+    setResolvingKey(key);
+    try {
+      const resolved = item.placeId !== null && item.resolved ? item : await resolvePlace(item);
+      if (resolved.placeId == null) throw new Error("장소를 확인하지 못했어요.");
+      setSelectedPlace({
+        placeId: resolved.placeId,
+        name: resolved.name,
+        address: resolved.address ?? null,
+        latitude: resolved.latitude,
+        longitude: resolved.longitude,
+      });
+      setStep("idle");
+    } catch {
+      toast.error("장소를 선택하지 못했어요. 다시 시도해주세요.");
+    } finally {
+      setResolvingKey(null);
+    }
+  }
+
   function clearLocation() {
-    setSelectedTrip(null);
+    setSelectedSchedule(null);
+    setScheduleDetail(null);
     setSelectedPlace(null);
     setStep("idle");
   }
@@ -81,7 +200,7 @@ export default function CommunityNewPage() {
         content: text.trim(),
         mediaList: uploaded.map((m, i) => ({ url: m.url, mediaType: m.mediaType, sortOrder: i })),
         placeTags: selectedPlace
-          ? [{ placeId: selectedPlace.id, latitude: 0, longitude: 0 }]
+          ? [{ placeId: selectedPlace.placeId, latitude: selectedPlace.latitude, longitude: selectedPlace.longitude }]
           : [],
       });
       router.back();
@@ -98,7 +217,8 @@ export default function CommunityNewPage() {
         <button
           type="button"
           onClick={() => {
-            if (step !== "idle") { setStep("idle"); return; }
+            if (step === "place") { setStep("trip"); return; }
+            if (step === "trip") { setStep("idle"); return; }
             router.back();
           }}
           className="grid size-8 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100"
@@ -106,7 +226,7 @@ export default function CommunityNewPage() {
           <ChevronLeft size={22} />
         </button>
         <h1 className="flex-1 text-center text-base font-semibold">
-          {step === "trip" ? "일정 선택" : step === "place" ? "장소 선택" : "새 게시물"}
+          {step === "trip" ? "장소 태그" : step === "place" ? "장소 선택" : "새 게시물"}
         </h1>
         <button
           type="button"
@@ -118,58 +238,176 @@ export default function CommunityNewPage() {
         </button>
       </header>
 
-      {/* 일정 선택 시트 */}
+      {/* 장소 태그 시트: 내 일정 / 장소 검색 탭 */}
       {step === "trip" && (
         <div className="flex flex-1 flex-col overflow-y-auto">
-          <p className="px-4 pt-4 pb-2 text-xs text-zinc-400">내 일정에서 선택하세요</p>
-          <ul className="flex flex-col divide-y divide-zinc-100">
-            {ALL.map((trip) => (
-              <li key={trip.id}>
-                <button
-                  type="button"
-                  onClick={() => pickTrip(trip)}
-                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-zinc-50"
-                >
-                  <div className={`grid size-10 shrink-0 place-items-center rounded-xl bg-linear-to-br text-xs font-bold text-white ${trip.gradient}`}>
-                    {trip.duration}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{trip.title}</p>
-                    <p className="mt-0.5 text-xs text-zinc-400">{trip.date} · {trip.places}</p>
-                  </div>
-                  <ChevronDown size={16} className="-rotate-90 shrink-0 text-zinc-400" />
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="mx-4 mt-4 flex gap-1 rounded-full bg-zinc-100 p-1">
+            <button
+              type="button"
+              onClick={() => setPickerTab("trip")}
+              className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${
+                pickerTab === "trip" ? "bg-white text-[#2E7DF2] shadow-sm" : "text-zinc-400"
+              }`}
+            >
+              내 일정에서
+            </button>
+            <button
+              type="button"
+              onClick={() => setPickerTab("search")}
+              className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${
+                pickerTab === "search" ? "bg-white text-[#2E7DF2] shadow-sm" : "text-zinc-400"
+              }`}
+            >
+              장소 검색
+            </button>
+          </div>
+
+          {pickerTab === "trip" ? (
+            schedulesLoading ? (
+              <div className="flex flex-1 items-center justify-center py-16">
+                <div className="size-6 animate-spin rounded-full border-2 border-zinc-200 border-t-[#2E7DF2]" />
+              </div>
+            ) : schedules.length === 0 ? (
+              <p className="px-4 py-16 text-center text-sm text-zinc-400">아직 만든 일정이 없어요</p>
+            ) : (
+              <>
+                <p className="px-4 pt-4 pb-2 text-xs text-zinc-400">내 일정에서 선택하세요</p>
+                <ul className="flex flex-col divide-y divide-zinc-100">
+                  {schedules.map((schedule) => (
+                    <li key={schedule.id}>
+                      <button
+                        type="button"
+                        onClick={() => pickTrip(schedule)}
+                        className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-zinc-50"
+                      >
+                        <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-linear-to-br from-[#2E7DF2] to-[#17B89B] text-[10px] font-bold text-white">
+                          {formatDuration(schedule.dayCount)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">{schedule.styleSummary}</p>
+                          <p className="mt-0.5 text-xs text-zinc-400">
+                            {formatDateRange(schedule.startDate, schedule.endDate)} · {schedule.stopCount}곳
+                          </p>
+                        </div>
+                        <ChevronDown size={16} className="-rotate-90 shrink-0 text-zinc-400" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )
+          ) : (
+            <div className="flex flex-1 flex-col px-4 pt-4">
+              <div className="flex items-center gap-2 rounded-full border border-zinc-200 px-4 py-2.5">
+                <input
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (e.target.value.trim().length < 2) setSearchResults([]);
+                  }}
+                  placeholder="가고 싶은 장소를 검색해보세요"
+                  className="w-full text-sm text-zinc-800 outline-none placeholder:text-zinc-400"
+                />
+              </div>
+
+              <div className="relative mt-3 h-[min(16rem,32dvh)] w-full shrink-0 overflow-hidden rounded-2xl ring-1 ring-black/5">
+                <NaverMap
+                  center={mapCenter}
+                  zoom={activeSearchPlace ? 17 : undefined}
+                  place={
+                    activeSearchPlace
+                      ? {
+                          name: activeSearchPlace.name,
+                          tag: `${activeSearchPlace.categoryLabel || placeCategoryLabel(activeSearchPlace.category)} · ${activeSearchPlace.address ?? ""}`,
+                          alreadyAdded:
+                            selectedPlace != null &&
+                            activeSearchPlace.placeId != null &&
+                            selectedPlace.placeId === activeSearchPlace.placeId,
+                        }
+                      : null
+                  }
+                  onAddPlace={() => activeSearchPlace && void selectSearchPlace(activeSearchPlace)}
+                  className="h-full w-full"
+                />
+              </div>
+
+              <ul className="mt-2 flex flex-col divide-y divide-zinc-100">
+                {searchLoading && (
+                  <p className="py-8 text-center text-sm text-zinc-400">검색 중...</p>
+                )}
+                {!searchLoading && searchQuery.trim().length >= 2 && searchResults.length === 0 && (
+                  <p className="py-8 text-center text-sm text-zinc-400">검색 결과가 없어요</p>
+                )}
+                {!searchLoading && searchResults.map((item) => {
+                  const key = searchItemKey(item);
+                  const resolving = resolvingKey === key;
+                  return (
+                    <li key={key} className="flex w-full items-center gap-3 py-3.5">
+                      <button
+                        type="button"
+                        onClick={() => focusSearchPlace(item)}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
+                        <div className="grid size-9 shrink-0 place-items-center rounded-full bg-blue-50 text-[#2E7DF2]">
+                          <MapPin size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">{item.name}</p>
+                          <p className="mt-0.5 truncate text-xs text-zinc-400">
+                            {item.categoryLabel || placeCategoryLabel(item.category)}{item.address ? ` · ${item.address}` : ""}
+                          </p>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => selectSearchPlace(item)}
+                        disabled={Boolean(resolvingKey)}
+                        className="shrink-0 rounded-full bg-[#EAF2FE] px-3 py-1.5 text-xs font-semibold text-[#2E7DF2] disabled:opacity-50"
+                      >
+                        {resolving ? "확인 중" : "선택"}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
       {/* 장소 선택 시트 */}
-      {step === "place" && selectedTrip && (
+      {step === "place" && selectedSchedule && (
         <div className="flex flex-1 flex-col overflow-y-auto">
           <p className="px-4 pt-4 pb-2 text-xs text-zinc-400">
-            <span className="font-medium text-zinc-700">{selectedTrip.title}</span>의 장소를 선택하세요
+            <span className="font-medium text-zinc-700">{selectedSchedule.styleSummary}</span>의 장소를 선택하세요
           </p>
-          <ul className="flex flex-col divide-y divide-zinc-100">
-            {selectedTrip.placeList.map((place) => (
-              <li key={place.id}>
-                <button
-                  type="button"
-                  onClick={() => pickPlace(place)}
-                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-zinc-50"
-                >
-                  <div className="grid size-9 shrink-0 place-items-center rounded-full bg-blue-50 text-[#2E7DF2]">
-                    <MapPin size={16} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{place.name}</p>
-                    <p className="mt-0.5 text-xs text-zinc-400">{place.address}</p>
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
+          {scheduleDetailLoading ? (
+            <div className="flex flex-1 items-center justify-center py-16">
+              <div className="size-6 animate-spin rounded-full border-2 border-zinc-200 border-t-[#2E7DF2]" />
+            </div>
+          ) : places.length === 0 ? (
+            <p className="px-4 py-16 text-center text-sm text-zinc-400">등록된 장소가 없어요</p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-zinc-100">
+              {places.map((place) => (
+                <li key={place.id}>
+                  <button
+                    type="button"
+                    onClick={() => pickPlace(place)}
+                    className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-zinc-50"
+                  >
+                    <div className="grid size-9 shrink-0 place-items-center rounded-full bg-blue-50 text-[#2E7DF2]">
+                      <MapPin size={16} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{place.name}</p>
+                      <p className="mt-0.5 text-xs text-zinc-400">{place.address}</p>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
@@ -177,7 +415,7 @@ export default function CommunityNewPage() {
       {step === "idle" && (
         <div className="flex flex-1 flex-col overflow-y-auto">
           {images.length > 0 ? (
-            <div className="relative aspect-square w-full bg-zinc-100">
+            <div className="relative aspect-square w-full overflow-hidden bg-zinc-100">
               <div
                 className="flex h-full transition-transform duration-300 ease-in-out"
                 style={{ transform: `translateX(-${imgIndex * 100}%)` }}
@@ -301,9 +539,9 @@ export default function CommunityNewPage() {
               <MapPin size={15} className={`shrink-0 ${selectedPlace ? "text-[#2E7DF2]" : "text-zinc-400"}`} />
               {selectedPlace ? (
                 <div className="flex flex-1 items-center justify-between">
-                  <button type="button" onClick={() => setStep("trip")} className="min-w-0 text-left">
+                  <button type="button" onClick={openPicker} className="min-w-0 text-left">
                     <p className="truncate text-sm font-medium text-zinc-800">{selectedPlace.name}</p>
-                    <p className="text-xs text-zinc-400">{selectedPlace.address}</p>
+                    {selectedPlace.address && <p className="text-xs text-zinc-400">{selectedPlace.address}</p>}
                   </button>
                   <button
                     type="button"
@@ -314,7 +552,7 @@ export default function CommunityNewPage() {
                   </button>
                 </div>
               ) : (
-                <button type="button" onClick={() => setStep("trip")} className="text-sm text-zinc-400">
+                <button type="button" onClick={openPicker} className="text-sm text-zinc-400">
                   내 일정에서 장소 태그
                 </button>
               )}

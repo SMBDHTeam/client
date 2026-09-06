@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { bookmarkPost, createComment, getComments, likeComment, unlikeComment, likePost, unbookmarkPost, unlikePost } from "@/lib/api/posts";
+import { bookmarkPost, createComment, deleteComment, getComments, likeComment, unlikeComment, likePost, unbookmarkPost, unlikePost } from "@/lib/api/posts";
 import { followUser, unfollowUser } from "@/lib/api/users";
 import type { FeedPost, PostComment, PostDetail } from "@/types/api/post";
 
@@ -13,17 +13,20 @@ function CommentItem({
   postId,
   userId,
   onReply,
+  onDelete,
   isReply,
 }: {
   comment: PostComment;
   postId: number;
   userId: string | undefined;
   onReply: (commentId: number, nickname: string) => void;
+  onDelete: (commentId: number) => void;
   isReply?: boolean;
 }) {
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
   const liked = likeState?.liked ?? comment.liked;
   const likeCount = likeState?.likeCount ?? comment.likeCount;
+  const isMine = userId != null && String(comment.author.id) === userId;
 
   async function toggleLike() {
     if (!userId) return;
@@ -35,6 +38,15 @@ function CommentItem({
     } catch {
       //
     }
+  }
+
+  if (comment.deleted) {
+    return (
+      <div className={`flex gap-2 text-sm ${isReply ? "pl-9" : ""}`}>
+        <div className="size-7 shrink-0 rounded-full bg-zinc-100" />
+        <p className="flex-1 self-center text-xs text-zinc-400">삭제된 댓글이에요</p>
+      </div>
+    );
   }
 
   return (
@@ -55,11 +67,18 @@ function CommentItem({
             {likeCount > 0 && <span className="text-[11px]">{likeCount}</span>}
           </button>
         </div>
-        {!isReply && (
-          <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="mt-0.5 text-xs text-zinc-400">
-            답글 달기
-          </button>
-        )}
+        <div className="mt-0.5 flex items-center gap-2.5">
+          {!isReply && (
+            <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="text-xs text-zinc-400">
+              답글 달기
+            </button>
+          )}
+          {isMine && (
+            <button type="button" onClick={() => onDelete(comment.id)} className="text-xs text-zinc-400 hover:text-red-500">
+              삭제
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -95,6 +114,24 @@ function CommentSheet({
   function handleReply(commentId: number, nickname: string) {
     setReplyTo({ id: commentId, nickname });
     inputRef.current?.focus();
+  }
+
+  async function handleDeleteComment(commentId: number) {
+    if (!window.confirm("댓글을 삭제할까요?")) return;
+    try {
+      await deleteComment(postId, commentId);
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c.id === commentId) return { ...c, deleted: true };
+          if (c.replies.some((r) => r.id === commentId)) {
+            return { ...c, replies: c.replies.map((r) => (r.id === commentId ? { ...r, deleted: true } : r)) };
+          }
+          return c;
+        }),
+      );
+    } catch {
+      //
+    }
   }
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
@@ -147,9 +184,9 @@ function CommentSheet({
         )}
         {comments.map((c) => (
           <div key={c.id} className="space-y-3">
-            <CommentItem comment={c} postId={postId} userId={userId} onReply={handleReply} />
+            <CommentItem comment={c} postId={postId} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} />
             {c.replies.map((reply) => (
-              <CommentItem key={reply.id} comment={reply} postId={postId} userId={userId} onReply={handleReply} isReply />
+              <CommentItem key={reply.id} comment={reply} postId={postId} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} isReply />
             ))}
           </div>
         ))}

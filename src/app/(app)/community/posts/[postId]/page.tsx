@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X, Trash2 } from "lucide-react";
-import { getPost, deletePost, likePost, unlikePost, bookmarkPost, unbookmarkPost, getComments, createComment, likeComment, unlikeComment } from "@/lib/api/posts";
+import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X, Trash2, Pencil } from "lucide-react";
+import { getPost, deletePost, updatePost, likePost, unlikePost, bookmarkPost, unbookmarkPost, getComments, createComment, deleteComment, likeComment, unlikeComment } from "@/lib/api/posts";
 import { followUser, unfollowUser } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/axios";
 import type { PostComment, PostDetail } from "@/types/api/post";
@@ -16,17 +16,20 @@ function CommentItem({
   postId,
   userId,
   onReply,
+  onDelete,
   isReply,
 }: {
   comment: PostComment;
   postId: number;
   userId: string | undefined;
   onReply: (commentId: number, nickname: string) => void;
+  onDelete: (commentId: number) => void;
   isReply?: boolean;
 }) {
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
   const liked = likeState?.liked ?? comment.liked;
   const likeCount = likeState?.likeCount ?? comment.likeCount;
+  const isMine = userId != null && String(comment.author.id) === userId;
 
   async function toggleLike() {
     if (!userId) return;
@@ -36,6 +39,15 @@ function CommentItem({
         : await likeComment(postId, comment.id);
       setLikeState(result);
     } catch { /* */ }
+  }
+
+  if (comment.deleted) {
+    return (
+      <div className={`flex gap-3 ${isReply ? "pl-10" : ""}`}>
+        <div className="size-8 shrink-0 rounded-full bg-zinc-100" />
+        <p className="flex-1 self-center text-sm text-zinc-400">삭제된 댓글이에요</p>
+      </div>
+    );
   }
 
   return (
@@ -56,11 +68,18 @@ function CommentItem({
             {likeCount > 0 && <span className="text-[10px]">{likeCount}</span>}
           </button>
         </div>
-        {!isReply && (
-          <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="mt-1 text-xs text-zinc-400">
-            답글 달기
-          </button>
-        )}
+        <div className="mt-1 flex items-center gap-3">
+          {!isReply && (
+            <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="text-xs text-zinc-400">
+              답글 달기
+            </button>
+          )}
+          {isMine && (
+            <button type="button" onClick={() => onDelete(comment.id)} className="text-xs text-zinc-400 hover:text-red-500">
+              삭제
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -82,6 +101,9 @@ export default function PostDetailPage() {
   const [following, setFollowing] = useState<boolean | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -163,9 +185,57 @@ export default function PostDetailPage() {
     }
   }
 
+  function handleStartEdit() {
+    if (!post) return;
+    setEditText(post.content);
+    setEditing(true);
+  }
+
+  function handleCancelEdit() {
+    setEditing(false);
+  }
+
+  async function handleSaveEdit() {
+    if (!post || savingEdit || !editText.trim()) return;
+    setSavingEdit(true);
+    try {
+      const updated = await updatePost(post.id, {
+        content: editText.trim(),
+        mediaList: post.mediaList,
+        categories: post.categories,
+      });
+      setPost(updated);
+      setEditing(false);
+      toast.success("게시물을 수정했어요.");
+    } catch {
+      toast.error("게시물을 수정하지 못했어요.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   function handleReply(commentId: number, nickname: string) {
     setReplyTo({ id: commentId, nickname });
     inputRef.current?.focus();
+  }
+
+  async function handleDeleteComment(commentId: number) {
+    if (!post) return;
+    if (!window.confirm("댓글을 삭제할까요?")) return;
+    try {
+      await deleteComment(post.id, commentId);
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c.id === commentId) return { ...c, deleted: true };
+          if (c.replies.some((r) => r.id === commentId)) {
+            return { ...c, replies: c.replies.map((r) => (r.id === commentId ? { ...r, deleted: true } : r)) };
+          }
+          return c;
+        }),
+      );
+    } catch {
+      toast.error("댓글을 삭제하지 못했어요.");
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -218,15 +288,24 @@ export default function PostDetailPage() {
           <ChevronLeft size={22} />
         </button>
         <div className="flex-1" />
-        {isMyPost && (
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            className="grid size-9 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100 disabled:opacity-40"
-          >
-            <Trash2 size={19} />
-          </button>
+        {isMyPost && !editing && (
+          <>
+            <button
+              type="button"
+              onClick={handleStartEdit}
+              className="grid size-9 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100"
+            >
+              <Pencil size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="grid size-9 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100 disabled:opacity-40"
+            >
+              <Trash2 size={19} />
+            </button>
+          </>
         )}
       </header>
 
@@ -234,7 +313,7 @@ export default function PostDetailPage() {
       <div className="flex-1 overflow-y-auto scrollbar-none">
         {/* 이미지 캐러셀 */}
         {images.length > 0 && (
-          <div className="relative w-full bg-zinc-100" style={{ aspectRatio: "1/1" }}>
+          <div className="relative w-full overflow-hidden bg-zinc-100" style={{ aspectRatio: "1/1" }}>
             <div
               className="flex h-full transition-transform duration-300 ease-in-out"
               style={{ transform: `translateX(-${imgIndex * 100}%)` }}
@@ -315,7 +394,37 @@ export default function PostDetailPage() {
               ))}
             </div>
           )}
-          <p className="text-sm text-zinc-800 leading-relaxed whitespace-pre-line">{post.content}</p>
+          {editing ? (
+            <div>
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                rows={4}
+                autoFocus
+                className="w-full resize-none rounded-xl border border-zinc-200 p-3 text-sm text-zinc-800 outline-none focus:border-[#2E7DF2]"
+              />
+              <div className="mt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  disabled={savingEdit}
+                  className="rounded-full px-4 py-1.5 text-xs font-semibold text-zinc-500 hover:bg-zinc-100 disabled:opacity-40"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEdit}
+                  disabled={savingEdit || !editText.trim()}
+                  className="rounded-full bg-[#2E7DF2] px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                >
+                  {savingEdit ? "저장 중..." : "저장"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-800 leading-relaxed whitespace-pre-line">{post.content}</p>
+          )}
         </div>
 
         {/* 위치 */}
@@ -364,9 +473,9 @@ export default function PostDetailPage() {
                 )}
                 {comments.map((c) => (
                   <div key={c.id} className="space-y-4">
-                    <CommentItem comment={c} postId={post.id} userId={userId} onReply={handleReply} />
+                    <CommentItem comment={c} postId={post.id} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} />
                     {c.replies.map((reply) => (
-                      <CommentItem key={reply.id} comment={reply} postId={post.id} userId={userId} onReply={handleReply} isReply />
+                      <CommentItem key={reply.id} comment={reply} postId={post.id} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} isReply />
                     ))}
                   </div>
                 ))}

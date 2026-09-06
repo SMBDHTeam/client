@@ -1,4 +1,4 @@
-import type { CommentListResponse, CreatePostRequest, FeedPost, FeedResponse, PostComment, PostDetail, LikeResponse } from "@/types/api/post";
+import type { CommentListResponse, CreatePostRequest, FeedPost, FeedResponse, PostComment, PostDetail, PostMedia, LikeResponse } from "@/types/api/post";
 import { apiBaseUrl } from "./config";
 import { ApiError } from "./axios";
 import apiClient from "./axios";
@@ -46,6 +46,14 @@ export async function createPost(body: CreatePostRequest) {
   return data;
 }
 
+export async function updatePost(
+  postId: number,
+  body: { content: string; mediaList: PostMedia[]; categories: string[] },
+): Promise<PostDetail> {
+  const { data } = await apiClient.patch<PostDetail>(`/posts/${postId}`, body);
+  return data;
+}
+
 export async function deletePost(postId: number): Promise<void> {
   await apiClient.delete(`/posts/${postId}`);
 }
@@ -58,6 +66,10 @@ export async function getComments(postId: number, params: { cursor?: number; siz
 export async function createComment(postId: number, body: { content: string; parentId?: number }): Promise<PostComment> {
   const { data } = await apiClient.post<PostComment>(`/posts/${postId}/comments`, body);
   return data;
+}
+
+export async function deleteComment(postId: number, commentId: number): Promise<void> {
+  await apiClient.delete(`/posts/${postId}/comments/${commentId}`);
 }
 
 export async function getMyBookmarks(params: { page?: number; size?: number } = {}): Promise<{ items: FeedPost[] }> {

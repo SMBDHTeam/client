@@ -1,20 +1,36 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import HomeHeader from "@/components/layout/HomeHeader";
 import PageFade from "@/components/ui/PageFade";
-import { POPULAR_DESTINATIONS, COMMUNITY_POSTS } from "@/mocks/home";
+import { POPULAR_DESTINATIONS } from "@/mocks/home";
+import { getPopularFeed } from "@/lib/api/posts";
+import type { FeedPost } from "@/types/api/post";
 import searchIcon from "@/assets/icons/search.png";
 
 export default function HomePage() {
+  const { data: session, status } = useSession();
+  const userName = session?.user?.name;
+
+  const [communityPosts, setCommunityPosts] = useState<FeedPost[]>([]);
+
+  useEffect(() => {
+    if (status === "loading") return;
+    getPopularFeed({ size: 2 })
+      .then((res) => setCommunityPosts(res.items))
+      .catch(() => {});
+  }, [status]);
+
   return (
     <PageFade className="flex flex-1 flex-col bg-[#F6F8FC] text-zinc-900">
       <HomeHeader />
 
       <div className="space-y-6 px-5 pt-2 pb-8">
         <h1 className="text-[22px] font-bold leading-relaxed pt-2">
-          어서오세요 진혁님,
+          어서오세요{userName ? ` ${userName}님` : ""},
           <br />
           오늘은 어디로 떠날까요?
         </h1>
@@ -65,22 +81,36 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section>
-          <h2 className="mb-3 text-lg font-bold">커뮤니티 인기글</h2>
-          <ul className="space-y-3">
-            {COMMUNITY_POSTS.map((post, i) => (
-              <li key={i}>
+        {communityPosts.length > 0 && (
+          <section>
+            <h2 className="mb-3 text-lg font-bold">커뮤니티 인기글</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {communityPosts.map((post) => (
                 <Link
-                  href="/community"
-                  className="block rounded-2xl bg-white px-4 py-4 shadow-sm ring-1 ring-black/5"
+                  key={post.id}
+                  href={`/community/posts/${post.id}`}
+                  className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5"
                 >
-                  <p className="text-sm font-semibold">{post.title}</p>
-                  <p className="mt-1 text-xs text-zinc-400">{post.meta}</p>
+                  <div className="aspect-16/10 bg-zinc-100">
+                    {post.thumbnailUrl && (
+                      <img
+                        src={post.thumbnailUrl}
+                        alt={post.placeName ?? post.content}
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="px-3 py-3">
+                    <p className="truncate text-sm font-semibold">{post.placeName ?? post.content}</p>
+                    <p className="mt-0.5 text-xs text-zinc-400">
+                      {post.categories[0] ?? "여행후기"} · 댓글 {post.commentCount}
+                    </p>
+                  </div>
                 </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </PageFade>
   );

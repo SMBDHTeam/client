@@ -1,23 +1,115 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ALL_TRIPS } from "@/mocks/trips";
+import { Clock, ArrowRight, Plus, Heart } from "lucide-react";
 import { useTripDraft } from "@/store/trip-draft";
+import { getSchedules } from "@/lib/api/schedules";
+import { ApiError } from "@/lib/api/axios";
+import type { ScheduleSummary } from "@/types/api/schedule";
 import searchIcon from "@/assets/icons/search-256.png";
 
-const STATUS_STYLE: Record<string, string> = {
+const GRADIENTS = [
+    "from-[#2E7DF2] to-[#17B89B]",
+    "from-[#F7A18E] to-[#F16E5E]",
+    "from-[#8B7DF2] to-[#5B5EE8]",
+    "from-[#5AA9F0] to-[#3B7DE0]",
+];
+
+type TripStatus = "진행 임박" | "예정" | "완료";
+
+const STATUS_STYLE: Record<TripStatus, string> = {
     "진행 임박": "bg-[#E6F7F3] text-[#17B89B]",
     예정: "bg-[#E8F1FE] text-[#2E7DF2]",
-    임시저장: "bg-zinc-100 text-zinc-500",
     완료: "bg-zinc-100 text-zinc-500",
 };
+
+function parseDate(dateStr: string) {
+    return new Date(`${dateStr}T00:00:00`);
+}
+
+function startOfToday() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+}
+
+function diffDays(from: Date, to: Date) {
+    return Math.round((to.getTime() - from.getTime()) / 86400000);
+}
+
+function formatDateLabel(startDate: string, endDate: string) {
+    const start = parseDate(startDate);
+    const end = parseDate(endDate);
+    const startLabel = `${start.getMonth() + 1}.${start.getDate()}`;
+    if (startDate === endDate) return startLabel;
+    const endLabel = `${end.getMonth() + 1}.${end.getDate()}`;
+    return `${startLabel} - ${endLabel}`;
+}
+
+function formatDuration(dayCount: number) {
+    if (dayCount <= 1) return "당일";
+    return `${dayCount - 1}박${dayCount}일`;
+}
+
+function getStatus(schedule: ScheduleSummary, today: Date): TripStatus {
+    const end = parseDate(schedule.endDate);
+    if (diffDays(today, end) < 0) return "완료";
+    const start = parseDate(schedule.startDate);
+    if (diffDays(today, start) <= 7) return "진행 임박";
+    return "예정";
+}
 
 export default function TripsPage() {
     const router = useRouter();
     const { resetDraft } = useTripDraft();
-    const featured = ALL_TRIPS[0];
+
+    const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+        setError(null);
+        getSchedules()
+            .then((res) => {
+                if (cancelled) return;
+                setSchedules(res.items);
+            })
+            .catch((err) => {
+                if (cancelled) return;
+                setError(err instanceof ApiError ? err.payload.message : "일정을 불러오지 못했습니다.");
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const today = useMemo(() => startOfToday(), []);
+
+    const sorted = useMemo(
+        () =>
+            [...schedules].sort(
+                (a, b) => parseDate(a.startDate).getTime() - parseDate(b.startDate).getTime(),
+            ),
+        [schedules],
+    );
+
+    const featured = useMemo(() => {
+        if (sorted.length === 0) return null;
+        const upcoming = sorted.find((s) => diffDays(today, parseDate(s.endDate)) >= 0);
+        return upcoming ?? sorted[sorted.length - 1];
+    }, [sorted, today]);
+
+    const featuredDday = featured ? diffDays(today, parseDate(featured.startDate)) : 0;
+    const featuredDdayLabel =
+        featuredDday > 0 ? `D-${featuredDday}` : featuredDday === 0 ? "D-DAY" : "여행중";
 
     return (
         <div className="flex flex-1 flex-col bg-[#F6F8FC]">
@@ -32,31 +124,21 @@ export default function TripsPage() {
                 </button>
             </header>
 
+            {loading ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20">
+                    <div className="size-8 animate-spin rounded-full border-4 border-zinc-200 border-t-[#2E7DF2]" />
+                    <p className="text-sm text-zinc-400">일정을 불러오는 중...</p>
+                </div>
+            ) : error ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20 px-6 text-center">
+                    <p className="text-sm text-red-500">{error}</p>
+                </div>
+            ) : (
             <div className="flex flex-col gap-6 px-5 pt-2 pb-8">
+                {featured && (
                 <section>
                     <h2 className="mb-2 flex items-center gap-1 text-sm text-zinc-500">
-                        <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            aria-hidden
-                        >
-                            <circle
-                                cx="12"
-                                cy="12"
-                                r="9"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                            />
-                            <path
-                                d="M12 7v5l3 3"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
+                        <Clock size={14} strokeWidth={1.8} aria-hidden />
                         가장 가까운 여행
                     </h2>
                     <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#2E7DF2] to-[#17B89B] p-6 text-white">
@@ -64,16 +146,16 @@ export default function TripsPage() {
                         <div className="absolute top-10 right-10 size-16 rounded-full bg-white/10" />
                         <div className="relative">
                             <span className="inline-block rounded-full bg-[#F16E5E] px-2.5 py-1 text-xs font-bold">
-                                D-12
+                                {featuredDdayLabel}
                             </span>
                             <span className="ml-2 text-sm text-white/90">
-                                {featured.date}
+                                {formatDateLabel(featured.startDate, featured.endDate)}
                             </span>
                             <h3 className="mt-2 text-xl font-bold">
-                                {featured.title}
+                                {featured.styleSummary}
                             </h3>
                             <p className="mt-1 text-sm text-white/90">
-                                {featured.duration} · 친구와 · {featured.places}
+                                {formatDuration(featured.dayCount)} · {featured.stopCount}곳
                             </p>
 
                             <div className="mt-5 flex items-center gap-2">
@@ -88,26 +170,13 @@ export default function TripsPage() {
                                     aria-label="일정 상세로 이동"
                                     className="grid size-10 shrink-0 place-items-center rounded-full bg-white/20 hover:bg-white/30"
                                 >
-                                    <svg
-                                        width="18"
-                                        height="18"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        aria-hidden
-                                    >
-                                        <path
-                                            d="M5 12h14M13 6l6 6-6 6"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                    </svg>
+                                    <ArrowRight size={18} strokeWidth={2} aria-hidden />
                                 </Link>
                             </div>
                         </div>
                     </div>
                 </section>
+                )}
 
                 <section className="grid grid-cols-2 gap-4">
                     <button
@@ -116,20 +185,7 @@ export default function TripsPage() {
                         className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 text-left transition-colors hover:bg-zinc-50"
                     >
                         <div className="grid size-11 place-items-center rounded-xl bg-linear-to-br from-[#2E7DF2] to-[#17B89B] text-white">
-                            <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                aria-hidden
-                            >
-                                <path
-                                    d="M12 5v14M5 12h14"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                />
-                            </svg>
+                            <Plus size={20} strokeWidth={2} aria-hidden />
                         </div>
                         <p className="mt-3 text-sm font-semibold">
                             새 일정 만들기
@@ -144,20 +200,7 @@ export default function TripsPage() {
                         className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 transition-colors hover:bg-zinc-50"
                     >
                         <div className="grid size-11 place-items-center rounded-xl bg-[#FCEAEA] text-[#F16E5E]">
-                            <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                aria-hidden
-                            >
-                                <path
-                                    d="M12 20s-7-4.35-9.5-8.5C.9 8.1 2.5 5 6 5c2 0 3.5 1.2 4 2.4C10.5 6.2 12 5 14 5c3.5 0 5.1 3.1 3.5 6.5C19 15.65 12 20 12 20Z"
-                                    stroke="currentColor"
-                                    strokeWidth="1.8"
-                                    strokeLinejoin="round"
-                                />
-                            </svg>
+                            <Heart size={20} strokeWidth={1.8} aria-hidden />
                         </div>
                         <p className="mt-3 text-sm font-semibold">
                             저장한 장소
@@ -173,7 +216,7 @@ export default function TripsPage() {
                         <h2 className="text-base font-bold text-zinc-900">
                             모든 일정{" "}
                             <span className="text-[#2E7DF2]">
-                                {ALL_TRIPS.length}
+                                {sorted.length}
                             </span>
                         </h2>
                         <button
@@ -184,37 +227,42 @@ export default function TripsPage() {
                         </button>
                     </div>
 
+                    {sorted.length === 0 ? (
+                        <p className="py-12 text-center text-sm text-zinc-400">아직 만든 일정이 없어요</p>
+                    ) : (
                     <ul className="mt-4 flex flex-col gap-4">
-                        {ALL_TRIPS.map((t) => (
+                        {sorted.map((t, i) => (
                             <li key={t.id}>
                                 <Link
                                     href={`/trips/${t.id}`}
                                     className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 transition-colors hover:bg-zinc-50"
                                 >
                                     <div
-                                        className={`relative flex size-20 shrink-0 items-end rounded-xl bg-linear-to-br p-2 text-[10px] font-semibold text-white ${t.gradient}`}
+                                        className={`relative flex size-20 shrink-0 items-end rounded-xl bg-linear-to-br p-2 text-[10px] font-semibold text-white ${GRADIENTS[i % GRADIENTS.length]}`}
                                     >
-                                        {t.duration}
+                                        {formatDuration(t.dayCount)}
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-sm font-semibold">
-                                            {t.title}
+                                            {t.styleSummary}
                                         </p>
                                         <p className="mt-1 text-xs text-zinc-400">
-                                            {t.date} · {t.places}
+                                            {formatDateLabel(t.startDate, t.endDate)} · {t.stopCount}곳
                                         </p>
                                     </div>
                                     <span
-                                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLE[t.status]}`}
+                                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLE[getStatus(t, today)]}`}
                                     >
-                                        {t.status}
+                                        {getStatus(t, today)}
                                     </span>
                                 </Link>
                             </li>
                         ))}
                     </ul>
+                    )}
                 </section>
             </div>
+            )}
         </div>
     );
 }

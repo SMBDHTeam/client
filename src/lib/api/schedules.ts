@@ -1,8 +1,13 @@
 import type { PlaceSearchItem } from "@/types/api/place";
 import type { SchedulePreview } from "@/types/api/schedule-preview";
-import type { ScheduleResponse } from "@/types/api/schedule";
+import type { ScheduleResponse, ScheduleListResponse } from "@/types/api/schedule";
 import type { ScheduleMapResponse } from "@/types/api/schedule-map";
 import apiClient from "./axios";
+
+export async function getSchedules() {
+  const { data } = await apiClient.get<ScheduleListResponse>("/schedules");
+  return data;
+}
 
 export async function createSchedule(
   preview: SchedulePreview,

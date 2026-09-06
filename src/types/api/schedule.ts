@@ -80,6 +80,21 @@ export type ScheduleLongTransitWarning = {
   totalMinutes: number;
 };
 
+export type ScheduleSummary = {
+  id: string;
+  status: "CONFIRMED";
+  startDate: string;
+  endDate: string;
+  styleSummary: string;
+  dayCount: number;
+  stopCount: number;
+  previewPlaceNames: string[];
+};
+
+export type ScheduleListResponse = {
+  items: ScheduleSummary[];
+};
+
 export type ScheduleResponse = {
   id: string;
   previewId?: string;
