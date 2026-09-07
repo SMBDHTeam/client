@@ -1,10 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSpontaneousDraft } from "@/store/spontaneous-draft";
 
+/**
+ * useSearchParams 를 쓰는 부분만 Suspense 안에 둔다.
+ *
+ * <p>이 훅은 렌더를 클라이언트로 미루므로, 페이지 최상위에서 부르면 정적 생성이
+ * 통째로 막히고 빌드가 실패한다. 경계를 두면 그 안쪽만 클라이언트에서 그린다.
+ *
+ * <p>fallback 은 로딩 화면 그대로다. 다른 것을 넣으면 찰나에 화면이 바뀐다.
+ */
 export default function SpontaneousGeneratingPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <GeneratingView />
+    </Suspense>
+  );
+}
+
+function GeneratingView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { draft } = useSpontaneousDraft();
@@ -41,6 +57,10 @@ export default function SpontaneousGeneratingPage() {
     );
   }
 
+  return <Loading />;
+}
+
+function Loading() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
       <div className="size-16 animate-spin rounded-full border-[6px] border-zinc-200 border-t-[#2E7DF2]" />
