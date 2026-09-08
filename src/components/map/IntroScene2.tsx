@@ -195,10 +195,9 @@ export default function IntroScene2({ onEnter }: { onEnter: () => void }) {
               <div
                 style={{
                   position: "absolute",
-                  inset: -20,
+                  inset: 8,
                   borderRadius: "50%",
-                  background:
-                    "radial-gradient(circle, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 72%)",
+                  background: "rgba(255,255,255,0.75)",
                 }}
               />
               <Image

@@ -1,22 +1,9 @@
-import haeundaeImg from "@/assets/images/haeundae.jpg";
-import gwanganImg from "@/assets/images/gwangan.jpg";
-import gamcheonImg from "@/assets/images/gamcheon.jpg";
-import templeImg from "@/assets/images/temple.jpg";
-import parkImg from "@/assets/images/hwamyeong.jpg";
-import park2Img from "@/assets/images/samnak.jpg";
-
-export const TEXTURE_MAP: Record<string, string> = {
-  해운대구: haeundaeImg.src,
-  수영구: gwanganImg.src,
-  사하구: gamcheonImg.src,
-  기장군: templeImg.src,
-  북구: parkImg.src,
-  사상구: park2Img.src,
-};
+export const TEXTURE_MAP: Record<string, string> = {};
 
 export const DISTRICT_COLORS = [
-  "#60a5fa", "#34d399", "#fbbf24", "#f472b6", "#a78bfa", "#38bdf8", "#fb923c", "#4ade80",
-  "#e879f9", "#facc15", "#2dd4bf", "#818cf8", "#f87171", "#a3e635", "#fb7185", "#c084fc",
+  "#2E7DF2", "#17B89B", "#38bdf8", "#34d399", "#60a5fa", "#2dd4bf",
+  "#4ade80", "#0ea5e9", "#22d3ee", "#6ee7b7", "#93c5fd", "#5eead4",
+  "#7dd3fc", "#a5f3fc", "#86efac", "#67e8f9",
 ];
 
 export const CENTERS: Record<string, { lat: number; lng: number }> = {
