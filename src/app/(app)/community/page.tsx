@@ -97,12 +97,12 @@ export default function CommunityPage() {
 
   const loadFeedRequestRef = useRef(0);
 
-  const loadFeed = useCallback(async () => {
+  const loadFeed = useCallback(async (category?: string) => {
     const requestId = ++loadFeedRequestRef.current;
     setLoading(true);
     setFeedError(null);
     try {
-      const res = await getFeed({ size: 20 });
+      const res = await getFeed({ size: 20, ...(category ? { category } : {}) });
       if (loadFeedRequestRef.current !== requestId) return;
       setPosts(res.items);
       setNextCursor(res.nextCursor);
@@ -130,7 +130,7 @@ export default function CommunityPage() {
     if (nextCursor == null || loadingMore) return;
     setLoadingMore(true);
     try {
-      const res = await getFeed({ cursor: nextCursor, size: 20 });
+      const res = await getFeed({ cursor: nextCursor, size: 20, ...(activeTagLabel ? { category: activeTagLabel } : {}) });
       setPosts((prev) => [...prev, ...res.items]);
       setNextCursor(res.nextCursor);
     } catch (err) {
@@ -161,7 +161,6 @@ function onTagMouseDown(e: React.MouseEvent) {
   }
 
   const activeTagLabel = activeTag ? COMMUNITY_TAGS.find((t) => t.id === activeTag)?.label ?? null : null;
-  const filteredPosts = activeTagLabel ? posts.filter((p) => p.categories.includes(activeTagLabel)) : posts;
 
   const topPosts = popularPosts;
   const popularScrollRef = useRef<HTMLDivElement>(null);
@@ -207,7 +206,7 @@ function onTagMouseDown(e: React.MouseEvent) {
         >
         <button
           type="button"
-          onClick={() => setActiveTag(null)}
+          onClick={() => { setActiveTag(null); void loadFeed(); }}
           className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
             activeTag === null ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500"
           }`}
@@ -218,7 +217,12 @@ function onTagMouseDown(e: React.MouseEvent) {
           <button
             key={tag.id}
             type="button"
-            onClick={() => setActiveTag(activeTag === tag.id ? null : tag.id)}
+            onClick={() => {
+                const next = activeTag === tag.id ? null : tag.id;
+                setActiveTag(next);
+                const label = next ? COMMUNITY_TAGS.find((t) => t.id === next)?.label : undefined;
+                void loadFeed(label);
+              }}
             className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
               activeTag === tag.id
                 ? "bg-[#2E7DF2] text-white"
@@ -324,7 +328,7 @@ function onTagMouseDown(e: React.MouseEvent) {
             </button>
           </div>
         </div>
-        {filteredPosts.length === 0 ? (
+        {posts.length === 0 ? (
           <p className="py-12 text-center text-sm text-zinc-400">해당 태그의 게시물이 없어요</p>
         ) : (
           <AnimatePresence mode="wait" initial={false}>
@@ -339,7 +343,7 @@ function onTagMouseDown(e: React.MouseEvent) {
               >
                 {[0, 1].map((col) => (
                   <div key={col} className="flex flex-1 flex-col">
-                    {filteredPosts
+                    {posts
                       .filter((_, i) => i % 2 === col)
                       .map((post, i) => (
                         <GridTile
@@ -361,7 +365,7 @@ function onTagMouseDown(e: React.MouseEvent) {
                 transition={{ duration: 0.1, ease: "easeOut" }}
                 className="grid grid-cols-3 gap-0.5 pb-6"
               >
-                {filteredPosts.map((post) => (
+                {posts.map((post) => (
                   <SquareGridTile key={post.id} post={post} onClick={() => openPost(post)} />
                 ))}
               </motion.div>

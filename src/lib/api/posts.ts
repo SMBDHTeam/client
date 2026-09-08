@@ -9,6 +9,7 @@ type FeedParams = {
   feed?: string;
   placeId?: number;
   hashtag?: string;
+  category?: string;
 };
 
 type UploadedMedia = {

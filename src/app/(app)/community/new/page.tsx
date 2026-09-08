@@ -202,6 +202,7 @@ export default function CommunityNewPage() {
         placeTags: selectedPlace
           ? [{ placeId: selectedPlace.placeId, latitude: selectedPlace.latitude, longitude: selectedPlace.longitude }]
           : [],
+        categories: selectedTags.map((id) => COMMUNITY_TAGS.find((t) => t.id === id)!.label),
       });
       router.back();
     } catch {

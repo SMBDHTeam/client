@@ -55,6 +55,7 @@ export type CreatePostRequest = {
   content: string;
   mediaList: PostMedia[];
   placeTags: PostPlaceTag[];
+  categories: string[];
 };
 
 export type LikeResponse = {
