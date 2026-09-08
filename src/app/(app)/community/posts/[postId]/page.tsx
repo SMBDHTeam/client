@@ -95,6 +95,7 @@ export default function PostDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imgIndex, setImgIndex] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
   const [bookmarked, setBookmarked] = useState<boolean | null>(null);
@@ -319,30 +320,89 @@ export default function PostDetailPage() {
               style={{ transform: `translateX(-${imgIndex * 100}%)` }}
             >
               {images.map((src, i) => (
-                <img key={i} src={src} alt={`이미지 ${i + 1}`} className="h-full w-full shrink-0 object-cover" />
+                <button key={i} type="button" onClick={() => setLightboxIndex(i)} className="h-full w-full shrink-0">
+                  <img src={src} alt={`이미지 ${i + 1}`} className="h-full w-full object-cover" />
+                </button>
               ))}
             </div>
             {images.length > 1 && (
               <>
                 {imgIndex > 0 && (
-                  <button type="button" onClick={() => setImgIndex((i) => i - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 grid size-8 place-items-center rounded-full bg-white/90 shadow text-zinc-800">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setImgIndex((i) => i - 1); }} className="absolute left-3 top-1/2 -translate-y-1/2 grid size-8 place-items-center rounded-full bg-white/90 shadow text-zinc-800">
                     <ChevronLeft size={18} />
                   </button>
                 )}
                 {imgIndex < images.length - 1 && (
-                  <button type="button" onClick={() => setImgIndex((i) => i + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 grid size-8 place-items-center rounded-full bg-white/90 shadow text-zinc-800">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setImgIndex((i) => i + 1); }} className="absolute right-3 top-1/2 -translate-y-1/2 grid size-8 place-items-center rounded-full bg-white/90 shadow text-zinc-800">
                     <ChevronRight size={18} />
                   </button>
                 )}
                 <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
                   {images.map((_, i) => (
-                    <button key={i} type="button" onClick={() => setImgIndex(i)} className={`size-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/40"}`} />
+                    <button key={i} type="button" onClick={(e) => { e.stopPropagation(); setImgIndex(i); }} className={`size-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/40"}`} />
                   ))}
                 </div>
               </>
             )}
           </div>
         )}
+
+        {/* 이미지 lightbox */}
+        <AnimatePresence>
+          {lightboxIndex !== null && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+              onClick={() => setLightboxIndex(null)}
+            >
+              <button
+                type="button"
+                onClick={() => setLightboxIndex(null)}
+                className="absolute top-4 right-4 grid size-9 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              >
+                <X size={20} />
+              </button>
+              {images.length > 1 && lightboxIndex > 0 && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex((i) => (i ?? 0) - 1); }}
+                  className="absolute left-3 grid size-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                >
+                  <ChevronLeft size={22} />
+                </button>
+              )}
+              <motion.img
+                key={lightboxIndex}
+                initial={{ scale: 0.92, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.92, opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                src={images[lightboxIndex]}
+                alt={`이미지 ${lightboxIndex + 1}`}
+                className="max-h-[90dvh] max-w-full object-contain"
+                onClick={(e) => e.stopPropagation()}
+              />
+              {images.length > 1 && lightboxIndex < images.length - 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex((i) => (i ?? 0) + 1); }}
+                  className="absolute right-3 grid size-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                >
+                  <ChevronRight size={22} />
+                </button>
+              )}
+              {images.length > 1 && (
+                <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 gap-1.5">
+                  {images.map((_, i) => (
+                    <div key={i} className={`size-1.5 rounded-full transition-colors ${i === lightboxIndex ? "bg-white" : "bg-white/30"}`} />
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* 작성자 정보 */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-black/5">
