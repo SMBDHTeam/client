@@ -5,7 +5,6 @@ import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { Bell, Bookmark, ChevronRight, Heart, HelpCircle, Info, LogOut, MapPin, Pencil, User } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
-import { ALL_TRIPS, PAST_TRIPS } from "@/mocks/trips";
 import { WISHLIST_PLACES } from "@/mocks/wishlist";
 import { getUserProfile, type UserProfile } from "@/lib/api/users";
 
@@ -31,7 +30,6 @@ export default function ProfilePage() {
   const displayName = profile?.nickname ?? user?.name ?? "게스트";
   const displayImage = profile ? profile.profileImageUrl : null;
 
-  const tripCount = ALL_TRIPS.length + PAST_TRIPS.length;
   const wishlistCount = WISHLIST_PLACES.length;
 
   return (
@@ -73,7 +71,7 @@ export default function ProfilePage() {
             href="/trips"
             className="flex flex-col items-center gap-1 rounded-2xl bg-white py-4 ring-1 ring-black/5"
           >
-            <span className="text-lg font-bold text-zinc-900">{tripCount}</span>
+            <span className="text-lg font-bold text-zinc-900">-</span>
             <span className="text-xs font-medium text-zinc-400">여행</span>
           </Link>
           <Link

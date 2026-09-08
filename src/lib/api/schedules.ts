@@ -25,6 +25,14 @@ export async function getSchedule(scheduleId: string) {
   return data;
 }
 
+export async function updateSchedule(
+  scheduleId: string,
+  stops: { stopId: string | null; placeId: number | null; dayNo: number; order: number; stayMinutes: number }[],
+) {
+  const { data } = await apiClient.patch<ScheduleResponse>(`/schedules/${scheduleId}`, { stops });
+  return data;
+}
+
 export async function getScheduleMap(scheduleId: string, dayNo?: number) {
   const { data } = await apiClient.get<ScheduleMapResponse>(`/schedules/${scheduleId}/map`, {
     params: dayNo ? { dayNo } : {},

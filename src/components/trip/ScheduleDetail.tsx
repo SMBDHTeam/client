@@ -498,7 +498,7 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
                       <div className="flex flex-col gap-2 p-3">
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-medium text-zinc-500">
-                            체류 {place.stayMinutes}분
+                            체류 {Math.abs(place.stayMinutes)}분
                           </p>
                           <button
                             type="button"
