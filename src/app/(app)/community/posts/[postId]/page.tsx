@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X, Trash2, Pencil } from "lucide-react";
 import { getPost, deletePost, updatePost, likePost, unlikePost, bookmarkPost, unbookmarkPost, getComments, createComment, deleteComment, likeComment, unlikeComment } from "@/lib/api/posts";
-import { followUser, unfollowUser } from "@/lib/api/users";
+import { followUser, unfollowUser, getUserProfile } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/axios";
 import type { PostComment, PostDetail } from "@/types/api/post";
 import { toast } from "sonner";
@@ -123,6 +123,11 @@ export default function PostDetailPage() {
         setPost(res);
         setLikeState({ likeCount: res.likeCount, liked: res.liked });
         setBookmarked(res.bookmarked);
+        if (userId && String(res.author.id) !== userId) {
+          getUserProfile(res.author.id)
+            .then((profile) => setFollowing(profile.following))
+            .catch(() => {});
+        }
       })
       .catch((err) => setError(err instanceof ApiError ? err.payload.message : "게시물을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
@@ -416,7 +421,7 @@ export default function PostDetailPage() {
           <button type="button" onClick={() => router.push(`/community/users/${post.author.id}`)} className="flex-1 text-left">
             <p className="text-sm font-semibold">{post.author.nickname}</p>
           </button>
-          {!isMyPost && (
+          {!isMyPost && following !== null && (
             <button
               type="button"
               onClick={toggleFollow}
