@@ -1,20 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import HomeHeader from "@/components/layout/HomeHeader";
 import PageFade from "@/components/ui/PageFade";
 import { POPULAR_DESTINATIONS } from "@/mocks/home";
 import { getPopularFeed } from "@/lib/api/posts";
+import { getUserProfile } from "@/lib/api/users";
 import type { FeedPost } from "@/types/api/post";
-import searchIcon from "@/assets/icons/search.png";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
-  const userName = session?.user?.name;
-
+  const [userName, setUserName] = useState<string | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [communityPosts, setCommunityPosts] = useState<FeedPost[]>([]);
 
   useEffect(() => {
@@ -24,9 +23,20 @@ export default function HomePage() {
       .catch(() => {});
   }, [status]);
 
+  useEffect(() => {
+    const userId = session?.user?.id != null ? Number(session.user.id) : null;
+    if (!userId) return;
+    getUserProfile(userId)
+      .then((profile) => {
+        setUserName(profile.nickname);
+        setProfileImageUrl(profile.profileImageUrl);
+      })
+      .catch(() => setUserName(session?.user?.name ?? null));
+  }, [session]);
+
   return (
     <PageFade className="flex flex-1 flex-col bg-[#F6F8FC] text-zinc-900">
-      <HomeHeader />
+      <HomeHeader profileImageUrl={profileImageUrl} />
 
       <div className="space-y-6 px-5 pt-2 pb-8">
         <h1 className="text-[22px] font-bold leading-relaxed pt-2">
@@ -35,15 +45,7 @@ export default function HomePage() {
           오늘은 어디로 떠날까요?
         </h1>
 
-        <Link
-          href="/trips"
-          className="flex items-center gap-3 rounded-2xl bg-white px-4 py-4 shadow-sm ring-1 ring-black/5"
-        >
-          <Image src={searchIcon} alt="" width={20} height={20} />
-          <span className="text-sm text-zinc-400">도시, 지역을 검색해보세요</span>
-        </Link>
-
-        <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#2E7DF2] to-[#17B89B] p-6 text-white">
+<div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#2E7DF2] to-[#17B89B] p-6 text-white">
           <div className="absolute -top-8 -right-6 size-32 rounded-full bg-white/10" />
           <div className="absolute top-10 right-10 size-16 rounded-full bg-white/10" />
           <div className="relative">

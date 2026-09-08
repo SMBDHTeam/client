@@ -63,19 +63,19 @@ function CommentItem({
             <span className="text-sm font-semibold">{comment.author.nickname}</span>
             <p className="mt-0.5 text-sm text-zinc-600 leading-snug">{comment.content}</p>
           </div>
-          <button type="button" onClick={toggleLike} className="shrink-0 flex flex-col items-center gap-0.5 text-zinc-400 active:scale-90 transition-transform pt-0.5">
+          <button type="button" onClick={toggleLike} className="shrink-0 flex flex-col items-center gap-0.5 text-zinc-400 active:scale-90 transition-transform pt-0.5 cursor-pointer">
             <Heart size={14} className={liked ? "fill-red-500 stroke-red-500" : ""} />
             {likeCount > 0 && <span className="text-[10px]">{likeCount}</span>}
           </button>
         </div>
         <div className="mt-1 flex items-center gap-3">
           {!isReply && (
-            <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="text-xs text-zinc-400">
+            <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="text-xs text-zinc-400 cursor-pointer">
               답글 달기
             </button>
           )}
           {isMine && (
-            <button type="button" onClick={() => onDelete(comment.id)} className="text-xs text-zinc-400 hover:text-red-500">
+            <button type="button" onClick={() => onDelete(comment.id)} className="text-xs text-zinc-400 hover:text-red-500 cursor-pointer">
               삭제
             </button>
           )}
@@ -411,14 +411,14 @@ export default function PostDetailPage() {
 
         {/* 작성자 정보 */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-black/5">
-          <button type="button" onClick={() => router.push(`/community/users/${post.author.id}`)} className="shrink-0">
+          <button type="button" onClick={() => router.push(`/community/users/${post.author.id}`)} className="shrink-0 cursor-pointer">
             {post.author.profileImageUrl ? (
               <img src={post.author.profileImageUrl} alt={post.author.nickname} className="size-9 rounded-full object-cover" />
             ) : (
               <div className="size-9 rounded-full bg-zinc-200" />
             )}
           </button>
-          <button type="button" onClick={() => router.push(`/community/users/${post.author.id}`)} className="flex-1 text-left">
+          <button type="button" onClick={() => router.push(`/community/users/${post.author.id}`)} className="flex-1 text-left cursor-pointer">
             <p className="text-sm font-semibold">{post.author.nickname}</p>
           </button>
           {!isMyPost && following !== null && (
@@ -426,7 +426,7 @@ export default function PostDetailPage() {
               type="button"
               onClick={toggleFollow}
               disabled={followLoading}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
                 following ? "border border-zinc-200 text-zinc-600" : "bg-[#2E7DF2] text-white"
               }`}
             >
@@ -437,15 +437,15 @@ export default function PostDetailPage() {
 
         {/* 액션 바 */}
         <div className="flex items-center gap-3 px-4 pt-3 pb-2">
-          <button type="button" onClick={toggleLike} className="flex items-center gap-1.5 transition-transform active:scale-90">
+          <button type="button" onClick={toggleLike} className="flex items-center gap-1.5 transition-transform active:scale-90 cursor-pointer">
             <Heart size={24} className={liked ? "fill-red-500 stroke-red-500" : "stroke-zinc-700"} />
             <span className="text-sm font-semibold text-zinc-700">{likeCount}</span>
           </button>
-          <button type="button" onClick={openComments} className="flex items-center gap-1.5 text-zinc-700">
+          <button type="button" onClick={openComments} className="flex items-center gap-1.5 text-zinc-700 cursor-pointer">
             <MessageCircle size={24} />
             <span className="text-sm font-semibold">{post.commentCount}</span>
           </button>
-          <button type="button" onClick={toggleBookmark} className="ml-auto transition-transform active:scale-90">
+          <button type="button" onClick={toggleBookmark} className="ml-auto transition-transform active:scale-90 cursor-pointer">
             <Bookmark size={24} className={isBookmarked ? "fill-zinc-800 stroke-zinc-800" : "stroke-zinc-700"} />
           </button>
         </div>
@@ -504,7 +504,7 @@ export default function PostDetailPage() {
         <button
           type="button"
           onClick={openComments}
-          className="mx-4 mb-6 w-[calc(100%-2rem)] rounded-xl border border-zinc-200 py-2.5 text-sm text-zinc-500 hover:bg-zinc-50"
+          className="mx-4 mb-6 w-[calc(100%-2rem)] rounded-xl border border-zinc-200 py-2.5 text-sm text-zinc-500 hover:bg-zinc-50 cursor-pointer"
         >
           댓글 {post.commentCount}개 보기
         </button>
@@ -523,7 +523,7 @@ export default function PostDetailPage() {
           >
             <div className="flex items-center border-b px-4 py-3 shrink-0">
               <h3 className="flex-1 text-sm font-bold">댓글 {post.commentCount}개</h3>
-              <button type="button" onClick={() => setShowComments(false)} className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100">
+              <button type="button" onClick={() => setShowComments(false)} className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100 cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -550,7 +550,7 @@ export default function PostDetailPage() {
                 {replyTo && (
                   <div className="flex items-center justify-between bg-zinc-50 px-4 py-2">
                     <span className="text-xs text-zinc-500">{replyTo.nickname}에게 답글</span>
-                    <button type="button" onClick={() => setReplyTo(null)} className="text-zinc-400"><X size={13} /></button>
+                    <button type="button" onClick={() => setReplyTo(null)} className="text-zinc-400 cursor-pointer"><X size={13} /></button>
                   </div>
                 )}
                 <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-3">
@@ -565,7 +565,7 @@ export default function PostDetailPage() {
                   <button
                     type="submit"
                     disabled={!commentText.trim() || !userId || submitting}
-                    className="grid size-8 place-items-center rounded-full text-[#2E7DF2] transition-colors disabled:text-zinc-300"
+                    className="grid size-8 place-items-center rounded-full text-[#2E7DF2] transition-colors disabled:text-zinc-300 cursor-pointer disabled:cursor-default"
                   >
                     <Send size={16} />
                   </button>

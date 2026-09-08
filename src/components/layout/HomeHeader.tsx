@@ -2,13 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import nubiLogo from "@/assets/icons/header/nubi-logo.png";
 import bellIcon from "@/assets/icons/notification-bell-inactive.png";
 
-export default function HomeHeader() {
-  const { data: session } = useSession();
-  const profileImage = session?.user?.image;
+export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: string | null }) {
+  const profileImage = profileImageUrl;
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between bg-[#FFFFFF]/90 px-5 py-4 backdrop-blur">

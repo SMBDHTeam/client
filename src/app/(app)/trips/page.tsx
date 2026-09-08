@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Clock, ArrowRight, Plus, Zap } from "lucide-react";
@@ -9,7 +8,6 @@ import { useTripDraft } from "@/store/trip-draft";
 import { getSchedules } from "@/lib/api/schedules";
 import { ApiError } from "@/lib/api/axios";
 import type { ScheduleSummary } from "@/types/api/schedule";
-import searchIcon from "@/assets/icons/search-256.png";
 
 const GRADIENTS = [
     "from-[#2E7DF2] to-[#17B89B]",
@@ -113,15 +111,8 @@ export default function TripsPage() {
 
     return (
         <div className="flex flex-1 flex-col bg-[#F6F8FC]">
-            <header className="sticky top-0 z-10 flex items-center justify-between bg-white px-5 py-4 backdrop-blur">
-                <h1 className="text-2xl font-bold">내 일정</h1>
-                <button
-                    type="button"
-                    aria-label="검색"
-                    className="grid size-9 place-items-center rounded-full text-zinc-700 hover:bg-black/5"
-                >
-                    <Image src={searchIcon} alt="" width={22} height={22} />
-                </button>
+            <header className="sticky top-0 z-10 flex items-center justify-center bg-white px-5 py-4 backdrop-blur">
+                <h1 className="text-base font-semibold">내 일정</h1>
             </header>
 
             {loading ? (
@@ -182,7 +173,7 @@ export default function TripsPage() {
                     <button
                         type="button"
                         onClick={() => { resetDraft(); router.push("/trips/new/date"); }}
-                        className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 text-left transition-colors hover:bg-zinc-50"
+                        className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 text-left transition-colors hover:bg-zinc-50 cursor-pointer"
                     >
                         <div className="grid size-11 place-items-center rounded-xl bg-linear-to-br from-[#2E7DF2] to-[#17B89B] text-white">
                             <Plus size={20} strokeWidth={2} aria-hidden />
@@ -198,7 +189,7 @@ export default function TripsPage() {
                     <button
                         type="button"
                         onClick={() => router.push("/spontaneous")}
-                        className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 text-left transition-colors hover:bg-zinc-50"
+                        className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 text-left transition-colors hover:bg-zinc-50 cursor-pointer"
                     >
                         <div className="grid size-11 place-items-center rounded-xl bg-linear-to-br from-[#F7A18E] to-[#F16E5E] text-white">
                             <Zap size={20} strokeWidth={2} aria-hidden />
@@ -222,7 +213,7 @@ export default function TripsPage() {
                         </h2>
                         <button
                             type="button"
-                            className="text-xs font-medium text-zinc-400"
+                            className="text-xs font-medium text-zinc-400 cursor-pointer"
                         >
                             전체 보기
                         </button>
