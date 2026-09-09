@@ -5,11 +5,17 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Bell, ChevronRight } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
-import { getNotifications, markNotificationAsRead } from "@/lib/api/notifications";
+import {
+  getNotifications,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+} from "@/lib/api/notifications";
 import { ApiError } from "@/lib/api/axios";
 import type { NotificationItem } from "@/types/api/notification";
+import { toast } from "sonner";
 
 const GROUP_LABELS = ["오늘", "어제", "최근 7일", "이전"] as const;
+const NOTIFICATION_COUNT_REFRESH_EVENT = "notifications:count-refresh";
 
 type NotificationGroupLabel = (typeof GROUP_LABELS)[number];
 
@@ -137,8 +143,14 @@ export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [markingAll, setMarkingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const groupedNotifications = groupNotifications(notifications);
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
+
+  const refreshHeaderUnreadCount = () => {
+    window.dispatchEvent(new Event(NOTIFICATION_COUNT_REFRESH_EVENT));
+  };
 
   const handleNotificationClick = async (notification: NotificationItem) => {
     const href = notificationHref(notification);
@@ -152,6 +164,7 @@ export default function NotificationsPage() {
 
       try {
         await markNotificationAsRead(notification.id);
+        refreshHeaderUnreadCount();
       } catch {
         setNotifications((current) =>
           current.map((item) =>
@@ -163,6 +176,24 @@ export default function NotificationsPage() {
 
     if (href) {
       router.push(href);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (unreadCount === 0 || markingAll) return;
+
+    const previous = notifications;
+    setMarkingAll(true);
+    setNotifications((current) => current.map((item) => ({ ...item, read: true })));
+
+    try {
+      await markAllNotificationsAsRead();
+      refreshHeaderUnreadCount();
+    } catch {
+      setNotifications(previous);
+      toast.error("알림 읽음 처리에 실패했습니다.");
+    } finally {
+      setMarkingAll(false);
     }
   };
 
@@ -213,6 +244,18 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-7">
+            {unreadCount > 0 && (
+              <div className="flex justify-end px-1">
+                <button
+                  type="button"
+                  onClick={handleMarkAllAsRead}
+                  disabled={markingAll}
+                  className="text-sm font-semibold text-[#2E7DF2] disabled:text-zinc-300"
+                >
+                  모두 읽음
+                </button>
+              </div>
+            )}
             {groupedNotifications.map((group) => (
               <section key={group.label}>
                 <h2 className="mb-3 px-1 text-base font-bold text-zinc-900">{group.label}</h2>
