@@ -1,4 +1,5 @@
 import AppShell from "@/components/layout/AppShell";
+import AppAuthGuard from "@/components/auth/AppAuthGuard";
 import { TripDraftProvider } from "@/store/trip-draft";
 
 export default function AppTabLayout({
@@ -8,7 +9,9 @@ export default function AppTabLayout({
 }) {
   return (
     <TripDraftProvider>
-      <AppShell>{children}</AppShell>
+      <AppAuthGuard>
+        <AppShell>{children}</AppShell>
+      </AppAuthGuard>
     </TripDraftProvider>
   );
 }
