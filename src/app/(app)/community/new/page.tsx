@@ -44,7 +44,7 @@ export default function CommunityNewPage() {
   const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
+  const [mediaItems, setMediaItems] = useState<{ file: File; previewUrl: string }[]>([]);
   const [imgIndex, setImgIndex] = useState(0);
   const [text, setText] = useState("");
   const [selectedTags, setSelectedTags] = useState<CommunityTagId[]>([]);
@@ -113,14 +113,14 @@ export default function CommunityNewPage() {
     if (!files) return;
     const newItems: { file: File; previewUrl: string }[] = [];
     Array.from(files).forEach((file) => {
-      if (!file.type.startsWith("image/")) return;
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) return;
       newItems.push({ file, previewUrl: URL.createObjectURL(file) });
     });
-    setImages((prev) => [...prev, ...newItems].slice(0, 10));
+    setMediaItems((prev) => [...prev, ...newItems].slice(0, 10));
   }
 
-  function removeImage(index: number) {
-    setImages((prev) => {
+  function removeMedia(index: number) {
+    setMediaItems((prev) => {
       URL.revokeObjectURL(prev[index].previewUrl);
       const next = prev.filter((_, i) => i !== index);
       setImgIndex((cur) => Math.min(cur, Math.max(next.length - 1, 0)));
@@ -187,15 +187,21 @@ export default function CommunityNewPage() {
     setStep("idle");
   }
 
-  const canSubmit = text.trim().length > 0 && !submitting;
+  const canSubmit = text.trim().length > 0 && mediaItems.length > 0 && !submitting;
 
   async function handleSubmit() {
-    if (!canSubmit || !session?.user?.id) return;
+    if (submitting || !session?.user?.id) return;
+    if (mediaItems.length === 0) {
+      toast.error("사진이나 동영상을 1개 이상 추가해주세요.");
+      return;
+    }
+    if (text.trim().length === 0) {
+      toast.error("게시글 내용을 입력해주세요.");
+      return;
+    }
     setSubmitting(true);
     try {
-      const uploaded = images.length > 0
-        ? await uploadMedia(images.map((img) => img.file))
-        : [];
+      const uploaded = await uploadMedia(mediaItems.map((item) => item.file));
       await createPost({
         content: text.trim(),
         mediaList: uploaded.map((m, i) => ({ url: m.url, mediaType: m.mediaType, sortOrder: i })),
@@ -415,20 +421,24 @@ export default function CommunityNewPage() {
       {/* 메인 작성 화면 */}
       {step === "idle" && (
         <div className="flex flex-1 flex-col overflow-y-auto">
-          {images.length > 0 ? (
+          {mediaItems.length > 0 ? (
             <div className="relative aspect-square w-full overflow-hidden bg-zinc-100">
               <div
                 className="flex h-full transition-transform duration-300 ease-in-out"
                 style={{ transform: `translateX(-${imgIndex * 100}%)` }}
               >
-                {images.map((img, i) => (
-                  <img key={i} src={img.previewUrl} alt="" className="h-full w-full shrink-0 object-cover" />
+                {mediaItems.map((item, i) => (
+                  item.file.type.startsWith("video/") ? (
+                    <video key={i} src={item.previewUrl} className="h-full w-full shrink-0 object-cover" muted controls />
+                  ) : (
+                    <img key={i} src={item.previewUrl} alt="" className="h-full w-full shrink-0 object-cover" />
+                  )
                 ))}
               </div>
 
               <button
                 type="button"
-                onClick={() => removeImage(imgIndex)}
+                onClick={() => removeMedia(imgIndex)}
                 className="absolute right-3 top-3 grid size-7 place-items-center rounded-full bg-black/50 text-white"
               >
                 <X size={14} />
@@ -443,7 +453,7 @@ export default function CommunityNewPage() {
                   <ChevronLeft size={16} />
                 </button>
               )}
-              {imgIndex < images.length - 1 && (
+              {imgIndex < mediaItems.length - 1 && (
                 <button
                   type="button"
                   onClick={() => setImgIndex((i) => i + 1)}
@@ -453,9 +463,9 @@ export default function CommunityNewPage() {
                 </button>
               )}
 
-              {images.length > 1 && (
+              {mediaItems.length > 1 && (
                 <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1">
-                  {images.map((_, i) => (
+                  {mediaItems.map((_, i) => (
                     <button
                       key={i}
                       type="button"
@@ -466,14 +476,14 @@ export default function CommunityNewPage() {
                 </div>
               )}
 
-              {images.length < 10 && (
+              {mediaItems.length < 10 && (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-3 right-3 flex items-center gap-1 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white"
                 >
                   <ImagePlus size={13} />
-                  {images.length}/10
+                  {mediaItems.length}/10
                 </button>
               )}
             </div>
@@ -485,8 +495,8 @@ export default function CommunityNewPage() {
             >
               <ImagePlus size={32} strokeWidth={1.5} />
               <div className="text-center">
-                <p className="text-sm font-medium">사진 추가</p>
-                <p className="mt-0.5 text-xs text-zinc-400">최대 10장</p>
+                <p className="text-sm font-medium">사진·동영상 추가</p>
+                <p className="mt-0.5 text-xs text-zinc-400">1개 이상, 최대 10개</p>
               </div>
             </button>
           )}
@@ -494,7 +504,7 @@ export default function CommunityNewPage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             multiple
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
