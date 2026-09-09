@@ -19,6 +19,7 @@ export type NotificationItem = {
   actor: NotificationActor | null;
   targetType: NotificationTargetType;
   targetId: number;
+  linkUrl: string | null;
   read: boolean;
   createdAt: string;
 };

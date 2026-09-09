@@ -37,6 +37,10 @@ function notificationMessage(notification: NotificationItem) {
 }
 
 function notificationHref(notification: NotificationItem) {
+  if (notification.linkUrl) {
+    return notification.linkUrl;
+  }
+
   if (notification.targetType === "POST") {
     return `/community/posts/${notification.targetId}`;
   }
