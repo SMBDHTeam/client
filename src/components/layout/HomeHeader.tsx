@@ -8,6 +8,8 @@ import nubiLogo from "@/assets/icons/header/nubi-logo.png";
 import bellIcon from "@/assets/icons/notification-bell-inactive.png";
 import { getUnreadNotificationCount } from "@/lib/api/notifications";
 
+const NOTIFICATION_COUNT_REFRESH_EVENT = "notifications:count-refresh";
+
 export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: string | null }) {
   const { status } = useSession();
   const profileImage = profileImageUrl;
@@ -16,25 +18,30 @@ export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: stri
   useEffect(() => {
     let ignore = false;
 
-    if (status !== "authenticated") {
-      setUnreadCount(0);
-      return;
-    }
+    if (status !== "authenticated") return;
 
-    getUnreadNotificationCount()
-      .then((response) => {
-        if (!ignore) {
-          setUnreadCount(response.unreadCount);
-        }
-      })
-      .catch(() => {
-        if (!ignore) {
-          setUnreadCount(0);
-        }
-      });
+    const refreshUnreadCount = () => {
+      getUnreadNotificationCount()
+        .then((response) => {
+          if (!ignore) {
+            setUnreadCount(response.unreadCount);
+          }
+        })
+        .catch(() => {
+          if (!ignore) {
+            setUnreadCount(0);
+          }
+        });
+    };
+
+    refreshUnreadCount();
+    window.addEventListener(NOTIFICATION_COUNT_REFRESH_EVENT, refreshUnreadCount);
+    window.addEventListener("focus", refreshUnreadCount);
 
     return () => {
       ignore = true;
+      window.removeEventListener(NOTIFICATION_COUNT_REFRESH_EVENT, refreshUnreadCount);
+      window.removeEventListener("focus", refreshUnreadCount);
     };
   }, [status]);
 
@@ -49,7 +56,7 @@ export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: stri
           className="relative grid size-9 place-items-center rounded-full text-zinc-500 hover:bg-black/5"
         >
           <Image src={bellIcon} alt="" width={30} height={30} />
-          {unreadCount > 0 && (
+          {status === "authenticated" && unreadCount > 0 && (
             <span className="absolute right-1 top-1 min-w-4 rounded-full bg-red-500 px-1 text-center text-[10px] font-bold leading-4 text-white">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
