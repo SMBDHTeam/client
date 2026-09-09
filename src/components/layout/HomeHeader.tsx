@@ -43,8 +43,8 @@ export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: stri
       <Image src={nubiLogo} alt="누비" className="h-9 w-auto" priority />
 
       <div className="flex items-center gap-3">
-        <button
-          type="button"
+        <Link
+          href="/notifications"
           aria-label="알림"
           className="relative grid size-9 place-items-center rounded-full text-zinc-500 hover:bg-black/5"
         >
@@ -54,7 +54,7 @@ export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: stri
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
-        </button>
+        </Link>
         <Link
           href="/profile"
           aria-label="내 정보"
