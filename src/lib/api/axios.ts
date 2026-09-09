@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getSession } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import type { ApiErrorPayload } from "@/types/api/common";
 import { apiBaseUrl } from "./config";
 
@@ -20,6 +20,17 @@ const apiClient = axios.create({
   headers: { Accept: "application/json" },
 });
 
+let redirectingToSignIn = false;
+
+function redirectToSignIn() {
+  if (typeof window === "undefined" || redirectingToSignIn) return;
+
+  redirectingToSignIn = true;
+  void signIn("google", {
+    callbackUrl: `${window.location.pathname}${window.location.search}`,
+  });
+}
+
 apiClient.interceptors.request.use(async (config) => {
   const session = await getSession();
   if (session?.accessToken) {
@@ -32,6 +43,10 @@ apiClient.interceptors.response.use(
   (res) => res,
   (error) => {
     if (axios.isAxiosError(error) && error.response) {
+      if (error.response.status === 401) {
+        redirectToSignIn();
+      }
+
       const payload = (error.response.data as ApiErrorPayload | undefined) ?? {
         code: "UNKNOWN_API_ERROR",
         message: "요청을 처리하지 못했습니다.",
