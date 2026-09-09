@@ -22,6 +22,10 @@ type SelectedPlace = {
   longitude: number;
 };
 
+const MAX_MEDIA_COUNT = 10;
+const MAX_MEDIA_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_MEDIA_TOTAL_SIZE = 50 * 1024 * 1024;
+
 function formatDuration(dayCount: number) {
   if (dayCount <= 1) return "당일";
   return `${dayCount - 1}박${dayCount}일`;
@@ -37,6 +41,10 @@ function formatDateRange(startDate: string, endDate: string) {
 
 function searchItemKey(item: PlaceSearchItem) {
   return item.placeId !== null ? `place:${item.placeId}` : `${item.source}:${item.externalId}`;
+}
+
+function formatMegabytes(bytes: number) {
+  return `${Math.floor(bytes / 1024 / 1024)}MB`;
 }
 
 export default function CommunityNewPage() {
@@ -112,11 +120,46 @@ export default function CommunityNewPage() {
   function handleFiles(files: FileList | null) {
     if (!files) return;
     const newItems: { file: File; previewUrl: string }[] = [];
+    const rejectedReasons = new Set<"type" | "count" | "fileSize" | "totalSize">();
+    let nextTotalSize = mediaItems.reduce((sum, item) => sum + item.file.size, 0);
+    let nextCount = mediaItems.length;
+
     Array.from(files).forEach((file) => {
-      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) return;
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+        rejectedReasons.add("type");
+        return;
+      }
+      if (file.size > MAX_MEDIA_FILE_SIZE) {
+        rejectedReasons.add("fileSize");
+        return;
+      }
+      if (nextCount >= MAX_MEDIA_COUNT) {
+        rejectedReasons.add("count");
+        return;
+      }
+      if (nextTotalSize + file.size > MAX_MEDIA_TOTAL_SIZE) {
+        rejectedReasons.add("totalSize");
+        return;
+      }
+
       newItems.push({ file, previewUrl: URL.createObjectURL(file) });
+      nextTotalSize += file.size;
+      nextCount += 1;
     });
-    setMediaItems((prev) => [...prev, ...newItems].slice(0, 10));
+
+    if (rejectedReasons.has("type")) {
+      toast.error("사진이나 동영상 파일만 업로드할 수 있어요.");
+    } else if (rejectedReasons.has("fileSize")) {
+      toast.error(`파일은 1개당 최대 ${formatMegabytes(MAX_MEDIA_FILE_SIZE)}까지 업로드할 수 있어요.`);
+    } else if (rejectedReasons.has("totalSize")) {
+      toast.error(`한 게시글에는 최대 ${formatMegabytes(MAX_MEDIA_TOTAL_SIZE)}까지 첨부할 수 있어요.`);
+    } else if (rejectedReasons.has("count")) {
+      toast.error(`사진이나 동영상은 최대 ${MAX_MEDIA_COUNT}개까지 첨부할 수 있어요.`);
+    }
+
+    if (newItems.length > 0) {
+      setMediaItems((prev) => [...prev, ...newItems]);
+    }
   }
 
   function removeMedia(index: number) {
@@ -476,14 +519,14 @@ export default function CommunityNewPage() {
                 </div>
               )}
 
-              {mediaItems.length < 10 && (
+              {mediaItems.length < MAX_MEDIA_COUNT && (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-3 right-3 flex items-center gap-1 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white"
                 >
                   <ImagePlus size={13} />
-                  {mediaItems.length}/10
+                  {mediaItems.length}/{MAX_MEDIA_COUNT}
                 </button>
               )}
             </div>
@@ -496,7 +539,9 @@ export default function CommunityNewPage() {
               <ImagePlus size={32} strokeWidth={1.5} />
               <div className="text-center">
                 <p className="text-sm font-medium">사진·동영상 추가</p>
-                <p className="mt-0.5 text-xs text-zinc-400">1개 이상, 최대 10개</p>
+                <p className="mt-0.5 text-xs text-zinc-400">
+                  1개 이상, 최대 {MAX_MEDIA_COUNT}개 · 파일당 {formatMegabytes(MAX_MEDIA_FILE_SIZE)}
+                </p>
               </div>
             </button>
           )}
@@ -507,7 +552,10 @@ export default function CommunityNewPage() {
             accept="image/*,video/*"
             multiple
             className="hidden"
-            onChange={(e) => handleFiles(e.target.files)}
+            onChange={(e) => {
+              handleFiles(e.target.files);
+              e.target.value = "";
+            }}
           />
 
           <div className="flex flex-col gap-4 px-4 py-4">
