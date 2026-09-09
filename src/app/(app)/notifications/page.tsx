@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bell, ChevronRight } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
-import { getNotifications } from "@/lib/api/notifications";
+import { getNotifications, markNotificationAsRead } from "@/lib/api/notifications";
 import { ApiError } from "@/lib/api/axios";
 import type { NotificationItem } from "@/types/api/notification";
 
@@ -77,10 +77,39 @@ function formatRelativeTime(value: string) {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleNotificationClick = async (notification: NotificationItem) => {
+    const href = notificationHref(notification);
+
+    if (!notification.read) {
+      setNotifications((current) =>
+        current.map((item) =>
+          item.id === notification.id ? { ...item, read: true } : item,
+        ),
+      );
+      setUnreadCount((current) => Math.max(0, current - 1));
+
+      try {
+        await markNotificationAsRead(notification.id);
+      } catch {
+        setNotifications((current) =>
+          current.map((item) =>
+            item.id === notification.id ? { ...item, read: false } : item,
+          ),
+        );
+        setUnreadCount((current) => current + 1);
+      }
+    }
+
+    if (href) {
+      router.push(href);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -162,11 +191,21 @@ export default function NotificationsPage() {
               return (
                 <li key={notification.id} className="border-b border-zinc-100 last:border-b-0">
                   {href ? (
-                    <Link href={href} className="flex gap-3 px-4 py-4 transition-colors hover:bg-zinc-50">
+                    <button
+                      type="button"
+                      onClick={() => handleNotificationClick(notification)}
+                      className="flex w-full gap-3 px-4 py-4 text-left transition-colors hover:bg-zinc-50"
+                    >
                       {content}
-                    </Link>
+                    </button>
                   ) : (
-                    <div className="flex gap-3 px-4 py-4">{content}</div>
+                    <button
+                      type="button"
+                      onClick={() => handleNotificationClick(notification)}
+                      className="flex w-full gap-3 px-4 py-4 text-left"
+                    >
+                      {content}
+                    </button>
                   )}
                 </li>
               );
