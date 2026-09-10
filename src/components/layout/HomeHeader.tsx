@@ -9,6 +9,7 @@ import bellIcon from "@/assets/icons/notification-bell-inactive.png";
 import { getUnreadNotificationCount } from "@/lib/api/notifications";
 
 const NOTIFICATION_COUNT_REFRESH_EVENT = "notifications:count-refresh";
+const NOTIFICATION_COUNT_POLLING_MS = 60_000;
 
 export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: string | null }) {
   const { status } = useSession();
@@ -37,9 +38,15 @@ export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: stri
     refreshUnreadCount();
     window.addEventListener(NOTIFICATION_COUNT_REFRESH_EVENT, refreshUnreadCount);
     window.addEventListener("focus", refreshUnreadCount);
+    const pollingId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        refreshUnreadCount();
+      }
+    }, NOTIFICATION_COUNT_POLLING_MS);
 
     return () => {
       ignore = true;
+      window.clearInterval(pollingId);
       window.removeEventListener(NOTIFICATION_COUNT_REFRESH_EVENT, refreshUnreadCount);
       window.removeEventListener("focus", refreshUnreadCount);
     };

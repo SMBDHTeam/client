@@ -16,6 +16,7 @@ import { toast } from "sonner";
 
 const GROUP_LABELS = ["오늘", "어제", "최근 7일", "이전"] as const;
 const NOTIFICATION_COUNT_REFRESH_EVENT = "notifications:count-refresh";
+const NOTIFICATION_LIST_POLLING_MS = 60_000;
 
 type NotificationGroupLabel = (typeof GROUP_LABELS)[number];
 
@@ -200,23 +201,48 @@ export default function NotificationsPage() {
   useEffect(() => {
     let cancelled = false;
 
-    getNotifications({ size: 30 })
-      .then((response) => {
+    const loadNotifications = async (showLoading = false) => {
+      if (showLoading) {
+        setLoading(true);
+      }
+
+      try {
+        const response = await getNotifications({ size: 30 });
         if (cancelled) return;
         setNotifications(response.items);
-      })
-      .catch((err) => {
+        setError(null);
+        refreshHeaderUnreadCount();
+      } catch (err) {
         if (cancelled) return;
         setError(err instanceof ApiError ? err.payload.message : "알림을 불러오지 못했습니다.");
-      })
-      .finally(() => {
-        if (!cancelled) {
+      } finally {
+        if (!cancelled && showLoading) {
           setLoading(false);
         }
-      });
+      }
+    };
+
+    loadNotifications(true);
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void loadNotifications();
+      }
+    };
+
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    const pollingId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void loadNotifications();
+      }
+    }, NOTIFICATION_LIST_POLLING_MS);
 
     return () => {
       cancelled = true;
+      window.clearInterval(pollingId);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, []);
 
