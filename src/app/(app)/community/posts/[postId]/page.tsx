@@ -325,8 +325,8 @@ export default function PostDetailPage() {
               style={{ transform: `translateX(-${imgIndex * 100}%)` }}
             >
               {images.map((src, i) => (
-                <button key={i} type="button" onClick={() => setLightboxIndex(i)} className="h-full w-full shrink-0">
-                  <img src={src} alt={`이미지 ${i + 1}`} className="h-full w-full object-cover" />
+                <button key={i} type="button" onClick={() => setLightboxIndex(i)} className="flex h-full w-full shrink-0 items-center justify-center bg-black">
+                  <img src={src} alt={`이미지 ${i + 1}`} className="h-full w-full object-contain" />
                 </button>
               ))}
             </div>

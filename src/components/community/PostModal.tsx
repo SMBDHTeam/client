@@ -349,7 +349,7 @@ function ModalContent({
           style={{ transform: `translateX(-${imgIndex * 100}%)` }}
         >
           {images.map((src, i) => (
-            <img key={i} src={src} alt={`${post.placeName ?? "게시물"} ${i + 1}`} className="h-full w-full shrink-0 object-cover" />
+            <img key={i} src={src} alt={`${post.placeName ?? "게시물"} ${i + 1}`} className="h-full w-full shrink-0 object-contain bg-black" />
           ))}
         </div>
         {images.length > 1 && (

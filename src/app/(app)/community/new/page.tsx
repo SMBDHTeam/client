@@ -474,7 +474,7 @@ export default function CommunityNewPage() {
                   item.file.type.startsWith("video/") ? (
                     <video key={i} src={item.previewUrl} className="h-full w-full shrink-0 object-cover" muted controls />
                   ) : (
-                    <img key={i} src={item.previewUrl} alt="" className="h-full w-full shrink-0 object-cover" />
+                    <img key={i} src={item.previewUrl} alt="" className="h-full w-full shrink-0 object-contain bg-black" />
                   )
                 ))}
               </div>
