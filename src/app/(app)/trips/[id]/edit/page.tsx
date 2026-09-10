@@ -94,6 +94,8 @@ export default function EditSchedulePage() {
       };
       return { ...prev, [activeDay]: [...list, newStop] };
     });
+    setQuery("");
+    setResults([]);
   }
 
   async function handleSave() {
