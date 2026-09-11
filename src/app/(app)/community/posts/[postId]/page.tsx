@@ -177,18 +177,41 @@ export default function PostDetailPage() {
     }
   }
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!post || deleting) return;
-    if (!window.confirm("게시물을 삭제할까요? 삭제하면 되돌릴 수 없어요.")) return;
-    setDeleting(true);
-    try {
-      await deletePost(post.id);
-      toast.success("게시물을 삭제했어요.");
-      router.back();
-    } catch {
-      toast.error("게시물을 삭제하지 못했어요. 다시 시도해주세요.");
-      setDeleting(false);
-    }
+    toast.custom((t) => (
+      <div className="bg-white rounded-xl shadow-lg p-4 flex flex-col gap-3 w-72">
+        <div>
+          <p className="font-semibold text-sm text-black">게시물을 삭제할까요?</p>
+          <p className="text-xs text-gray-500 mt-0.5">삭제하면 되돌릴 수 없어요.</p>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button
+            className="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-600"
+            onClick={() => toast.dismiss(t)}
+          >
+            취소
+          </button>
+          <button
+            className="px-3 py-1.5 text-sm rounded-lg bg-red-500 text-white"
+            onClick={async () => {
+              toast.dismiss(t);
+              setDeleting(true);
+              try {
+                await deletePost(post.id);
+                toast.success("게시물을 삭제했어요.");
+                router.back();
+              } catch {
+                toast.error("게시물을 삭제하지 못했어요. 다시 시도해주세요.");
+                setDeleting(false);
+              }
+            }}
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+    ), { duration: Infinity });
   }
 
   function handleStartEdit() {
@@ -225,23 +248,43 @@ export default function PostDetailPage() {
     inputRef.current?.focus();
   }
 
-  async function handleDeleteComment(commentId: number) {
+  function handleDeleteComment(commentId: number) {
     if (!post) return;
-    if (!window.confirm("댓글을 삭제할까요?")) return;
-    try {
-      await deleteComment(post.id, commentId);
-      setComments((prev) =>
-        prev.map((c) => {
-          if (c.id === commentId) return { ...c, deleted: true };
-          if (c.replies.some((r) => r.id === commentId)) {
-            return { ...c, replies: c.replies.map((r) => (r.id === commentId ? { ...r, deleted: true } : r)) };
-          }
-          return c;
-        }),
-      );
-    } catch {
-      toast.error("댓글을 삭제하지 못했어요.");
-    }
+    toast.custom((t) => (
+      <div className="bg-white rounded-xl shadow-lg p-4 flex flex-col gap-3 w-72">
+        <p className="font-semibold text-sm text-black">댓글을 삭제할까요?</p>
+        <div className="flex gap-2 justify-end">
+          <button
+            className="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-600"
+            onClick={() => toast.dismiss(t)}
+          >
+            취소
+          </button>
+          <button
+            className="px-3 py-1.5 text-sm rounded-lg bg-red-500 text-white"
+            onClick={async () => {
+              toast.dismiss(t);
+              try {
+                await deleteComment(post.id, commentId);
+                setComments((prev) =>
+                  prev.map((c) => {
+                    if (c.id === commentId) return { ...c, deleted: true };
+                    if (c.replies.some((r) => r.id === commentId)) {
+                      return { ...c, replies: c.replies.map((r) => (r.id === commentId ? { ...r, deleted: true } : r)) };
+                    }
+                    return c;
+                  }),
+                );
+              } catch {
+                toast.error("댓글을 삭제하지 못했어요.");
+              }
+            }}
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+    ), { duration: Infinity });
   }
 
   async function handleSubmit(e: React.FormEvent) {

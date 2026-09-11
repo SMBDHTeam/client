@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { bookmarkPost, createComment, deleteComment, getComments, likeComment, unlikeComment, likePost, unbookmarkPost, unlikePost } from "@/lib/api/posts";
 import { followUser, unfollowUser } from "@/lib/api/users";
 import type { FeedPost, PostComment, PostDetail } from "@/types/api/post";
+import { toast } from "sonner";
 
 function CommentItem({
   comment,
@@ -116,22 +117,42 @@ function CommentSheet({
     inputRef.current?.focus();
   }
 
-  async function handleDeleteComment(commentId: number) {
-    if (!window.confirm("댓글을 삭제할까요?")) return;
-    try {
-      await deleteComment(postId, commentId);
-      setComments((prev) =>
-        prev.map((c) => {
-          if (c.id === commentId) return { ...c, deleted: true };
-          if (c.replies.some((r) => r.id === commentId)) {
-            return { ...c, replies: c.replies.map((r) => (r.id === commentId ? { ...r, deleted: true } : r)) };
-          }
-          return c;
-        }),
-      );
-    } catch {
-      //
-    }
+  function handleDeleteComment(commentId: number) {
+    toast.custom((t) => (
+      <div className="bg-white rounded-xl shadow-lg p-4 flex flex-col gap-3 w-72">
+        <p className="font-semibold text-sm text-black">댓글을 삭제할까요?</p>
+        <div className="flex gap-2 justify-end">
+          <button
+            className="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-600"
+            onClick={() => toast.dismiss(t)}
+          >
+            취소
+          </button>
+          <button
+            className="px-3 py-1.5 text-sm rounded-lg bg-red-500 text-white"
+            onClick={async () => {
+              toast.dismiss(t);
+              try {
+                await deleteComment(postId, commentId);
+                setComments((prev) =>
+                  prev.map((c) => {
+                    if (c.id === commentId) return { ...c, deleted: true };
+                    if (c.replies.some((r) => r.id === commentId)) {
+                      return { ...c, replies: c.replies.map((r) => (r.id === commentId ? { ...r, deleted: true } : r)) };
+                    }
+                    return c;
+                  }),
+                );
+              } catch {
+                toast.error("댓글을 삭제하지 못했어요.");
+              }
+            }}
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+    ), { duration: Infinity });
   }
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
