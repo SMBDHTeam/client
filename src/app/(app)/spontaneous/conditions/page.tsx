@@ -75,12 +75,27 @@ function TimeInput({
   );
 }
 
-function toKSTIso(date: Date, time: string) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
+// function toKSTIso(date: Date, time: string) {
+//   const y = date.getFullYear();
+//   const m = String(date.getMonth() + 1).padStart(2, "0");
+//   const d = String(date.getDate()).padStart(2, "0");
+//   return `${y}-${m}-${d}T${time}:00+09:00`;
+// }
+
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+function toKSTIso(date: Date, time: string, dayOffset = 0) {
+  const kstDate = new Date(date.getTime() + KST_OFFSET_MS);
+
+  kstDate.setUTCDate(kstDate.getUTCDate() + dayOffset);
+
+  const y = kstDate.getUTCFullYear();
+  const m = String(kstDate.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(kstDate.getUTCDate()).padStart(2, "0");
+
   return `${y}-${m}-${d}T${time}:00+09:00`;
 }
+
 
 export default function SpontaneousConditionsPage() {
   const router = useRouter();
@@ -100,12 +115,35 @@ export default function SpontaneousConditionsPage() {
     }
   }, [hydrated, draft.startLocation, router]);
 
-  const timeError =
-    startTime && returnTime && returnTime <= startTime
-      ? "복귀 시각은 출발 시각보다 이후여야 해요"
+  // const timeError =
+  //   startTime && returnTime && returnTime <= startTime
+  //     ? "복귀 시각은 출발 시각보다 이후여야 해요"
+  //     : null;
+
+  // const ready = Boolean(startTime && returnTime && !timeError && !loading);
+
+
+  const isNextDayReturn = Boolean(
+  startTime &&
+    returnTime &&
+    returnTime < startTime,
+);
+
+const timeError =
+  startTime && returnTime && startTime === returnTime
+    ? "출발 시각과 복귀 시각은 달라야 해요"
+    : isNextDayReturn && returnTime > "03:00"
+      ? "다음 날 복귀는 오전 3시까지 가능해요"
       : null;
 
-  const ready = Boolean(startTime && returnTime && !timeError && !loading);
+const ready = Boolean(
+  startTime &&
+    returnTime &&
+    !timeError &&
+    !loading,
+);
+
+
 
   function toggleTheme(theme: TravelTheme) {
     setDesiredThemes((prev) =>
@@ -116,10 +154,28 @@ export default function SpontaneousConditionsPage() {
   async function handleSubmit() {
     if (!draft.startLocation || !ready) return;
 
+    // const today = new Date();
+    // const startAt = toKSTIso(today, startTime);
+    // const returnBy = toKSTIso(today, returnTime);
+    // const conditions = { startAt, returnBy, transportMode, desiredThemes };
+
+
     const today = new Date();
-    const startAt = toKSTIso(today, startTime);
-    const returnBy = toKSTIso(today, returnTime);
-    const conditions = { startAt, returnBy, transportMode, desiredThemes };
+
+const startAt = toKSTIso(today, startTime);
+
+const returnBy = toKSTIso(
+  today,
+  returnTime,
+  isNextDayReturn ? 1 : 0,
+);
+
+const conditions = {
+  startAt,
+  returnBy,
+  transportMode,
+  desiredThemes,
+};
 
     setConditions(conditions);
     setError(null);
@@ -158,7 +214,12 @@ export default function SpontaneousConditionsPage() {
           <h2 className="text-base font-semibold">여행 시간</h2>
           <div className="grid grid-cols-2 gap-3">
             <TimeInput label="출발" value={startTime} onChange={setStartTime} />
-            <TimeInput label="복귀" value={returnTime} onChange={setReturnTime} />
+            {/* <TimeInput label="복귀" value={returnTime} onChange={setReturnTime} /> */}
+            <TimeInput
+  label={isNextDayReturn ? "복귀 · 다음 날" : "복귀"}
+  value={returnTime}
+  onChange={setReturnTime}
+/>
           </div>
           {timeError && (
             <p className="text-sm font-medium text-[#F16E5E]">{timeError}</p>
