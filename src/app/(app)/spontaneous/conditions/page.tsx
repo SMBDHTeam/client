@@ -68,7 +68,15 @@ function TimeInput({
         ref={inputRef}
         type="time"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+  const input = e.currentTarget;
+
+  onChange(input.value);
+
+  window.requestAnimationFrame(() => {
+    input.blur();
+  });
+}}
         className="sr-only"
       />
     </button>
@@ -83,6 +91,14 @@ function TimeInput({
 // }
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+function getCurrentKSTTime() {
+  const kstDate = new Date(Date.now() + KST_OFFSET_MS);
+  const hours = String(kstDate.getUTCHours()).padStart(2, "0");
+  const minutes = String(kstDate.getUTCMinutes()).padStart(2, "0");
+
+  return `${hours}:${minutes}`;
+}
 
 function toKSTIso(date: Date, time: string, dayOffset = 0) {
   const kstDate = new Date(date.getTime() + KST_OFFSET_MS);
@@ -101,8 +117,8 @@ export default function SpontaneousConditionsPage() {
   const router = useRouter();
   const { draft, hydrated, setConditions, setDestinations } = useSpontaneousDraft();
 
-  const [startTime, setStartTime] = useState("10:00");
-  const [returnTime, setReturnTime] = useState("21:00");
+  const [startTime, setStartTime] = useState("");
+  const [returnTime, setReturnTime] = useState("03:00");
   const [transportMode, setTransportMode] = useState<TransportMode>("PUBLIC_TRANSIT");
   const [desiredThemes, setDesiredThemes] = useState<TravelTheme[]>([]);
   const [loading, setLoading] = useState(false);
@@ -114,6 +130,17 @@ export default function SpontaneousConditionsPage() {
       router.replace("/spontaneous");
     }
   }, [hydrated, draft.startLocation, router]);
+
+
+  useEffect(() => {
+  const frameId = window.requestAnimationFrame(() => {
+    setStartTime(getCurrentKSTTime());
+  });
+
+  return () => {
+    window.cancelAnimationFrame(frameId);
+  };
+}, []);
 
   // const timeError =
   //   startTime && returnTime && returnTime <= startTime
