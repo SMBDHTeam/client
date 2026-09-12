@@ -1,3 +1,6 @@
+import type { ScheduleTransit } from "./schedule";
+import type { ScheduleRouteLine } from "./schedule-map";
+
 export type TransportMode = "PUBLIC_TRANSIT" | "WALK" | "CAR";
 
 export type TravelTheme =
@@ -18,6 +21,11 @@ export type CourseRole = "ACTIVITY" | "MEAL" | "CAFE" | "NIGHT_VIEW";
 export type Coordinate = {
   latitude: number;
   longitude: number;
+};
+
+export type CourseStartLocation = Coordinate & {
+  name: string | null;
+  address: string | null;
 };
 
 export type StartLocationItem = {
@@ -60,20 +68,36 @@ export type DestinationsResponse = {
   destinations: Destination[];
 };
 
-export type CourseItem = {
+export type SpontaneousCoursePlace = {
+  id: null;
+  name: string;
+  category: string | null;
+  categoryLabel: string;
+  address: string | null;
+  longitude: number | null;
+  latitude: number | null;
+  primaryImageUrl: string | null;
+  operatingInfo: null;
+};
+
+export type SpontaneousCourseStop = {
   order: number;
   role: CourseRole;
   name: string;
-  contentId: string;
-  contentTypeId: string;
+  contentId: string | null;
+  contentTypeId: string | null;
   latitude: number;
   longitude: number;
-  travelMinutesFromPrevious: number;
-  arrivalAt: string;
-  departureAt: string;
+  travelMinutesFromPrevious: number | null;
+  arrivalAt: string | null;
+  departureAt: string | null;
   stayMinutes: number;
   themes: TravelTheme[];
+  place: SpontaneousCoursePlace | null;
+  inboundTransit: ScheduleTransit | null;
 };
+
+export type CourseItem = SpontaneousCourseStop;
 
 export type CourseRequest = {
   destinationId: string;
@@ -88,8 +112,20 @@ export type CourseResponse = {
   destinationId: string;
   name: string;
   transportMode: TransportMode;
-  returnTravelMinutes: number;
-  estimatedReturnAt: string;
-  returnBy: string;
-  course: CourseItem[];
+  returnTravelMinutes: number | null;
+  estimatedReturnAt: string | null;
+  returnBy: string | null;
+  previewId: string | null;
+  previewToken: string | null;
+  previewExpiresAt: string | null;
+  startLocation: CourseStartLocation | null;
+  startAt: string | null;
+  course: SpontaneousCourseStop[];
+  finalTransit: ScheduleTransit | null;
+  routeLines: ScheduleRouteLine[];
+};
+
+export type SaveSpontaneousScheduleRequest = {
+  previewId: string;
+  previewToken: string;
 };
