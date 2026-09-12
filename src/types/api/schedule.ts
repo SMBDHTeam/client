@@ -10,35 +10,37 @@ export type SchedulePlace = LocationInput & {
 
 export type ScheduleTransitSegment = {
   order: number;
-  mode: "WALK" | "BUS" | "SUBWAY" | "TRAIN";
+  mode: string;
   lineName: string | null;
   startStationId: string | null;
   startStationName: string | null;
   endStationId: string | null;
   endStationName: string | null;
-  instruction: string;
+  instruction: string | null;
   durationMinutes: number;
   distanceMeters: number | null;
   stationCount: number | null;
   waitMinutes: number;
-  realtimeStatus: "AVAILABLE" | "PARTIAL" | "UNAVAILABLE";
+  realtimeStatus: string;
 };
 
 export type ScheduleTransit = {
-  routeType: "INBOUND" | "FINAL";
+  routeType: string | null;
   routeOrder: number;
-  originName: string;
-  destinationName: string;
-  summary: string;
-  departAt: string;
-  arriveAt: string;
+  originName: string | null;
+  destinationName: string | null;
+  summary: string | null;
+  departAt: string | null;
+  arriveAt: string | null;
+  departAtDateTime?: string | null;
+  arriveAtDateTime?: string | null;
   totalMinutes: number;
   walkMinutes: number;
   waitMinutes: number;
   transferCount: number;
   fareAmount: number | null;
-  provider: string;
-  realtimeStatus: "AVAILABLE" | "PARTIAL" | "UNAVAILABLE";
+  provider: string | null;
+  realtimeStatus: string;
   fallbackUsed: boolean;
   segments: ScheduleTransitSegment[];
   warnings: string[];
@@ -56,6 +58,10 @@ export type ScheduleStop = {
   waitingMinutesBefore: number;
   selectionReasons?: string[];
   warnings?: string[];
+  arriveAtDateTime?: string | null;
+  departAtDateTime?: string | null;
+  role?: string | null;
+  themes?: string[];
 };
 
 export type ScheduleDay = {
@@ -118,5 +124,11 @@ export type ScheduleResponse = {
     routeCoverage: "FULL" | "ATTRACTION_ROUTES_ONLY";
     warnings: string[];
   };
+  scheduleType?: string;
+  transportMode?: string | null;
+  startAt?: string | null;
+  returnBy?: string | null;
+  estimatedReturnAt?: string | null;
+  spontaneousMetadata?: Record<string, unknown> | null;
   days: ScheduleDay[];
 };

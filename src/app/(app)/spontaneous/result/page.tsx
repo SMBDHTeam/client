@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import NaverMap from "@/components/map/NaverMap";
+import ScheduleCourseView, {
+  type ScheduleCourseMarker,
+  type ScheduleCoursePlace,
+} from "@/components/trip/ScheduleCourseView";
+import { saveSpontaneousSchedule } from "@/lib/api/spontaneous-trips";
+import { ApiError } from "@/lib/api/axios";
+import {
+  formatCourseTime,
+  formatKoreanReturnTime,
+  resolveSaveIdempotencyKey,
+} from "@/lib/schedule-course";
 import { useSpontaneousDraft } from "@/store/spontaneous-draft";
-import type { CourseItem } from "@/types/api/spontaneous-trip";
-
-const MARKER_COLORS = ["#2E7DF2", "#17B89B", "#F59E0B", "#E85D75", "#8B7DF2"];
-const CARD_GRADIENTS = [
-  "from-[#2E7DF2] to-[#17B89B]",
-  "from-[#F7A18E] to-[#F16E5E]",
-  "from-[#8B7DF2] to-[#5B5EE8]",
-  "from-[#17B89B] to-[#2E9A6D]",
-  "from-[#F59E0B] to-[#EF4444]",
-];
 
 const ROLE_LABEL: Record<string, string> = {
   ACTIVITY: "관광",
@@ -22,88 +22,155 @@ const ROLE_LABEL: Record<string, string> = {
   NIGHT_VIEW: "야경",
 };
 
-function formatKST(utcString: string) {
-  return new Date(utcString).toLocaleTimeString("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Seoul",
-    hour12: false,
-  });
+function finiteCoordinate(value: number | null | undefined) {
+  return value != null && Number.isFinite(value) ? value : null;
 }
 
-function buildPlaces(course: CourseItem[]) {
-  return course.map((item, index) => ({
-    order: item.order,
-    name: item.name,
-    role: item.role,
-    lat: item.latitude,
-    lng: item.longitude,
-    color: MARKER_COLORS[index % MARKER_COLORS.length],
-    gradient: CARD_GRADIENTS[index % CARD_GRADIENTS.length],
-    arrivalAt: formatKST(item.arrivalAt),
-    departureAt: formatKST(item.departureAt),
-    stayMinutes: item.stayMinutes,
-    travelMinutes: item.travelMinutesFromPrevious,
-    themes: item.themes,
-  }));
+function saveErrorMessage(cause: unknown) {
+  if (!(cause instanceof ApiError)) {
+    return "네트워크 연결을 확인한 뒤 다시 시도해 주세요. 같은 저장 요청으로 안전하게 재시도됩니다.";
+  }
+
+  const serverMessage = cause.payload.message?.trim();
+  const message = serverMessage || "일정을 저장하지 못했습니다.";
+  switch (cause.payload.code) {
+    case "SCHEDULE_CREATION_IN_PROGRESS":
+      return message + " 잠시 후 같은 저장 요청으로 다시 시도해 주세요.";
+    case "SPONTANEOUS_PREVIEW_EXPIRED":
+    case "SPONTANEOUS_PREVIEW_INVALID":
+      return message + " 새로 시작해 코스를 다시 만들어 주세요.";
+    case "SPONTANEOUS_PLACE_HIDDEN":
+      return message + " 새로 시작해 다른 코스를 만들어 주세요.";
+    case "SPONTANEOUS_PREVIEW_OWNER_MISMATCH":
+      return message + " 로그인한 사용자가 코스를 만든 사용자와 같은지 확인해 주세요.";
+    case "IDEMPOTENCY_KEY_REUSED":
+      return message + " 현재 저장 요청의 상태를 확인해 주세요.";
+    default:
+      return cause.status >= 500
+        ? message + " 잠시 후 같은 저장 요청으로 다시 시도해 주세요."
+        : message;
+  }
 }
 
 export default function SpontaneousResultPage() {
   const router = useRouter();
-  const { draft, resetDraft } = useSpontaneousDraft();
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [offset, setOffset] = useState(0);
-  const [animate, setAnimate] = useState(false);
-  const viewportRef = useRef<HTMLDivElement>(null);
+  const {
+    draft,
+    hydrated,
+    setSaveIdempotencyKey,
+    resetDraft,
+  } = useSpontaneousDraft();
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!draft.course) {
+    if (hydrated && !draft.course) {
       router.replace("/spontaneous");
     }
-  }, [draft.course, router]);
+  }, [draft.course, hydrated, router]);
 
-  const places = useMemo(() => buildPlaces(draft.course?.course ?? []), [draft.course]);
-
-  const route = useMemo(
-    () => places.map((p) => ({ lat: p.lat, lng: p.lng, order: p.order, color: p.color })),
-    [places],
+  const course = draft.course;
+  const places = useMemo<ScheduleCoursePlace[]>(
+    () =>
+      course?.course.map((item, index) => {
+        const latitude =
+          finiteCoordinate(item.place?.latitude) ?? finiteCoordinate(item.latitude);
+        const longitude =
+          finiteCoordinate(item.place?.longitude) ?? finiteCoordinate(item.longitude);
+        return {
+          id: "preview-" + item.order + "-" + (item.contentId ?? index),
+          placeId: item.place?.id ?? null,
+          order: item.order,
+          latitude,
+          longitude,
+          imageUrl: item.place?.primaryImageUrl ?? null,
+          arrivalTime: formatCourseTime(item.arrivalAt),
+          title: item.place?.name || item.name,
+          categoryLabel:
+            item.place?.categoryLabel?.trim() ||
+            ROLE_LABEL[item.role] ||
+            null,
+          stayMinutes: item.stayMinutes,
+          inboundTransit: item.inboundTransit,
+          warnings: [],
+        };
+      }) ?? [],
+    [course],
   );
 
-  const activeRoute = (() => {
-    const dest = route[activeIndex];
-    if (!dest) return [];
-    if (activeIndex === 0) return [dest];
-    return [route[activeIndex - 1], dest];
-  })();
-
-  const progress = places.length > 1 ? (activeIndex / (places.length - 1)) * 100 : 0;
-
-  useEffect(() => {
-    function recalc() {
-      const viewport = viewportRef.current;
-      const track = viewport?.firstElementChild as HTMLElement | null;
-      const card = track?.firstElementChild as HTMLElement | null;
-      if (!viewport || !card) return;
-      const step = card.offsetWidth + 12;
-      setOffset(viewport.offsetWidth / 2 - activeIndex * step - card.offsetWidth / 2);
-    }
-    recalc();
-    const frame = requestAnimationFrame(() => setAnimate(true));
-    window.addEventListener("resize", recalc);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("resize", recalc);
+  const startMarker = useMemo<ScheduleCourseMarker | null>(() => {
+    const latitude =
+      finiteCoordinate(course?.startLocation?.latitude) ??
+      finiteCoordinate(draft.startLocation?.latitude);
+    const longitude =
+      finiteCoordinate(course?.startLocation?.longitude) ??
+      finiteCoordinate(draft.startLocation?.longitude);
+    if (latitude == null || longitude == null) return null;
+    return {
+      name: course?.startLocation?.name || draft.startLocation?.name || "출발지",
+      latitude,
+      longitude,
     };
-  }, [activeIndex, places]);
+  }, [course?.startLocation, draft.startLocation]);
 
-  function goTo(index: number) {
-    setActiveIndex(Math.min(places.length - 1, Math.max(0, index)));
+  async function handleSave() {
+    if (saving || !course) return;
+    if (!course.previewId || !course.previewToken) {
+      setSaveError("저장 가능한 미리보기 정보가 없습니다. 새로 시작해 코스를 다시 만들어 주세요.");
+      return;
+    }
+
+    const idempotencyKey = resolveSaveIdempotencyKey(draft.saveIdempotencyKey);
+    if (!draft.saveIdempotencyKey) {
+      setSaveIdempotencyKey(idempotencyKey);
+    }
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const savedSchedule = await saveSpontaneousSchedule(
+        {
+          previewId: course.previewId,
+          previewToken: course.previewToken,
+        },
+        idempotencyKey,
+      );
+      resetDraft();
+      router.replace("/trips/" + savedSchedule.id);
+    } catch (cause) {
+      if (
+        cause instanceof ApiError &&
+        cause.payload.code === "SPONTANEOUS_PREVIEW_ALREADY_SAVED" &&
+        cause.payload.scheduleId
+      ) {
+        const scheduleId = cause.payload.scheduleId;
+        resetDraft();
+        router.replace("/trips/" + scheduleId);
+        return;
+      }
+      setSaveError(saveErrorMessage(cause));
+    } finally {
+      setSaving(false);
+    }
   }
 
-  if (!draft.course) return null;
+  if (!hydrated || !course) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="size-10 animate-spin rounded-full border-4 border-zinc-200 border-t-[#2E7DF2]" />
+      </div>
+    );
+  }
 
-  const { course } = draft;
-  const estimatedReturn = formatKST(course.estimatedReturnAt);
+  const returnArrivalLabel = formatKoreanReturnTime(
+    course.estimatedReturnAt,
+    course.startAt,
+  );
+  const returnSummary =
+    course.returnTravelMinutes != null
+      ? "마지막 장소에서 " + course.returnTravelMinutes + "분 이동"
+      : null;
+  const canSave = Boolean(course.previewId && course.previewToken);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -118,7 +185,9 @@ export default function SpontaneousResultPage() {
         </button>
         <div className="flex-1 text-center">
           <h1 className="text-lg font-bold">{course.name}</h1>
-          <p className="text-xs text-zinc-400">{draft.startLocation?.name}에서 출발</p>
+          <p className="text-xs text-zinc-400">
+            {course.startLocation?.name || draft.startLocation?.name || "선택한 출발지"}에서 출발
+          </p>
         </div>
         <button
           type="button"
@@ -133,148 +202,35 @@ export default function SpontaneousResultPage() {
       </header>
 
       <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 pt-2 pb-6">
-        {route.length > 0 && (
-          <NaverMap
-            center={{ lat: activeRoute[0]?.lat ?? route[0].lat, lng: activeRoute[0]?.lng ?? route[0].lng }}
-            route={activeRoute}
-            activeOrder={places[activeIndex]?.order}
-            className="h-64 w-full overflow-hidden rounded-3xl"
-          />
+        <ScheduleCourseView
+          places={places}
+          routeLines={course.routeLines ?? []}
+          startMarker={startMarker}
+          finalTransit={course.finalTransit ?? null}
+          finalTransitTitle="출발지로 복귀"
+          returnSummary={returnSummary}
+          returnArrivalLabel={returnArrivalLabel}
+          publicTransitOnly
+        />
+
+        {saveError && (
+          <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-700">
+            {saveError}
+          </p>
         )}
-
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold">오늘의 코스</h2>
-          <p className="text-xs text-zinc-400">{places.length}곳</p>
-        </div>
-
-        {places.length > 0 && (
-          <>
-            <div className="relative">
-              <div ref={viewportRef} className="-mx-5 overflow-hidden py-1">
-                <div
-                  className={`flex gap-3 ${animate ? "transition-transform duration-300 ease-out" : ""}`}
-                  style={{ transform: `translateX(${offset}px)` }}
-                >
-                  {places.map((place, index) => (
-                    <div
-                      key={place.order}
-                      onClick={() => goTo(index)}
-                      className={`w-[80%] shrink-0 cursor-pointer overflow-hidden rounded-3xl bg-white text-left shadow-sm ring-1 transition-all duration-300 ${
-                        index === activeIndex ? "ring-2 ring-[#2E7DF2]" : "opacity-60 ring-black/5"
-                      }`}
-                    >
-                      <div
-                        className={`relative flex h-40 flex-col justify-between p-4 text-white bg-linear-to-br ${place.gradient}`}
-                      >
-                        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-black/20" />
-
-                        <div className="relative flex items-start justify-between">
-                          <span
-                            className="grid size-7 shrink-0 place-items-center rounded-full text-sm font-bold text-white shadow"
-                            style={{ background: place.color }}
-                          >
-                            {place.order}
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-zinc-700">
-                              {ROLE_LABEL[place.role] ?? place.role}
-                            </span>
-                            <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-zinc-700">
-                              {place.arrivalAt}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="relative">
-                          <p className="truncate text-base font-bold">{place.name}</p>
-                          {place.themes.length > 0 && (
-                            <p className="truncate text-xs text-white/70">
-                              {place.themes.slice(0, 2).join(" · ")}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between p-3">
-                        <p className="text-xs font-medium text-zinc-500">
-                          체류 {place.stayMinutes}분
-                        </p>
-                        {place.travelMinutes > 0 && (
-                          <p className="text-xs text-zinc-400">
-                            이동 {place.travelMinutes}분
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => goTo(activeIndex - 1)}
-                disabled={activeIndex === 0}
-                aria-label="이전 장소"
-                className="absolute top-1/2 left-1 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-xl leading-none text-zinc-700 shadow-md backdrop-blur transition-opacity hover:bg-white disabled:pointer-events-none disabled:opacity-0"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                onClick={() => goTo(activeIndex + 1)}
-                disabled={activeIndex === places.length - 1}
-                aria-label="다음 장소"
-                className="absolute top-1/2 right-1 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-xl leading-none text-zinc-700 shadow-md backdrop-blur transition-opacity hover:bg-white disabled:pointer-events-none disabled:opacity-0"
-              >
-                ›
-              </button>
-            </div>
-
-            <div className="flex justify-center gap-1.5">
-              {places.map((place, index) => (
-                <span
-                  key={place.order}
-                  className={`h-1.5 rounded-full transition-all ${
-                    index === activeIndex ? "w-5 bg-[#2E7DF2]" : "w-1.5 bg-zinc-200"
-                  }`}
-                />
-              ))}
-            </div>
-
-            <div className="px-1">
-              <div className="relative h-2 rounded-full bg-zinc-200">
-                <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-linear-to-r from-[#2E7DF2] to-[#17B89B]"
-                  style={{ width: `${progress}%` }}
-                />
-                <div
-                  className="absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-[#2E7DF2] bg-white shadow-md"
-                  style={{ left: `${progress}%` }}
-                />
-              </div>
-              <div className="mt-3 flex justify-between text-xs text-zinc-400">
-                {places.map((place, index) => (
-                  <span
-                    key={place.order}
-                    className={index === activeIndex ? "font-bold text-[#2E7DF2]" : ""}
-                  >
-                    {place.arrivalAt}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </>
+        {!canSave && !saveError && (
+          <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            이 코스는 이전 형식의 미리보기라 저장할 수 없습니다. 새로 시작해 코스를 다시 만들어 주세요.
+          </p>
         )}
-
-        <div className="rounded-2xl bg-zinc-50 px-4 py-3">
-          <p className="text-xs font-semibold text-zinc-500">복귀 정보</p>
-          <div className="mt-2 flex items-center justify-between">
-            <p className="text-sm text-zinc-600">
-              마지막 장소에서 <span className="font-bold">{course.returnTravelMinutes}분</span> 이동
-            </p>
-            <p className="text-sm font-bold text-[#17B89B]">{estimatedReturn} 도착 예정</p>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => void handleSave()}
+          disabled={saving || !canSave}
+          className="w-full rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B] py-3.5 text-center font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {saving ? "저장 중..." : "이 일정 저장"}
+        </button>
       </div>
     </div>
   );

@@ -1,36 +1,42 @@
-import type { LocationInput } from "./common";
+export type ScheduleEndpointMarker = {
+  name: string;
+  longitude: number | null;
+  latitude: number | null;
+};
 
 export type ScheduleMapMarker = {
   dayNo: number;
   order: number;
-  placeId: number;
+  placeId: number | null;
   name: string;
-  arriveAt: string;
-  departAt: string;
-  subtitle: string;
+  arriveAt: string | null;
+  departAt: string | null;
+  arriveAtDateTime?: string | null;
+  departAtDateTime?: string | null;
+  subtitle: string | null;
   riskLevel: "NORMAL" | "NOTICE" | "WARNING";
-  longitude: number;
-  latitude: number;
+  longitude: number | null;
+  latitude: number | null;
 };
 
 export type ScheduleRouteLine = {
   dayNo: number;
   routeOrder: number;
   lineOrder: number;
-  mode: "WALK" | "BUS" | "SUBWAY" | "TRAIN";
+  mode: string;
   lineName: string | null;
-  startName: string;
-  endName: string;
-  durationMinutes: number;
+  startName: string | null;
+  endName: string | null;
+  durationMinutes: number | null;
   distanceMeters: number | null;
-  instruction: string;
+  instruction: string | null;
   fallbackUsed: boolean;
   coordinates: [number, number][];
 };
 
 export type ScheduleMapResponse = {
-  startMarker: LocationInput | null;
-  endMarker: LocationInput | null;
+  startMarker: ScheduleEndpointMarker | null;
+  endMarker: ScheduleEndpointMarker | null;
   markers: ScheduleMapMarker[];
   routeLines: ScheduleRouteLine[];
 };

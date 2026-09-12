@@ -23,6 +23,7 @@ type SpontaneousDraft = {
   destinations: Destination[] | null;
   selectedDestinationId: string | null;
   course: CourseResponse | null;
+  saveIdempotencyKey: string | null;
 };
 
 const INITIAL_DRAFT: SpontaneousDraft = {
@@ -31,6 +32,7 @@ const INITIAL_DRAFT: SpontaneousDraft = {
   destinations: null,
   selectedDestinationId: null,
   course: null,
+  saveIdempotencyKey: null,
 };
 
 type SpontaneousDraftContextValue = {
@@ -41,6 +43,7 @@ type SpontaneousDraftContextValue = {
   setDestinations: (destinations: Destination[]) => void;
   setSelectedDestinationId: (id: string) => void;
   setCourse: (course: CourseResponse) => void;
+  setSaveIdempotencyKey: (key: string) => void;
   resetDraft: () => void;
 };
 
@@ -51,14 +54,17 @@ export function SpontaneousDraftProvider({ children }: { children: React.ReactNo
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setDraft(JSON.parse(stored) as SpontaneousDraft);
+    const frame = requestAnimationFrame(() => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          setDraft({ ...INITIAL_DRAFT, ...(JSON.parse(stored) as Partial<SpontaneousDraft>) });
+        }
+      } catch {
       }
-    } catch {
-    }
-    setHydrated(true);
+      setHydrated(true);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -77,6 +83,7 @@ export function SpontaneousDraftProvider({ children }: { children: React.ReactNo
       destinations: null,
       selectedDestinationId: null,
       course: null,
+      saveIdempotencyKey: null,
     }));
   }, []);
 
@@ -87,6 +94,7 @@ export function SpontaneousDraftProvider({ children }: { children: React.ReactNo
       destinations: null,
       selectedDestinationId: null,
       course: null,
+      saveIdempotencyKey: null,
     }));
   }, []);
 
@@ -95,11 +103,20 @@ export function SpontaneousDraftProvider({ children }: { children: React.ReactNo
   }, []);
 
   const setSelectedDestinationId = useCallback((id: string) => {
-    setDraft((prev) => ({ ...prev, selectedDestinationId: id, course: null }));
+    setDraft((prev) => ({
+      ...prev,
+      selectedDestinationId: id,
+      course: null,
+      saveIdempotencyKey: null,
+    }));
   }, []);
 
   const setCourse = useCallback((course: CourseResponse) => {
-    setDraft((prev) => ({ ...prev, course }));
+    setDraft((prev) => ({ ...prev, course, saveIdempotencyKey: null }));
+  }, []);
+
+  const setSaveIdempotencyKey = useCallback((key: string) => {
+    setDraft((prev) => ({ ...prev, saveIdempotencyKey: key }));
   }, []);
 
   const resetDraft = useCallback(() => {
@@ -119,9 +136,10 @@ export function SpontaneousDraftProvider({ children }: { children: React.ReactNo
       setDestinations,
       setSelectedDestinationId,
       setCourse,
+      setSaveIdempotencyKey,
       resetDraft,
     }),
-    [draft, hydrated, setStartLocation, setConditions, setDestinations, setSelectedDestinationId, setCourse, resetDraft],
+    [draft, hydrated, setStartLocation, setConditions, setDestinations, setSelectedDestinationId, setCourse, setSaveIdempotencyKey, resetDraft],
   );
 
   return (

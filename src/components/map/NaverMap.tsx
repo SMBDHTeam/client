@@ -2,9 +2,58 @@
 
 import { useEffect, useRef, useState } from "react";
 
+type NaverLatLng = object;
+
+type NaverMapInstance = {
+  fitBounds: (bounds: NaverLatLngBounds, padding: Record<string, number>) => void;
+  getZoom: () => number;
+  morph: (
+    position: NaverLatLng,
+    zoom: number,
+    options?: { duration: number; easing: string },
+  ) => void;
+  panTo: (position: NaverLatLng) => void;
+};
+
+type NaverOverlay = {
+  setMap: (map: NaverMapInstance | null) => void;
+};
+
+type NaverMarker = NaverOverlay & {
+  getPosition: () => NaverLatLng;
+  setPosition: (position: NaverLatLng) => void;
+};
+
+type NaverInfoWindow = {
+  close: () => void;
+  open: (map: NaverMapInstance, marker: NaverMarker) => void;
+  setContent: (content: HTMLElement) => void;
+};
+
+type NaverLatLngBounds = {
+  extend: (position: NaverLatLng) => void;
+};
+
+type NaverMapsApi = {
+  Event: {
+    addListener: (marker: NaverMarker, eventName: string, listener: () => void) => void;
+    trigger: (map: NaverMapInstance, eventName: string) => void;
+  };
+  InfoWindow: new (options: Record<string, unknown>) => NaverInfoWindow;
+  LatLng: new (lat: number, lng: number) => NaverLatLng;
+  LatLngBounds: new () => NaverLatLngBounds;
+  Map: new (
+    container: HTMLElement,
+    options: { center: NaverLatLng; zoom: number },
+  ) => NaverMapInstance;
+  Marker: new (options: Record<string, unknown>) => NaverMarker;
+  Point: new (x: number, y: number) => object;
+  Polyline: new (options: Record<string, unknown>) => NaverOverlay;
+};
+
 declare global {
   interface Window {
-    naver: any;
+    naver?: { maps: NaverMapsApi };
   }
 }
 
@@ -51,11 +100,6 @@ type RoutePoint = {
   icon?: string;
 };
 
-export type RoutePath = {
-  mode: string;
-  coordinates: [number, number][];
-};
-
 export type RouteLineSegment = {
   mode: string;
   lineName?: string | null;
@@ -83,7 +127,12 @@ const PATH_STYLE: Record<
   WALK: { color: "#9CA3AF", style: "shortdash", weight: 4 },
   BUS: { color: "#2E7DF2", style: "solid", weight: 5 },
   SUBWAY: { color: "#F59E0B", style: "solid", weight: 5 },
+  TRAIN: { color: "#8B5CF6", style: "solid", weight: 5 },
+  CAR: { color: "#E85D75", style: "solid", weight: 5 },
 };
+
+const EMPTY_ROUTE_LINES: RouteLineSegment[] = [];
+const EMPTY_TRANSFER_POINTS: TransferPoint[] = [];
 
 export default function NaverMap({
   center = BUSAN_CENTER,
@@ -91,7 +140,10 @@ export default function NaverMap({
   place,
   onAddPlace,
   route,
-  paths,
+  routeLines = EMPTY_ROUTE_LINES,
+  transferPoints = EMPTY_TRANSFER_POINTS,
+  startMarker = null,
+  endMarker = null,
   activeOrder,
   showRouteLine = true,
   activeRouteOrder = null,
@@ -104,7 +156,6 @@ export default function NaverMap({
   place?: { name: string; tag: string; alreadyAdded: boolean } | null;
   onAddPlace?: () => void;
   route?: RoutePoint[];
-  paths?: RoutePath[];
   routeLines?: RouteLineSegment[];
   transferPoints?: TransferPoint[];
   startMarker?: MapMarker | null;
@@ -117,11 +168,13 @@ export default function NaverMap({
   className?: string;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
-  const infoWindowRef = useRef<any>(null);
-  const routeOverlaysRef = useRef<any[]>([]);
-  const routeInfoWindowRef = useRef<any>(null);
+  const mapInstanceRef = useRef<NaverMapInstance | null>(null);
+  const markerRef = useRef<NaverMarker | null>(null);
+  const infoWindowRef = useRef<NaverInfoWindow | null>(null);
+  const routeOverlaysRef = useRef<NaverOverlay[]>([]);
+  const routeInfoWindowRef = useRef<NaverInfoWindow | null>(null);
+  const initialCenterRef = useRef(center);
+  const initialZoomRef = useRef(zoom);
   const [mapReady, setMapReady] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
 
@@ -138,17 +191,21 @@ export default function NaverMap({
   }, []);
 
   useEffect(() => {
-    if (!scriptReady || !mapRef.current || !window.naver) return;
+    const maps = window.naver?.maps;
+    if (!scriptReady || !mapRef.current || !maps) return;
 
+    const mapApi: NaverMapsApi = maps;
     const container = mapRef.current;
+    const initialCenter = initialCenterRef.current;
+    const initialZoom = initialZoomRef.current;
 
     function createMap() {
       if (mapInstanceRef.current) return;
       if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
 
-      mapInstanceRef.current = new window.naver.maps.Map(container, {
-        center: new window.naver.maps.LatLng(center.lat, center.lng),
-        zoom: zoom ?? 12,
+      mapInstanceRef.current = new mapApi.Map(container, {
+        center: new mapApi.LatLng(initialCenter.lat, initialCenter.lng),
+        zoom: initialZoom ?? 12,
       });
       setMapReady(true);
     }
@@ -158,7 +215,7 @@ export default function NaverMap({
     const observer = new ResizeObserver(() => {
       createMap();
       if (mapInstanceRef.current) {
-        window.naver.maps.Event.trigger(mapInstanceRef.current, "resize");
+        mapApi.Event.trigger(mapInstanceRef.current, "resize");
       }
     });
     observer.observe(container);
@@ -176,9 +233,11 @@ export default function NaverMap({
   useEffect(() => {
     if (!mapReady || route) return;
     const map = mapInstanceRef.current;
-    const position = new window.naver.maps.LatLng(center.lat, center.lng);
+    const maps = window.naver?.maps;
+    if (!map || !maps) return;
+    const position = new maps.LatLng(center.lat, center.lng);
     if (!markerRef.current) {
-      markerRef.current = new window.naver.maps.Marker({ position, map });
+      markerRef.current = new maps.Marker({ position, map });
     } else {
       markerRef.current.setPosition(position);
     }
@@ -189,10 +248,17 @@ export default function NaverMap({
     }
   }, [mapReady, center.lat, center.lng, zoom, route]);
 
-  useEffect(() => {
-    if (!mapReady || !markerRef.current || !window.naver) return;
+  const hasPlace = place != null;
+  const placeName = place?.name ?? "";
+  const placeTag = place?.tag ?? "";
+  const placeAlreadyAdded = place?.alreadyAdded ?? false;
 
-    if (!place) {
+  useEffect(() => {
+    const maps = window.naver?.maps;
+    const map = mapInstanceRef.current;
+    if (!mapReady || !markerRef.current || !maps || !map) return;
+
+    if (!hasPlace) {
       infoWindowRef.current?.close();
       return;
     }
@@ -202,31 +268,31 @@ export default function NaverMap({
       "padding:10px 12px;width:170px;background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.18);";
 
     const title = document.createElement("p");
-    title.textContent = place.name;
+    title.textContent = placeName;
     title.style.cssText =
       "margin:0 0 2px;font-size:13px;font-weight:600;color:#18181b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
 
     const tag = document.createElement("p");
     tag.textContent =
-      place.tag.length > 18 ? `${place.tag.slice(0, 18)}…` : place.tag;
+      placeTag.length > 18 ? `${placeTag.slice(0, 18)}…` : placeTag;
     tag.style.cssText =
       "margin:0 0 8px;font-size:11px;color:#a1a1aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
 
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = place.alreadyAdded ? "담음" : "+ 추가";
-    button.disabled = place.alreadyAdded;
+    button.textContent = placeAlreadyAdded ? "담음" : "+ 추가";
+    button.disabled = placeAlreadyAdded;
     button.style.cssText = `width:100%;padding:6px 0;border:none;border-radius:9999px;font-size:12px;font-weight:600;cursor:${
-      place.alreadyAdded ? "default" : "pointer"
-    };background:${place.alreadyAdded ? "#f4f4f5" : "#EAF2FE"};color:${
-      place.alreadyAdded ? "#a1a1aa" : "#2E7DF2"
+      placeAlreadyAdded ? "default" : "pointer"
+    };background:${placeAlreadyAdded ? "#f4f4f5" : "#EAF2FE"};color:${
+      placeAlreadyAdded ? "#a1a1aa" : "#2E7DF2"
     };`;
     button.onclick = () => onAddPlace?.();
 
     content.append(title, tag, button);
 
     if (!infoWindowRef.current) {
-      infoWindowRef.current = new window.naver.maps.InfoWindow({
+      infoWindowRef.current = new maps.InfoWindow({
         content,
         borderWidth: 0,
         backgroundColor: "transparent",
@@ -235,59 +301,63 @@ export default function NaverMap({
     } else {
       infoWindowRef.current.setContent(content);
     }
-    infoWindowRef.current.open(mapInstanceRef.current, markerRef.current);
-  }, [mapReady, place?.name, place?.tag, place?.alreadyAdded, onAddPlace]);
+    infoWindowRef.current.open(map, markerRef.current);
+  }, [hasPlace, mapReady, onAddPlace, placeAlreadyAdded, placeName, placeTag]);
 
   useEffect(() => {
-    if (!mapReady || !route || route.length === 0 || !window.naver) return;
+    const maps = window.naver?.maps;
     const map = mapInstanceRef.current;
+    if (!mapReady || !maps || !map) return;
+    const mapApi: NaverMapsApi = maps;
+    const activeMap: NaverMapInstance = map;
+    const routePoints = route ?? [];
+    const hasOverlayData =
+      routePoints.length > 0 ||
+      routeLines.length > 0 ||
+      transferPoints.length > 0 ||
+      startMarker != null ||
+      endMarker != null;
 
-    routeOverlaysRef.current.forEach((o) => o.setMap(null));
+    routeOverlaysRef.current.forEach((overlay) => overlay.setMap(null));
     routeOverlaysRef.current = [];
+    if (!hasOverlayData) return;
 
-    const latlngs = route.map(
-      (p) => new window.naver.maps.LatLng(p.lat, p.lng),
-    );
-
-    const bounds = new window.naver.maps.LatLngBounds();
-    latlngs.forEach((ll: any) => bounds.extend(ll));
+    const bounds = new maps.LatLngBounds();
+    let hasBounds = false;
+    function extendBounds(lat: number, lng: number) {
+      bounds.extend(new mapApi.LatLng(lat, lng));
+      hasBounds = true;
+    }
+    routePoints.forEach((point) => extendBounds(point.lat, point.lng));
 
     if (showRouteLine) {
-      if (paths && paths.length > 0) {
-        paths.forEach((seg) => {
-          if (seg.coordinates.length < 2) return;
-          const style = PATH_STYLE[seg.mode] ?? PATH_STYLE.BUS;
-          const path = seg.coordinates.map(([lng, lat]) => {
-            const ll = new window.naver.maps.LatLng(lat, lng);
-            bounds.extend(ll);
-            return ll;
-          });
-          const line = new window.naver.maps.Polyline({
-            map,
-            path,
-            strokeColor: style.color,
-            strokeStyle: style.style,
-            strokeWeight: style.weight,
-            strokeOpacity: 0.9,
-            strokeLineCap: "round",
-            strokeLineJoin: "round",
-          });
-          routeOverlaysRef.current.push(line);
+      routeLines.forEach((segment) => {
+        if (
+          segment.coordinates.length < 2 ||
+          segment.coordinates.some((coordinate) => !coordinate.every(Number.isFinite))
+        ) return;
+        const style = PATH_STYLE[segment.mode] ?? PATH_STYLE.BUS;
+        const path = segment.coordinates.map(([lng, lat]) => {
+          const coordinate = new maps.LatLng(lat, lng);
+          bounds.extend(coordinate);
+          hasBounds = true;
+          return coordinate;
         });
-      } else {
-        const polyline = new window.naver.maps.Polyline({
+        const line = new maps.Polyline({
           map,
-          path: latlngs,
-          strokeColor: "#2E7DF2",
-          strokeStyle: "shortdash",
-          strokeWeight: 3,
+          path,
+          strokeColor: style.color,
+          strokeStyle: style.style,
+          strokeWeight: style.weight,
           strokeOpacity: 0.9,
+          strokeLineCap: "round",
+          strokeLineJoin: "round",
         });
-        routeOverlaysRef.current.push(polyline);
-      }
+        routeOverlaysRef.current.push(line);
+      });
     }
 
-    function openRouteInfo(p: RoutePoint, marker: any) {
+    function openRouteInfo(p: RoutePoint, marker: NaverMarker) {
       if (!p.label) return;
 
       const content = document.createElement("div");
@@ -321,7 +391,7 @@ export default function NaverMap({
       content.appendChild(button);
 
       if (!routeInfoWindowRef.current) {
-        routeInfoWindowRef.current = new window.naver.maps.InfoWindow({
+        routeInfoWindowRef.current = new mapApi.InfoWindow({
           content,
           borderWidth: 0,
           backgroundColor: "transparent",
@@ -330,18 +400,17 @@ export default function NaverMap({
       } else {
         routeInfoWindowRef.current.setContent(content);
       }
-      routeInfoWindowRef.current.open(map, marker);
+      routeInfoWindowRef.current.open(activeMap, marker);
     }
 
-    let activeMarker: any = null;
-    let activePoint: RoutePoint | null = null;
+    const routeMarkers: Array<{ point: RoutePoint; marker: NaverMarker }> = [];
 
-    route.forEach((p) => {
+    routePoints.forEach((p) => {
       const active = activeOrder === p.order;
       const size = active ? 32 : 26;
       const tailH = 9;
-      const position = new window.naver.maps.LatLng(p.lat, p.lng);
-      const marker = new window.naver.maps.Marker({
+      const position = new maps.LatLng(p.lat, p.lng);
+      const marker = new maps.Marker({
         position,
         zIndex: active ? 100 : 10,
         map,
@@ -354,45 +423,112 @@ export default function NaverMap({
             }px;font-weight:700;">${p.added ? "✓" : (p.icon ?? p.order)}</div>
             <div style="width:0;height:0;margin-top:-2px;border-left:6px solid transparent;border-right:6px solid transparent;border-top:${tailH}px solid ${p.color};"></div>
           </div>`,
-          anchor: new window.naver.maps.Point(size / 2, size + tailH - 2),
+          anchor: new maps.Point(size / 2, size + tailH - 2),
         },
       });
       if (p.label) {
-        window.naver.maps.Event.addListener(marker, "click", () =>
+        maps.Event.addListener(marker, "click", () =>
           onRouteMarkerSelect?.(p.order),
         );
       }
-      if (p.order === activeRouteOrder) {
-        activeMarker = marker;
-        activePoint = p;
-      }
+      routeMarkers.push({ point: p, marker });
       routeOverlaysRef.current.push(marker);
     });
 
-    const interactive = route.some((p) => p.label);
+    function addAuxiliaryMarker(
+      marker: MapMarker,
+      label: string,
+      color: string,
+      zIndex: number,
+    ) {
+      extendBounds(marker.lat, marker.lng);
+      const overlay = new mapApi.Marker({
+        position: new mapApi.LatLng(marker.lat, marker.lng),
+        title: marker.name,
+        zIndex,
+        map,
+        icon: {
+          content:
+            '<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.28));">' +
+            '<div style="min-width:28px;height:28px;padding:0 6px;border-radius:14px;background:' +
+            color +
+            ';border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">' +
+            label +
+            "</div></div>",
+          anchor: new mapApi.Point(14, 14),
+        },
+      });
+      routeOverlaysRef.current.push(overlay);
+    }
 
-    if (activeMarker && activePoint) {
-      map.morph(activeMarker.getPosition(), Math.max(map.getZoom(), 16), {
+    if (startMarker) {
+      addAuxiliaryMarker(startMarker, "출발", "#18181B", 80);
+    }
+
+    transferPoints.forEach((point, index) => {
+      addAuxiliaryMarker(
+        { name: point.name, lat: point.lat, lng: point.lng },
+        "환" + (index + 1),
+        PATH_STYLE[point.mode]?.color ?? "#6B7280",
+        70,
+      );
+    });
+
+    const duplicatesRoutePoint =
+      endMarker &&
+      routePoints.some(
+        (point) =>
+          Math.abs(point.lat - endMarker.lat) < 0.0000001 &&
+          Math.abs(point.lng - endMarker.lng) < 0.0000001,
+      );
+    if (endMarker && !duplicatesRoutePoint) {
+      addAuxiliaryMarker(endMarker, "도착", "#E85D75", 80);
+    }
+
+    const interactive = routePoints.some((p) => p.label);
+    const activeEntry = routeMarkers.find(
+      ({ point }) => point.order === activeRouteOrder,
+    );
+
+    if (activeEntry) {
+      map.morph(activeEntry.marker.getPosition(), Math.max(map.getZoom(), 16), {
         duration: 400,
         easing: "easeOutCubic",
       });
-      openRouteInfo(activePoint, activeMarker);
+      openRouteInfo(activeEntry.point, activeEntry.marker);
     } else if (interactive) {
       routeInfoWindowRef.current?.close();
-      const restorePos = new window.naver.maps.LatLng(center.lat, center.lng);
+      const restorePos = new maps.LatLng(center.lat, center.lng);
       map.morph(restorePos, zoom ?? map.getZoom(), {
         duration: 600,
         easing: "easeOutCubic",
       });
-    } else {
+    } else if (hasBounds) {
       map.fitBounds(bounds, { top: 56, right: 56, bottom: 56, left: 56 });
+    } else {
+      map.morph(new maps.LatLng(center.lat, center.lng), zoom ?? map.getZoom());
     }
 
     return () => {
       routeOverlaysRef.current.forEach((o) => o.setMap(null));
       routeOverlaysRef.current = [];
     };
-  }, [mapReady, route, paths, activeOrder, activeRouteOrder, onRouteMarkerAdd, onRouteMarkerSelect]);
+  }, [
+    activeOrder,
+    activeRouteOrder,
+    center.lat,
+    center.lng,
+    endMarker,
+    mapReady,
+    onRouteMarkerAdd,
+    onRouteMarkerSelect,
+    route,
+    routeLines,
+    showRouteLine,
+    startMarker,
+    transferPoints,
+    zoom,
+  ]);
 
   return <div ref={mapRef} className={className} />;
 }
