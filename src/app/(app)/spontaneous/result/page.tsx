@@ -211,6 +211,7 @@ export default function SpontaneousResultPage() {
           returnSummary={returnSummary}
           returnArrivalLabel={returnArrivalLabel}
           publicTransitOnly
+          imageUnavailableLabel="대표 이미지 준비 중"
         />
 
         {saveError && (
