@@ -58,6 +58,7 @@ type ScheduleCourseViewProps = {
   heading?: string;
   emptyMessage?: string;
   onPlaceDetail?: (placeId: number) => void;
+  imageUnavailableLabel?: string | null;
 };
 
 function hasCoordinates(
@@ -74,21 +75,27 @@ function hasCoordinates(
 function CourseImage({
   imageUrl,
   gradient,
+  unavailableLabel,
 }: {
-  imageUrl: string | null;
+  imageUrl: string | null | undefined;
   gradient: string;
+  unavailableLabel: string | null;
 }) {
-  const [loaded, setLoaded] = useState(false);
+  type ImageStatus = "loading" | "loaded" | "unavailable";
+
+  const [imageStatus, setImageStatus] = useState<ImageStatus>(
+    imageUrl ? "loading" : "unavailable",
+  );
 
   useEffect(() => {
     if (!imageUrl) return;
     let cancelled = false;
     const image = new window.Image();
     image.onload = () => {
-      if (!cancelled) setLoaded(true);
+      if (!cancelled) setImageStatus("loaded");
     };
     image.onerror = () => {
-      if (!cancelled) setLoaded(false);
+      if (!cancelled) setImageStatus("unavailable");
     };
     image.src = imageUrl;
     return () => {
@@ -100,7 +107,7 @@ function CourseImage({
     <div
       className={`absolute inset-0 bg-linear-to-br ${gradient}`}
       style={
-        loaded && imageUrl
+        imageStatus === "loaded" && imageUrl
           ? {
               backgroundImage: `url(${JSON.stringify(imageUrl)})`,
               backgroundPosition: "center",
@@ -108,8 +115,14 @@ function CourseImage({
             }
           : undefined
       }
-      aria-hidden
-    />
+      aria-hidden={!unavailableLabel}
+    >
+      {imageStatus === "unavailable" && unavailableLabel && (
+        <div className="relative z-10 flex h-full items-center justify-center px-6 text-center text-sm font-semibold text-white/90">
+          {unavailableLabel}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -139,6 +152,7 @@ export default function ScheduleCourseView({
   heading = "오늘의 코스",
   emptyMessage = "이 날짜에 배정된 장소가 없습니다.",
   onPlaceDetail,
+  imageUnavailableLabel = null,
 }: ScheduleCourseViewProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -303,6 +317,7 @@ export default function ScheduleCourseView({
                           key={place.imageUrl ?? "fallback"}
                           imageUrl={place.imageUrl}
                           gradient={gradient}
+                          unavailableLabel={imageUnavailableLabel}
                         />
                         <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-black/30" />
 
