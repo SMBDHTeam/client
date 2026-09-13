@@ -210,7 +210,6 @@ export default function SpontaneousResultPage() {
           finalTransitTitle="출발지로 복귀"
           returnSummary={returnSummary}
           returnArrivalLabel={returnArrivalLabel}
-          publicTransitOnly
           imageUnavailableLabel="대표 이미지 준비 중"
         />
 
