@@ -231,7 +231,6 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
           finalTransitTitle={isSpontaneous ? "출발지로 복귀" : "마지막 도착지로 이동"}
           returnSummary={returnSummary}
           returnArrivalLabel={returnArrivalLabel}
-          publicTransitOnly={isSpontaneous}
           onPlaceDetail={setDetailPlaceId}
         />
       </div>
