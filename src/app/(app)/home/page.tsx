@@ -71,9 +71,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        {popularPlaces.length > 0 && (
         <section>
           <h2 className="mb-3 text-lg font-bold">지금 인기 여행지</h2>
+          {popularPlaces.length > 0 ? (
           <div className="grid grid-cols-2 gap-4">
             {popularPlaces.map((place) => (
               <button
@@ -100,8 +100,10 @@ export default function HomePage() {
               </button>
             ))}
           </div>
+          ) : (
+            <p className="py-8 text-center text-sm text-zinc-400">인기 여행지 정보를 준비 중이에요</p>
+          )}
         </section>
-        )}
 
         {communityPosts.length > 0 && (
           <section>
