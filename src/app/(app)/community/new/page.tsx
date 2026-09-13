@@ -247,10 +247,12 @@ export default function CommunityNewPage() {
       const uploaded = await uploadMedia(mediaItems.map((item) => item.file));
       await createPost({
         content: text.trim(),
-        mediaList: uploaded.map((m, i) => ({ url: m.url, mediaType: m.mediaType, sortOrder: i })),
-        placeTags: selectedPlace
-          ? [{ placeId: selectedPlace.placeId, latitude: selectedPlace.latitude, longitude: selectedPlace.longitude }]
-          : [],
+        mediaList: uploaded.map((m, i) => ({
+          url: m.url,
+          mediaType: m.mediaType,
+          sortOrder: i,
+          placeId: i === 0 ? selectedPlace?.placeId ?? null : null,
+        })),
         categories: selectedTags.map((id) => COMMUNITY_TAGS.find((t) => t.id === id)!.label),
       });
       router.back();

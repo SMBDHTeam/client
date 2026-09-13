@@ -12,6 +12,13 @@ export async function getPlaceDetail(placeId: number) {
   return data;
 }
 
+export async function getPopularPlaces(params: { size?: number } = {}): Promise<{ items: PlaceSummary[] }> {
+  const { data } = await apiClient.get<{ items: PlaceSummary[] }>("/places/popular", {
+    params: { size: 10, ...params },
+  });
+  return data;
+}
+
 async function enrichPlaceImages(items: PlaceSearchItem[], signal?: AbortSignal) {
   if (items.length === 0 || items.every((item) => item.primaryImageUrl)) return items;
 

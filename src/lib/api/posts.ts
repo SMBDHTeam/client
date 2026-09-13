@@ -1,4 +1,4 @@
-import type { CommentListResponse, CreatePostRequest, FeedPost, FeedResponse, PostComment, PostDetail, PostMedia, LikeResponse } from "@/types/api/post";
+import type { CommentListResponse, CreateCommentResponse, CreatePostRequest, DeleteCommentResponse, FeedPost, FeedResponse, PostDetail, PostMedia, LikeResponse } from "@/types/api/post";
 import { apiBaseUrl } from "./config";
 import { ApiError } from "./axios";
 import apiClient from "./axios";
@@ -64,13 +64,14 @@ export async function getComments(postId: number, params: { cursor?: number; siz
   return data;
 }
 
-export async function createComment(postId: number, body: { content: string; parentId?: number }): Promise<PostComment> {
-  const { data } = await apiClient.post<PostComment>(`/posts/${postId}/comments`, body);
+export async function createComment(postId: number, body: { content: string; parentId?: number }): Promise<CreateCommentResponse> {
+  const { data } = await apiClient.post<CreateCommentResponse>(`/posts/${postId}/comments`, body);
   return data;
 }
 
-export async function deleteComment(postId: number, commentId: number): Promise<void> {
-  await apiClient.delete(`/posts/${postId}/comments/${commentId}`);
+export async function deleteComment(postId: number, commentId: number): Promise<DeleteCommentResponse> {
+  const { data } = await apiClient.delete<DeleteCommentResponse>(`/posts/${postId}/comments/${commentId}`);
+  return data;
 }
 
 export async function getMyBookmarks(params: { page?: number; size?: number } = {}): Promise<{ items: FeedPost[] }> {

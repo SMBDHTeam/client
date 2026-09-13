@@ -6,9 +6,11 @@ import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X, Trash2, Pencil } from "lucide-react";
 import { getPost, deletePost, updatePost, likePost, unlikePost, bookmarkPost, unbookmarkPost, getComments, createComment, deleteComment, likeComment, unlikeComment } from "@/lib/api/posts";
+import { getPlaceDetail } from "@/lib/api/places";
 import { followUser, unfollowUser, getUserProfile } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/axios";
 import type { PostComment, PostDetail } from "@/types/api/post";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 import { toast } from "sonner";
 
 function CommentItem({
@@ -69,6 +71,7 @@ function CommentItem({
           </button>
         </div>
         <div className="mt-1 flex items-center gap-3">
+          <span className="text-xs text-zinc-400">{comment.createdAgo}</span>
           {!isReply && (
             <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="text-xs text-zinc-400 cursor-pointer">
               답글 달기
@@ -94,6 +97,8 @@ export default function PostDetailPage() {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [taggedPlace, setTaggedPlace] = useState<{ placeId: number; name: string; address: string | null } | null>(null);
+  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
   const [imgIndex, setImgIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -126,6 +131,12 @@ export default function PostDetailPage() {
         if (userId && String(res.author.id) !== userId) {
           getUserProfile(res.author.id)
             .then((profile) => setFollowing(profile.following))
+            .catch(() => {});
+        }
+        const placeId = res.mediaList.find((m) => m.placeId != null)?.placeId;
+        if (placeId != null) {
+          getPlaceDetail(placeId)
+            .then((place) => setTaggedPlace({ placeId, name: place.name, address: place.address }))
             .catch(() => {});
         }
       })
@@ -265,7 +276,7 @@ export default function PostDetailPage() {
             onClick={async () => {
               toast.dismiss(t);
               try {
-                await deleteComment(post.id, commentId);
+                const result = await deleteComment(post.id, commentId);
                 setComments((prev) =>
                   prev.map((c) => {
                     if (c.id === commentId) return { ...c, deleted: true };
@@ -275,6 +286,7 @@ export default function PostDetailPage() {
                     return c;
                   }),
                 );
+                setPost((prev) => (prev ? { ...prev, commentCount: result.postCommentCount } : prev));
               } catch {
                 toast.error("댓글을 삭제하지 못했어요.");
               }
@@ -298,6 +310,7 @@ export default function PostDetailPage() {
       } else {
         setComments((prev) => [...prev, newComment]);
       }
+      setPost((prev) => (prev ? { ...prev, commentCount: newComment.postCommentCount } : prev));
       setCommentText("");
       setReplyTo(null);
       setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: "smooth" }), 0);
@@ -463,6 +476,7 @@ export default function PostDetailPage() {
           </button>
           <button type="button" onClick={() => router.push(`/community/users/${post.author.id}`)} className="flex-1 text-left cursor-pointer">
             <p className="text-sm font-semibold">{post.author.nickname}</p>
+            <p className="text-xs text-zinc-400">{post.createdAgo}</p>
           </button>
           {!isMyPost && following !== null && (
             <button
@@ -536,11 +550,18 @@ export default function PostDetailPage() {
         </div>
 
         {/* 위치 */}
-        {post.placeTags.length > 0 && (
-          <div className="mx-4 mb-4 flex items-center gap-1.5 rounded-xl bg-zinc-50 px-3 py-2.5">
+        {taggedPlace && (
+          <button
+            type="button"
+            onClick={() => setDetailPlaceId(taggedPlace.placeId)}
+            className="mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-1.5 rounded-xl bg-zinc-50 px-3 py-2.5 text-left hover:bg-zinc-100 cursor-pointer"
+          >
             <MapPin size={14} className="text-[#2E7DF2] shrink-0" />
-            <span className="text-xs text-zinc-600">위치 태그 있음</span>
-          </div>
+            <span className="text-xs text-zinc-600">
+              {taggedPlace.name}
+              {taggedPlace.address && ` · ${taggedPlace.address}`}
+            </span>
+          </button>
         )}
 
         {/* 댓글 버튼 */}
@@ -617,6 +638,10 @@ export default function PostDetailPage() {
             </motion.div>
         )}
       </AnimatePresence>
+
+      {detailPlaceId != null && (
+        <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
+      )}
     </div>
   );
 }

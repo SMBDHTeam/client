@@ -69,6 +69,7 @@ function CommentItem({
           </button>
         </div>
         <div className="mt-0.5 flex items-center gap-2.5">
+          <span className="text-xs text-zinc-400">{comment.createdAgo}</span>
           {!isReply && (
             <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="text-xs text-zinc-400">
               답글 달기
@@ -90,11 +91,13 @@ function CommentSheet({
   commentCount,
   userId,
   onClose,
+  onCommentCountChange,
 }: {
   postId: number;
   commentCount: number;
   userId: string | undefined;
   onClose: () => void;
+  onCommentCountChange: (count: number) => void;
 }) {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentText, setCommentText] = useState("");
@@ -133,7 +136,7 @@ function CommentSheet({
             onClick={async () => {
               toast.dismiss(t);
               try {
-                await deleteComment(postId, commentId);
+                const result = await deleteComment(postId, commentId);
                 setComments((prev) =>
                   prev.map((c) => {
                     if (c.id === commentId) return { ...c, deleted: true };
@@ -143,6 +146,7 @@ function CommentSheet({
                     return c;
                   }),
                 );
+                onCommentCountChange(result.postCommentCount);
               } catch {
                 toast.error("댓글을 삭제하지 못했어요.");
               }
@@ -173,6 +177,7 @@ function CommentSheet({
       } else {
         setComments((prev) => [...prev, newComment]);
       }
+      onCommentCountChange(newComment.postCommentCount);
       setCommentText("");
       setReplyTo(null);
       setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: "smooth" }), 0);
@@ -267,6 +272,7 @@ function ModalContent({
   const [bookmarked, setBookmarked] = useState<boolean | null>(null);
   const [following, setFollowing] = useState<boolean | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
+  const [commentCountOverride, setCommentCountOverride] = useState<number | null>(null);
 
   const isMyPost = userId != null && String(post.author.id) === userId;
   const baseFollowing = following ?? false;
@@ -289,7 +295,7 @@ function ModalContent({
   const baseLiked = likeState?.liked ?? detail?.liked ?? post.liked;
   const baseLikeCount = likeState?.likeCount ?? detail?.likeCount ?? post.likeCount;
   const baseBookmarked = bookmarked ?? detail?.bookmarked ?? post.bookmarked;
-  const commentCount = detail?.commentCount ?? post.commentCount;
+  const commentCount = commentCountOverride ?? detail?.commentCount ?? post.commentCount;
 
   async function toggleLike() {
     if (!userId) return;
@@ -337,6 +343,7 @@ function ModalContent({
             {post.placeName && (
               <p className="flex items-center gap-1 text-xs text-zinc-400"><MapPin size={10} />{post.placeName}</p>
             )}
+            <p className="text-xs text-zinc-400">{detail?.createdAgo ?? post.createdAgo}</p>
           </button>
         </div>
         {!isMyPost && (
@@ -425,6 +432,7 @@ function ModalContent({
             commentCount={commentCount}
             userId={userId}
             onClose={() => setShowComments(false)}
+            onCommentCountChange={setCommentCountOverride}
           />
         )}
       </AnimatePresence>
