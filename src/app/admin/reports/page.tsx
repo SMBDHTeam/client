@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/admin";
 import { useAdminQuery } from "@/lib/api/use-admin-query";
 import { QueryState } from "@/components/admin/QueryState";
+import { FilterTabs, PageHeader } from "@/components/admin/ui";
 import { Pager } from "@/components/admin/Pager";
 import type { ReportStatus } from "@/types/api/admin";
 
@@ -47,26 +48,20 @@ export default function AdminReportsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-bold text-zinc-900">신고</h1>
-        <div className="flex gap-1 rounded-lg bg-zinc-100 p-0.5">
-          {STATUS_FILTERS.map((filter) => (
-            <button
-              key={filter.label}
-              type="button"
-              onClick={() => {
-                setStatus(filter.value);
-                setPage(0);
-              }}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium ${
-                filter.value === status ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500"
-              }`}
-            >
-              {filter.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageHeader
+        title="신고"
+        description="처리할 것부터 본다"
+        action={
+          <FilterTabs
+            options={STATUS_FILTERS.map((f) => ({ value: f.value, label: f.label }))}
+            value={status}
+            onChange={(value) => {
+              setStatus(value);
+              setPage(0);
+            }}
+          />
+        }
+      />
 
       <QueryState
         loading={list.loading}
@@ -84,21 +79,21 @@ export default function AdminReportsPage() {
                 <button
                   type="button"
                   onClick={() => setSelected(report.id)}
-                  className="w-full rounded-2xl bg-white p-4 text-left ring-1 ring-black/5 hover:bg-zinc-50"
+                  className="w-full rounded-2xl bg-white p-5 text-left ring-1 ring-black/5 transition-colors hover:bg-zinc-50"
                 >
                   <div className="flex items-center gap-2">
                     <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${STATUS_STYLE[report.status]}`}>
                       {STATUS_FILTERS.find((f) => f.value === report.status)?.label ?? report.status}
                     </span>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-[13px] text-zinc-500">
                       {TARGET_LABEL[report.targetType]} #{report.targetId}
                     </span>
-                    <span className="ml-auto text-xs text-zinc-400">
+                    <span className="ml-auto text-[13px] text-zinc-400">
                       {formatDate(report.createdAt)}
                     </span>
                   </div>
                   <p className="mt-2 line-clamp-2 text-sm text-zinc-800">{report.reason}</p>
-                  <p className="mt-1 text-xs text-zinc-400">
+                  <p className="mt-1.5 text-[13px] text-zinc-400">
                     신고자 {report.reporter?.nickname ?? "(탈퇴)"}
                     {report.handledBy && ` · 처리 ${report.handledBy.nickname}`}
                   </p>
@@ -160,7 +155,7 @@ function ReportDetailSheet({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
       <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-zinc-900">신고 #{reportId}</h2>
+          <h2 className="text-lg font-bold text-zinc-900">신고 #{reportId}</h2>
           <button type="button" onClick={onClose} className="text-sm text-zinc-500">
             닫기
           </button>
@@ -198,7 +193,7 @@ function ReportDetailSheet({
             {failure && <p className="text-sm text-rose-600">{failure}</p>}
 
             <div className="flex flex-col gap-2 border-t border-zinc-100 pt-4">
-              <p className="text-xs font-medium text-zinc-500">상태 변경</p>
+              <p className="text-[13px] font-semibold text-zinc-500">상태 변경</p>
               <div className="flex flex-wrap gap-2">
                 {(["REVIEWING", "RESOLVED", "REJECTED"] as ReportStatus[]).map((next) => (
                   <button
@@ -206,7 +201,7 @@ function ReportDetailSheet({
                     type="button"
                     disabled={busy || report.status === next}
                     onClick={() => run(() => updateReportStatus(reportId, next))}
-                    className="rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-700 disabled:opacity-40"
+                    className="h-8 rounded-lg bg-zinc-100 px-3 text-[13px] font-medium text-zinc-700 disabled:opacity-40"
                   >
                     {STATUS_FILTERS.find((f) => f.value === next)?.label}
                   </button>
@@ -216,11 +211,11 @@ function ReportDetailSheet({
 
             {deletable && !target?.deleted && (
               <div className="flex flex-col gap-2 border-t border-zinc-100 pt-4">
-                <p className="text-xs font-medium text-zinc-500">원본 삭제</p>
+                <p className="text-[13px] font-semibold text-zinc-500">원본 삭제</p>
                 {confirmingDelete ? (
                   // 되돌릴 수 없어서 한 번 더 묻는다.
                   <div className="flex flex-col gap-2 rounded-xl bg-rose-50 p-3">
-                    <p className="text-xs text-rose-700">
+                    <p className="text-[13px] leading-relaxed text-rose-700">
                       {TARGET_LABEL[report.targetType]} #{report.targetId} 을(를) 지웁니다.
                       되돌릴 수 없습니다.
                     </p>
@@ -235,14 +230,14 @@ function ReportDetailSheet({
                               : deleteComment(report.targetId),
                           )
                         }
-                        className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+                        className="h-8 rounded-lg bg-rose-600 px-3 text-[13px] font-semibold text-white disabled:opacity-40"
                       >
                         삭제한다
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmingDelete(false)}
-                        className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-zinc-600"
+                        className="h-8 rounded-lg bg-white px-3 text-[13px] font-medium text-zinc-600 ring-1 ring-zinc-200"
                       >
                         취소
                       </button>
@@ -252,7 +247,7 @@ function ReportDetailSheet({
                   <button
                     type="button"
                     onClick={() => setConfirmingDelete(true)}
-                    className="self-start rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600"
+                    className="h-8 self-start rounded-lg px-3 text-[13px] font-semibold text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50"
                   >
                     원본 삭제
                   </button>
@@ -269,7 +264,7 @@ function ReportDetailSheet({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-xs font-medium text-zinc-500">{label}</p>
+      <p className="text-[13px] font-semibold text-zinc-500">{label}</p>
       <div className="mt-1 text-sm text-zinc-800">{children}</div>
     </div>
   );

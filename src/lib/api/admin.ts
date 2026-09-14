@@ -1,4 +1,6 @@
 import type {
+  AdminActionList,
+  AdminActionTargetType,
   AdminIngestionResult,
   AdminIngestionStatus,
   AdminPlace,
@@ -161,5 +163,37 @@ export async function getStatsPopular(type: "PLACE" | "HASHTAG", size?: number) 
   const { data } = await apiClient.get<AdminStatsPopular>("/admin/stats/popular", {
     params: { type, size },
   });
+  return data;
+}
+
+// 조치 이력
+
+/**
+ * 관리자 조치 이력.
+ *
+ * `targetType` 만 주면 그 종류 전부를, `targetId` 까지 주면 그 대상의 이력만 본다.
+ * 기록은 수정하거나 지울 수 없다.
+ */
+export async function getAdminActions(params: {
+  targetType?: AdminActionTargetType;
+  targetId?: number;
+  page?: number;
+  size?: number;
+} = {}) {
+  const { data } = await apiClient.get<AdminActionList>("/admin/actions", { params });
+  return data;
+}
+
+/**
+ * 역할을 바꾼다.
+ *
+ * 역할은 액세스 토큰에 담기므로 바꾼 뒤 재로그인해야 반영된다.
+ * 서버가 리프레시 토큰을 폐기해 재로그인을 강제한다.
+ */
+export async function updateUserRole(userId: number, role: "USER" | "ADMIN") {
+  const { data } = await apiClient.patch<AdminUserDetail["user"]>(
+    `/admin/users/${userId}/role`,
+    { role },
+  );
   return data;
 }

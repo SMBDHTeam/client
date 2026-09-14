@@ -141,3 +141,41 @@ export type AdminStatsPopular = {
   /** 해시태그면 id 가 null 이다 */
   items: { id: number | null; name: string; count: number }[];
 };
+
+/** 관리자가 한 조치의 종류. 서버 enum 과 짝을 이룬다. */
+export type AdminActionType =
+  | "REPORT_STATUS_CHANGED"
+  | "POST_DELETED"
+  | "COMMENT_DELETED"
+  | "USER_SUSPENDED"
+  | "USER_SUSPENSION_RELEASED"
+  | "USER_ROLE_CHANGED"
+  | "PLACE_HIDDEN"
+  | "PLACE_UNHIDDEN"
+  | "INGESTION_RUN";
+
+export type AdminActionTargetType =
+  | "REPORT"
+  | "POST"
+  | "COMMENT"
+  | "USER"
+  | "PLACE"
+  | "SYSTEM";
+
+export type AdminAction = {
+  id: number;
+  /** 조치한 관리자. 탈퇴했으면 nickname 이 null 이고 id 만 남는다 */
+  admin: { id: number; nickname: string | null };
+  action: AdminActionType;
+  targetType: AdminActionTargetType;
+  /** 대상이 없는 조치(적재 실행 등)면 null */
+  targetId: number | null;
+  reason: string | null;
+  detail: string | null;
+  createdAt: string;
+};
+
+export type AdminActionList = {
+  items: AdminAction[];
+  totalCount: number;
+};
