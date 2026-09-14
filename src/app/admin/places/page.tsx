@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/admin";
 import { useAdminQuery } from "@/lib/api/use-admin-query";
 import { QueryState } from "@/components/admin/QueryState";
+import { FilterTabs, PageHeader } from "@/components/admin/ui";
 import { Pager } from "@/components/admin/Pager";
 import type { AdminPlace } from "@/types/api/admin";
 
@@ -47,32 +48,23 @@ export default function AdminPlacesPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-lg font-bold text-zinc-900">장소</h1>
+      <PageHeader title="장소" description="등록된 장소를 찾고 가린다" />
 
       <div className="flex flex-wrap items-center gap-3">
         <input
           value={keywordInput}
           onChange={(event) => setKeywordInput(event.target.value)}
           placeholder="이름 또는 주소"
-          className="min-w-0 flex-1 rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-black/5 outline-none focus:ring-[#2E7DF2]"
+          className="h-10 min-w-0 flex-1 rounded-xl bg-white px-3.5 text-sm ring-1 ring-zinc-200 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-[#2E7DF2]"
         />
-        <div className="flex gap-1 rounded-lg bg-zinc-100 p-0.5">
-          {FILTERS.map((option) => (
-            <button
-              key={option.label}
-              type="button"
-              onClick={() => {
-                setFilter(option.value);
-                setPage(0);
-              }}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium ${
-                option.value === filter ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <FilterTabs
+          options={FILTERS.map((f) => ({ value: f.value, label: f.label }))}
+          value={filter}
+          onChange={(value) => {
+            setFilter(value);
+            setPage(0);
+          }}
+        />
       </div>
 
       <QueryState
@@ -137,7 +129,7 @@ function PlaceRow({ place, onChanged }: { place: AdminPlace; onChanged: () => vo
               </span>
             )}
           </p>
-          <p className="truncate text-xs text-zinc-400">{place.address || "주소 없음"}</p>
+          <p className="truncate text-[13px] text-zinc-400">{place.address || "주소 없음"}</p>
           <p className="mt-0.5 text-[11px] text-zinc-400">
             #{place.id} · {place.source}
           </p>
@@ -177,9 +169,9 @@ function PlaceRow({ place, onChanged }: { place: AdminPlace; onChanged: () => vo
             onChange={(event) => setReason(event.target.value)}
             placeholder="가리는 사유 (예: 좌표가 실제 위치와 다름)"
             maxLength={500}
-            className="rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-black/5 outline-none"
+            className="h-10 rounded-lg bg-white px-3.5 text-sm ring-1 ring-zinc-200 outline-none focus:ring-2 focus:ring-[#2E7DF2]"
           />
-          <p className="text-xs text-zinc-500">
+          <p className="text-[13px] text-zinc-500">
             검색·상세에서 빠지고 일정 후보에서도 제외됩니다. 지우는 것이 아니라 언제든 되돌릴
             수 있습니다.
           </p>
@@ -188,14 +180,14 @@ function PlaceRow({ place, onChanged }: { place: AdminPlace; onChanged: () => vo
               type="button"
               disabled={busy || !reason.trim()}
               onClick={() => apply(true, reason.trim())}
-              className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+              className="h-8 rounded-lg bg-zinc-900 px-3 text-[13px] font-semibold text-white disabled:opacity-40"
             >
               가리기
             </button>
             <button
               type="button"
               onClick={() => setAsking(false)}
-              className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-zinc-600"
+              className="h-8 rounded-lg bg-white px-3 text-[13px] font-medium text-zinc-600 ring-1 ring-zinc-200"
             >
               취소
             </button>
@@ -203,7 +195,7 @@ function PlaceRow({ place, onChanged }: { place: AdminPlace; onChanged: () => vo
         </div>
       )}
 
-      {failure && <p className="mt-2 text-xs text-rose-600">{failure}</p>}
+      {failure && <p className="mt-2 text-[13px] font-medium text-rose-600">{failure}</p>}
     </li>
   );
 }
@@ -262,7 +254,7 @@ function IngestionPanel() {
             <>
               <div>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xs text-zinc-500">오늘 사용 ({data.quotaDate})</span>
+                  <span className="text-[13px] text-zinc-500">오늘 사용 ({data.quotaDate})</span>
                   <span className="text-sm font-medium text-zinc-900">
                     {data.requestsUsed} / {data.dailyLimit}
                   </span>
@@ -277,7 +269,7 @@ function IngestionPanel() {
                     }}
                   />
                 </div>
-                <p className="mt-1 text-xs text-zinc-400">
+                <p className="mt-1.5 text-[13px] text-zinc-400">
                   남은 호출 {data.requestsRemaining}회
                 </p>
               </div>
@@ -294,7 +286,7 @@ function IngestionPanel() {
                   </span>
                 ))}
               </div>
-              <p className="text-xs text-zinc-400">
+              <p className="text-[13px] text-zinc-400">
                 토글은 서버 환경변수라 화면에서 바꿀 수 없습니다.
               </p>
 
@@ -302,7 +294,7 @@ function IngestionPanel() {
 
               {confirming ? (
                 <div className="flex flex-col gap-2 rounded-xl bg-amber-50 p-3">
-                  <p className="text-xs text-amber-800">
+                  <p className="text-[13px] leading-relaxed text-amber-800">
                     오늘 남은 {data.requestsRemaining}회 중 일부를 씁니다. 예산을 다 쓰면
                     자정(KST)까지 스케줄러도 돌지 못합니다.
                   </p>
@@ -311,14 +303,14 @@ function IngestionPanel() {
                       type="button"
                       disabled={busy}
                       onClick={execute}
-                      className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+                      className="h-8 rounded-lg bg-amber-600 px-3 text-[13px] font-semibold text-white disabled:opacity-40"
                     >
                       {busy ? "실행 중…" : "적재 실행"}
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirming(false)}
-                      className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-zinc-600"
+                      className="h-8 rounded-lg bg-white px-3 text-[13px] font-medium text-zinc-600 ring-1 ring-zinc-200"
                     >
                       취소
                     </button>
@@ -329,7 +321,7 @@ function IngestionPanel() {
                   type="button"
                   disabled={data.requestsRemaining === 0}
                   onClick={() => setConfirming(true)}
-                  className="self-start rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+                  className="h-10 self-start rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white disabled:opacity-40"
                 >
                   {data.requestsRemaining === 0 ? "오늘 예산 소진" : "수동 적재"}
                 </button>

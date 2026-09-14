@@ -14,7 +14,7 @@ export function Pager({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-xs text-zinc-500">
+      <span className="text-[13px] text-zinc-500">
         전체 {total.toLocaleString()}건 · {page + 1} / {lastPage + 1}
       </span>
       <div className="flex gap-2">
@@ -22,7 +22,7 @@ export function Pager({
           type="button"
           disabled={page === 0}
           onClick={() => onChange(page - 1)}
-          className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 ring-1 ring-black/5 disabled:opacity-40"
+          className="h-9 rounded-lg bg-white px-4 text-[13px] font-semibold text-zinc-700 ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
           이전
         </button>
@@ -30,7 +30,7 @@ export function Pager({
           type="button"
           disabled={page >= lastPage}
           onClick={() => onChange(page + 1)}
-          className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 ring-1 ring-black/5 disabled:opacity-40"
+          className="h-9 rounded-lg bg-white px-4 text-[13px] font-semibold text-zinc-700 ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
           다음
         </button>
