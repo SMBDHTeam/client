@@ -59,6 +59,7 @@ type ScheduleCourseViewProps = {
   emptyMessage?: string;
   onPlaceDetail?: (placeId: number) => void;
   imageUnavailableLabel?: string | null;
+  showSpontaneousRoadGuidance?: boolean;
 };
 
 function hasCoordinates(
@@ -153,6 +154,7 @@ export default function ScheduleCourseView({
   emptyMessage = "이 날짜에 배정된 장소가 없습니다.",
   onPlaceDetail,
   imageUnavailableLabel = null,
+  showSpontaneousRoadGuidance = false,
 }: ScheduleCourseViewProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -292,6 +294,8 @@ export default function ScheduleCourseView({
             <TransitPanel
               transit={activeTransit}
               hasRouteGeometry={visibleRouteLines.length > 0}
+              routeLines={activeRouteLines}
+              showSpontaneousRoadGuidance={showSpontaneousRoadGuidance}
             />
           )}
 
@@ -455,6 +459,8 @@ export default function ScheduleCourseView({
               <TransitPanel
                 transit={visibleFinalTransit}
                 hasRouteGeometry={renderableRouteLines(finalRouteLines).length > 0}
+                routeLines={finalRouteLines}
+                showSpontaneousRoadGuidance={showSpontaneousRoadGuidance}
               />
             </section>
           )}

@@ -1,4 +1,5 @@
 import type { ScheduleTransit, ScheduleTransitSegment } from "@/types/api/schedule";
+import type { ScheduleRouteLine } from "@/types/api/schedule-map";
 
 const TRANSIT_MODE: Record<string, { label: string; className: string }> = {
   WALK: { label: "도보", className: "bg-zinc-100 text-zinc-600" },
@@ -65,12 +66,56 @@ function SegmentDetail({ segment }: { segment: ScheduleTransitSegment }) {
   );
 }
 
+function roadDurationLabel(durationMinutes: number | null | undefined) {
+  if (durationMinutes == null || durationMinutes < 0) return null;
+  return durationMinutes === 0 ? "1분 미만" : `${durationMinutes}분`;
+}
+
+function roadDistanceLabel(distanceMeters: number | null | undefined) {
+  if (distanceMeters == null || distanceMeters < 1) return null;
+  if (distanceMeters < 1000) return `${distanceMeters}m`;
+  return `${(distanceMeters / 1000).toFixed(1).replace(/\.0$/, "")}km`;
+}
+
+function RoadGuidanceDetail({
+  routeLine,
+  index,
+}: {
+  routeLine: ScheduleRouteLine;
+  index: number;
+}) {
+  const instruction = present(routeLine.instruction);
+  const lineName = present(routeLine.lineName);
+  const duration = roadDurationLabel(routeLine.durationMinutes);
+  const distance = roadDistanceLabel(routeLine.distanceMeters);
+  const primary = instruction ?? lineName;
+  const metadata = [instruction ? lineName : null, duration, distance].filter(Boolean);
+
+  return (
+    <li className="flex items-start gap-2 leading-relaxed">
+      <span className="shrink-0 text-zinc-400">{index + 1}.</span>
+      <span className="min-w-0">
+        {primary && <span className="block text-zinc-700">{primary}</span>}
+        {metadata.length > 0 && (
+          <span className={`${primary ? "mt-0.5 " : ""}block text-zinc-500`}>
+            {metadata.join(" · ")}
+          </span>
+        )}
+      </span>
+    </li>
+  );
+}
+
 export default function TransitPanel({
   transit,
   hasRouteGeometry,
+  routeLines = [],
+  showSpontaneousRoadGuidance = false,
 }: {
   transit: ScheduleTransit;
   hasRouteGeometry: boolean;
+  routeLines?: ScheduleRouteLine[];
+  showSpontaneousRoadGuidance?: boolean;
 }) {
   const provider = present(transit.provider);
   const providerKey = provider?.toUpperCase();
@@ -93,6 +138,21 @@ export default function TransitPanel({
         ? "일부 예상 경로"
         : "경로 확인";
   const verified = hasRouteGeometry && !estimated && !partiallyEstimated;
+  const roadSegment =
+    transit.segments.length === 1 && ["CAR", "WALK"].includes(transit.segments[0].mode)
+      ? transit.segments[0]
+      : null;
+  const usesSpontaneousRoadGuidance =
+    showSpontaneousRoadGuidance && providerKey === "TMAP" && roadSegment != null;
+  const roadGuidanceLines = usesSpontaneousRoadGuidance
+    ? routeLines.filter(
+        (routeLine) =>
+          present(routeLine.instruction) != null ||
+          present(routeLine.lineName) != null ||
+          roadDurationLabel(routeLine.durationMinutes) != null ||
+          roadDistanceLabel(routeLine.distanceMeters) != null,
+      )
+    : [];
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
@@ -123,7 +183,20 @@ export default function TransitPanel({
         {provider && <span>{provider}</span>}
       </div>
 
-      {transit.segments.length > 0 && (
+      {usesSpontaneousRoadGuidance ? (
+        <ol className="mt-3 flex flex-wrap items-center gap-1.5">
+          <li>
+            <span
+              className={`rounded-full px-2 py-1 text-[11px] font-semibold ${modeInfo(roadSegment.mode).className}`}
+            >
+              {modeInfo(roadSegment.mode).label}
+              {roadDurationLabel(roadSegment.durationMinutes)
+                ? ` · ${roadDurationLabel(roadSegment.durationMinutes)}`
+                : ""}
+            </span>
+          </li>
+        </ol>
+      ) : transit.segments.length > 0 && (
         <ol className="mt-3 flex flex-wrap items-center gap-1.5">
           {transit.segments.map((segment, index) => {
             const mode = modeInfo(segment.mode);
@@ -140,7 +213,20 @@ export default function TransitPanel({
         </ol>
       )}
 
-      {transit.segments.length > 0 && (
+      {usesSpontaneousRoadGuidance ? roadGuidanceLines.length > 0 && (
+        <details className="mt-3 border-t border-zinc-100 pt-2 text-xs text-zinc-600">
+          <summary className="cursor-pointer font-semibold text-zinc-700">구간 자세히</summary>
+          <ol className="mt-2 space-y-2">
+            {roadGuidanceLines.map((routeLine, index) => (
+              <RoadGuidanceDetail
+                key={`${routeLine.routeOrder}-${routeLine.lineOrder}`}
+                routeLine={routeLine}
+                index={index}
+              />
+            ))}
+          </ol>
+        </details>
+      ) : transit.segments.length > 0 && (
         <details className="mt-3 border-t border-zinc-100 pt-2 text-xs text-zinc-600">
           <summary className="cursor-pointer font-semibold text-zinc-700">구간 자세히</summary>
           <ol className="mt-2 space-y-2">
