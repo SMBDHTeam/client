@@ -97,7 +97,7 @@ test("좌표가 없는 경로는 polyline 후보를 만들지 않는다", () => 
   assert.deepEqual(renderableRouteLines([routeLine(1, 1, [[129, 35]])]), []);
 });
 
-test("도보만 있으면 즉흥여행 대중교통 패널을 숨긴다", () => {
+test("도보만 있으면 제로플랜 대중교통 패널을 숨긴다", () => {
   assert.equal(hasPublicTransit(transit(["WALK"])), false);
   assert.equal(hasPublicTransit(transit(["WALK", "BUS"])), true);
 });
