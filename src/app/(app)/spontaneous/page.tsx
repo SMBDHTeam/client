@@ -67,7 +67,7 @@ export default function SpontaneousStartPage() {
         >
           ‹
         </button>
-        <h1 className="text-lg font-bold">즉흥여행</h1>
+        <h1 className="text-lg font-bold">제로플랜</h1>
       </header>
 
       <div className="flex flex-1 flex-col gap-4 px-5 pb-6">
@@ -85,6 +85,9 @@ export default function SpontaneousStartPage() {
               <div className="size-4 animate-spin rounded-full border-2 border-zinc-200 border-t-[#2E7DF2]" />
             )}
           </div>
+          <p className="mt-2 px-1 text-xs text-zinc-500">
+            부산 내에서만 출발할 수 있어요.
+          </p>
 
           {results.length > 0 && (
             <ul className="absolute top-full left-0 right-0 z-10 mt-1 flex flex-col overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-lg">
