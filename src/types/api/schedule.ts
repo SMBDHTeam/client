@@ -95,6 +95,10 @@ export type ScheduleSummary = {
   dayCount: number;
   stopCount: number;
   previewPlaceNames: string[];
+  scheduleType?: string;
+  startAt?: string | null;
+  returnBy?: string | null;
+  estimatedReturnAt?: string | null;
 };
 
 export type ScheduleListResponse = {
