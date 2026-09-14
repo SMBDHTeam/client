@@ -16,9 +16,10 @@ const GRADIENTS = [
     "from-[#5AA9F0] to-[#3B7DE0]",
 ];
 
-type TripStatus = "진행 임박" | "예정" | "완료";
+type TripStatus = "여행중" | "진행 임박" | "예정" | "완료";
 
 const STATUS_STYLE: Record<TripStatus, string> = {
+    여행중: "bg-[#E6F7F3] text-[#17B89B]",
     "진행 임박": "bg-[#E6F7F3] text-[#17B89B]",
     예정: "bg-[#E8F1FE] text-[#2E7DF2]",
     완료: "bg-zinc-100 text-zinc-500",
@@ -28,8 +29,8 @@ function parseDate(dateStr: string) {
     return new Date(`${dateStr}T00:00:00`);
 }
 
-function startOfToday() {
-    const today = new Date();
+function startOfDay(date: Date) {
+    const today = new Date(date);
     today.setHours(0, 0, 0, 0);
     return today;
 }
@@ -52,12 +53,53 @@ function formatDuration(dayCount: number) {
     return `${dayCount - 1}박${dayCount}일`;
 }
 
-function getStatus(schedule: ScheduleSummary, today: Date): TripStatus {
+function getDateStatus(schedule: ScheduleSummary, today: Date): TripStatus {
     const end = parseDate(schedule.endDate);
     if (diffDays(today, end) < 0) return "완료";
     const start = parseDate(schedule.startDate);
     if (diffDays(today, start) <= 7) return "진행 임박";
     return "예정";
+}
+
+function parseDateTime(value?: string | null) {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getStatus(schedule: ScheduleSummary, now: Date): TripStatus {
+    if (schedule.scheduleType === "SPONTANEOUS") {
+        const startAt = parseDateTime(schedule.startAt);
+        const endAt =
+            parseDateTime(schedule.estimatedReturnAt) ?? parseDateTime(schedule.returnBy);
+        const timestampsAreOrdered = !startAt || !endAt || startAt.getTime() <= endAt.getTime();
+
+        if (endAt && timestampsAreOrdered && now.getTime() >= endAt.getTime()) return "완료";
+
+        if (startAt && endAt && timestampsAreOrdered) {
+            if (now.getTime() < startAt.getTime()) return "예정";
+            return "여행중";
+        }
+    }
+
+    return getDateStatus(schedule, startOfDay(now));
+}
+
+function getScheduleTitle(schedule: ScheduleSummary) {
+    return schedule.scheduleType === "SPONTANEOUS" ? "제로플랜" : schedule.styleSummary;
+}
+
+function getFeaturedStatusLabel(schedule: ScheduleSummary, now: Date) {
+    const status = getStatus(schedule, now);
+    if (
+        schedule.scheduleType === "SPONTANEOUS" &&
+        (status === "여행중" || status === "완료")
+    ) {
+        return status;
+    }
+
+    const dday = diffDays(startOfDay(now), parseDate(schedule.startDate));
+    return dday > 0 ? `D-${dday}` : dday === 0 ? "D-DAY" : "여행중";
 }
 
 export default function TripsPage() {
@@ -67,6 +109,7 @@ export default function TripsPage() {
     const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [now, setNow] = useState(() => new Date());
 
     useEffect(() => {
         let cancelled = false;
@@ -89,7 +132,12 @@ export default function TripsPage() {
         };
     }, []);
 
-    const today = useMemo(() => startOfToday(), []);
+    useEffect(() => {
+        const timerId = window.setInterval(() => setNow(new Date()), 60_000);
+        return () => window.clearInterval(timerId);
+    }, []);
+
+    const today = useMemo(() => startOfDay(now), [now]);
 
     const sorted = useMemo(
         () =>
@@ -104,10 +152,6 @@ export default function TripsPage() {
         const upcoming = sorted.find((s) => diffDays(today, parseDate(s.endDate)) >= 0);
         return upcoming ?? sorted[sorted.length - 1];
     }, [sorted, today]);
-
-    const featuredDday = featured ? diffDays(today, parseDate(featured.startDate)) : 0;
-    const featuredDdayLabel =
-        featuredDday > 0 ? `D-${featuredDday}` : featuredDday === 0 ? "D-DAY" : "여행중";
 
     return (
         <div className="flex flex-1 flex-col bg-[#F6F8FC]">
@@ -137,13 +181,13 @@ export default function TripsPage() {
                         <div className="absolute top-10 right-10 size-16 rounded-full bg-white/10" />
                         <div className="relative">
                             <span className="inline-block rounded-full bg-[#F16E5E] px-2.5 py-1 text-xs font-bold">
-                                {featuredDdayLabel}
+                                {getFeaturedStatusLabel(featured, now)}
                             </span>
                             <span className="ml-2 text-sm text-white/90">
                                 {formatDateLabel(featured.startDate, featured.endDate)}
                             </span>
                             <h3 className="mt-2 text-xl font-bold">
-                                {featured.styleSummary}
+                                {getScheduleTitle(featured)}
                             </h3>
                             <p className="mt-1 text-sm text-white/90">
                                 {formatDuration(featured.dayCount)} · {featured.stopCount}곳
@@ -195,7 +239,7 @@ export default function TripsPage() {
                             <Zap size={20} strokeWidth={2} aria-hidden />
                         </div>
                         <p className="mt-3 text-sm font-semibold">
-                            즉흥여행
+                            제로플랜
                         </p>
                         <p className="mt-0.5 text-xs text-zinc-400">
                             지금 바로 출발
@@ -236,16 +280,16 @@ export default function TripsPage() {
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-sm font-semibold">
-                                            {t.styleSummary}
+                                            {getScheduleTitle(t)}
                                         </p>
                                         <p className="mt-1 text-xs text-zinc-400">
                                             {formatDateLabel(t.startDate, t.endDate)} · {t.stopCount}곳
                                         </p>
                                     </div>
                                     <span
-                                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLE[getStatus(t, today)]}`}
+                                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLE[getStatus(t, now)]}`}
                                     >
-                                        {getStatus(t, today)}
+                                        {getStatus(t, now)}
                                     </span>
                                 </Link>
                             </li>
