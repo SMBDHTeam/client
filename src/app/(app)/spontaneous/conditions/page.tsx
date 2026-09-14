@@ -11,7 +11,6 @@ import { Clock } from "lucide-react";
 import type { TransportMode, TravelTheme } from "@/types/api/spontaneous-trip";
 
 const TRANSPORT_OPTIONS: { value: TransportMode; label: string }[] = [
-  { value: "PUBLIC_TRANSIT", label: "대중교통" },
   { value: "WALK", label: "도보" },
   { value: "CAR", label: "자동차" },
 ];
@@ -119,7 +118,7 @@ export default function SpontaneousConditionsPage() {
 
   const [startTime, setStartTime] = useState("");
   const [returnTime, setReturnTime] = useState("03:00");
-  const [transportMode, setTransportMode] = useState<TransportMode>("PUBLIC_TRANSIT");
+  const [transportMode, setTransportMode] = useState<TransportMode>("WALK");
   const [desiredThemes, setDesiredThemes] = useState<TravelTheme[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -255,7 +254,7 @@ const conditions = {
 
         <section className="flex flex-col gap-3">
           <h2 className="text-base font-semibold">이동수단</h2>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {TRANSPORT_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
