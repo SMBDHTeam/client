@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X, Trash2, Pencil, ImagePlus } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X, Trash2, Pencil, ImagePlus, Flag } from "lucide-react";
 import { getPost, deletePost, updatePost, likePost, unlikePost, bookmarkPost, unbookmarkPost, getComments, createComment, deleteComment, likeComment, unlikeComment } from "@/lib/api/posts";
 import { followUser, unfollowUser, getUserProfile } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/axios";
 import type { PostComment, PostDetail } from "@/types/api/post";
+import ReportSheet from "@/components/community/ReportSheet";
+import type { ReportTargetType } from "@/types/api/report";
 import { toast } from "sonner";
 
 function CommentItem({
@@ -17,6 +19,7 @@ function CommentItem({
   userId,
   onReply,
   onDelete,
+  onReport,
   isReply,
 }: {
   comment: PostComment;
@@ -24,6 +27,7 @@ function CommentItem({
   userId: string | undefined;
   onReply: (commentId: number, nickname: string) => void;
   onDelete: (commentId: number) => void;
+  onReport: (commentId: number) => void;
   isReply?: boolean;
 }) {
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
@@ -80,6 +84,11 @@ function CommentItem({
               삭제
             </button>
           )}
+          {!isMine && userId != null && (
+            <button type="button" onClick={() => onReport(comment.id)} className="text-xs text-zinc-400 hover:text-red-500 cursor-pointer">
+              신고
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -106,6 +115,7 @@ export default function PostDetailPage() {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: number } | null>(null);
 
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -249,6 +259,10 @@ export default function PostDetailPage() {
     inputRef.current?.focus();
   }
 
+  function handleReportComment(commentId: number) {
+    setReportTarget({ type: "COMMENT", id: commentId });
+  }
+
   function handleDeleteComment(commentId: number) {
     if (!post) return;
     toast.custom((t) => (
@@ -359,6 +373,16 @@ export default function PostDetailPage() {
               <Trash2 size={19} />
             </button>
           </>
+        )}
+        {!isMyPost && userId && (
+          <button
+            type="button"
+            onClick={() => setReportTarget({ type: "POST", id: post.id })}
+            aria-label="게시물 신고"
+            className="grid size-9 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100"
+          >
+            <Flag size={18} />
+          </button>
         )}
       </header>
 
@@ -590,9 +614,9 @@ export default function PostDetailPage() {
                 )}
                 {comments.map((c) => (
                   <div key={c.id} className="space-y-4">
-                    <CommentItem comment={c} postId={post.id} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} />
+                    <CommentItem comment={c} postId={post.id} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} onReport={handleReportComment} />
                     {c.replies.map((reply) => (
-                      <CommentItem key={reply.id} comment={reply} postId={post.id} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} isReply />
+                      <CommentItem key={reply.id} comment={reply} postId={post.id} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} onReport={handleReportComment} isReply />
                     ))}
                   </div>
                 ))}
@@ -626,6 +650,10 @@ export default function PostDetailPage() {
             </motion.div>
         )}
       </AnimatePresence>
+
+      {reportTarget && (
+        <ReportSheet targetType={reportTarget.type} targetId={reportTarget.id} onClose={() => setReportTarget(null)} />
+      )}
     </div>
   );
 }

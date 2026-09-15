@@ -4,6 +4,8 @@
  * 서버의 `com.server.admin.dto` 와 짝을 이룬다. 서버 DTO 가 바뀌면 여기도 함께 고친다.
  */
 
+import type { ReportReasonType } from "./report";
+
 export type ReportStatus = "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED";
 export type ReportTargetType = "POST" | "COMMENT" | "USER";
 export type UserStatus = "ACTIVE" | "SUSPENDED" | "WITHDRAWN";
@@ -20,7 +22,9 @@ export type AdminReport = {
   reporter: AdminActor | null;
   targetType: ReportTargetType;
   targetId: number;
-  reason: string;
+  reasonType: ReportReasonType;
+  /** 신고자가 덧붙인 설명. 없으면 null */
+  reason: string | null;
   status: ReportStatus;
   createdAt: string;
   /** 아직 처리 전이면 null */

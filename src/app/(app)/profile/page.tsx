@@ -5,7 +5,7 @@ import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { Ban, Bell, Bookmark, ChevronRight, Heart, HelpCircle, Info, LogOut, MapPin, Pencil, User } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
-import { WISHLIST_PLACES } from "@/mocks/wishlist";
+import { getMyWishlist, WISHLIST_MAX_PAGE_SIZE } from "@/lib/api/wishlists";
 import { getUserProfile, type UserProfile } from "@/lib/api/users";
 
 const APP_VERSION = "0.1.0";
@@ -30,7 +30,14 @@ export default function ProfilePage() {
   const displayName = profile?.nickname ?? user?.name ?? "게스트";
   const displayImage = profile ? profile.profileImageUrl : null;
 
-  const wishlistCount = WISHLIST_PLACES.length;
+  const [wishlistCount, setWishlistCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    getMyWishlist()
+      .then((res) => setWishlistCount(res.items.length))
+      .catch(() => {});
+  }, [userId]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -78,7 +85,7 @@ export default function ProfilePage() {
             href="/wishlist"
             className="flex flex-col items-center gap-1 rounded-2xl bg-white py-4 ring-1 ring-black/5"
           >
-            <span className="text-lg font-bold text-zinc-900">{wishlistCount}</span>
+            <span className="text-lg font-bold text-zinc-900">{wishlistCount == null ? "-" : wishlistCount >= WISHLIST_MAX_PAGE_SIZE ? `${WISHLIST_MAX_PAGE_SIZE}+` : wishlistCount}</span>
             <span className="text-xs font-medium text-zinc-400">찜한 장소</span>
           </Link>
         </div>

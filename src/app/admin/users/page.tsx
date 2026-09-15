@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   getAdminActions,
   getUserDetail,
   getUsers,
-  updateUserRole,
   updateUserStatus,
 } from "@/lib/api/admin";
 import { useAdminQuery } from "@/lib/api/use-admin-query";
@@ -229,7 +229,16 @@ function UserDetailSheet({
             {failure && <p className="text-sm text-rose-600">{failure}</p>}
 
             <div className="flex flex-col gap-3 border-t border-zinc-100 pt-4">
-              {user.writeBlocked ? (
+              {user.role === "ADMIN" ? (
+                // 서버도 관리자 정지를 막는다. 입력을 받았다가 거절하느니 이유와 갈 곳을 먼저 보여준다.
+                <p className="rounded-xl bg-zinc-50 p-3 text-[13px] leading-relaxed text-zinc-600">
+                  관리자는 정지할 수 없습니다. 제재가 필요하면 먼저{" "}
+                  <Link href="/admin/operators" className="font-semibold text-[#2E7DF2]">
+                    운영자
+                  </Link>{" "}
+                  화면에서 일반 사용자로 바꾸세요.
+                </p>
+              ) : user.writeBlocked ? (
                 <button
                   type="button"
                   disabled={busy}
@@ -280,7 +289,6 @@ function UserDetailSheet({
               )}
             </div>
 
-              <RoleControl user={user} busy={busy} onRun={run} />
               <ActionHistory userId={userId} />
           </div>
         )}
@@ -312,68 +320,6 @@ function formatDate(value: string) {
   return value.slice(0, 16).replace("T", " ");
 }
 
-/**
- * 역할 변경.
- *
- * 역할은 액세스 토큰에 담겨 있어 바꾼 즉시 반영되지 않는다. 서버가 리프레시 토큰을
- * 폐기해 재로그인을 강제하므로, 그 사실을 화면에서도 알려 준다.
- */
-function RoleControl({
-  user,
-  busy,
-  onRun,
-}: {
-  user: { id: number; role: string; nickname: string };
-  busy: boolean;
-  onRun: (action: () => Promise<unknown>) => void;
-}) {
-  const [asking, setAsking] = useState(false);
-  const next = user.role === "ADMIN" ? "USER" : "ADMIN";
-
-  return (
-    <div className="flex flex-col gap-2 border-t border-zinc-100 pt-4">
-      <p className="text-[13px] font-semibold text-zinc-500">역할</p>
-      {asking ? (
-        <div className="flex flex-col gap-2 rounded-xl bg-amber-50 p-3">
-          <p className="text-[13px] leading-relaxed text-amber-800">
-            {user.nickname} 을(를) <strong>{next}</strong> 로 바꿉니다. 이 사용자는 모든 기기에서
-            로그아웃되고 다시 로그인해야 합니다.
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => onRun(() => updateUserRole(user.id, next as "USER" | "ADMIN"))}
-              className="h-8 rounded-lg bg-amber-600 px-3 text-[13px] font-semibold text-white disabled:opacity-40"
-            >
-              {next} 로 변경
-            </button>
-            <button
-              type="button"
-              onClick={() => setAsking(false)}
-              className="h-8 rounded-lg bg-white px-3 text-[13px] font-medium text-zinc-600 ring-1 ring-zinc-200"
-            >
-              취소
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center gap-3">
-          <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
-            {user.role}
-          </span>
-          <button
-            type="button"
-            onClick={() => setAsking(true)}
-            className="text-xs font-medium text-[#2E7DF2]"
-          >
-            {next} 로 변경
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 /** 이 사용자에게 무슨 조치가 있었나. 분쟁 대응의 주 경로다. */
 function ActionHistory({ userId }: { userId: number }) {

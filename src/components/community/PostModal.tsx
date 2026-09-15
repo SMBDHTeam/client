@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
+import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Bookmark, Flag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { bookmarkPost, createComment, deleteComment, getComments, likeComment, unlikeComment, likePost, unbookmarkPost, unlikePost } from "@/lib/api/posts";
 import { followUser, unfollowUser } from "@/lib/api/users";
 import type { FeedPost, PostComment, PostDetail } from "@/types/api/post";
 import { toast } from "sonner";
+import ReportSheet from "@/components/community/ReportSheet";
 
 function CommentItem({
   comment,
@@ -15,6 +16,7 @@ function CommentItem({
   userId,
   onReply,
   onDelete,
+  onReport,
   isReply,
 }: {
   comment: PostComment;
@@ -22,6 +24,7 @@ function CommentItem({
   userId: string | undefined;
   onReply: (commentId: number, nickname: string) => void;
   onDelete: (commentId: number) => void;
+  onReport: (commentId: number) => void;
   isReply?: boolean;
 }) {
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
@@ -80,6 +83,11 @@ function CommentItem({
               삭제
             </button>
           )}
+          {!isMine && userId != null && (
+            <button type="button" onClick={() => onReport(comment.id)} className="text-xs text-zinc-400 hover:text-red-500">
+              신고
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -101,18 +109,23 @@ function CommentSheet({
 }) {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentText, setCommentText] = useState("");
-  const [loading, setLoading] = useState(true);
+  // 마지막으로 불러오기를 마친 요청. 지금 요청과 다르면 불러오는 중이다.
+  // effect 안에서 로딩 상태를 바로 켜면 렌더가 한 번 더 돌아 lint(set-state-in-effect)에 걸린다.
+  const requestKey = `${postId}:${userId ?? ""}`;
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const loading = loadedKey !== requestKey;
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<{ id: number; nickname: string } | null>(null);
+  const [reportCommentId, setReportCommentId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setLoading(true);
+    const key = `${postId}:${userId ?? ""}`;
     getComments(postId, { size: 30 })
       .then((res) => setComments(res.items))
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => setLoadedKey(key));
   }, [postId, userId]);
 
   function handleReply(commentId: number, nickname: string) {
@@ -210,9 +223,9 @@ function CommentSheet({
         )}
         {comments.map((c) => (
           <div key={c.id} className="space-y-3">
-            <CommentItem comment={c} postId={postId} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} />
+            <CommentItem comment={c} postId={postId} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} onReport={setReportCommentId} />
             {c.replies.map((reply) => (
-              <CommentItem key={reply.id} comment={reply} postId={postId} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} isReply />
+              <CommentItem key={reply.id} comment={reply} postId={postId} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} onReport={setReportCommentId} isReply />
             ))}
           </div>
         ))}
@@ -246,6 +259,9 @@ function CommentSheet({
           </button>
         </form>
       </div>
+      {reportCommentId != null && (
+        <ReportSheet targetType="COMMENT" targetId={reportCommentId} onClose={() => setReportCommentId(null)} />
+      )}
     </motion.div>
   );
 }
@@ -273,6 +289,7 @@ function ModalContent({
   const [following, setFollowing] = useState<boolean | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
   const [commentCountOverride, setCommentCountOverride] = useState<number | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const isMyPost = userId != null && String(post.author.id) === userId;
   const baseFollowing = following ?? false;
@@ -357,6 +374,12 @@ function ModalContent({
           >
             {followLoading ? "..." : baseFollowing ? "팔로잉" : "팔로우"}
           </button>
+        )}
+        {!isMyPost && userId && (
+          <button type="button" onClick={() => setReportOpen(true)} aria-label="게시물 신고" className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100"><Flag size={15} /></button>
+        )}
+        {reportOpen && (
+          <ReportSheet targetType="POST" targetId={post.id} onClose={() => setReportOpen(false)} />
         )}
         <button type="button" onClick={onClose} className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100"><X size={16} /></button>
       </div>
