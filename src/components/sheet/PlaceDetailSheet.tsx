@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CircleDollarSign, Clock, Moon, MapPin, SquareParking } from "lucide-react";
+import { CircleDollarSign, Clock, Heart, Moon, MapPin, SquareParking } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import { ApiError } from "@/lib/api/axios";
 import { getPlaceDetail } from "@/lib/api/places";
+import { addWishlist, getMyWishlist, removeWishlist } from "@/lib/api/wishlists";
 import type { PlaceDetail, PlaceImage } from "@/types/api/place";
 
 const INFO_ICONS = {
@@ -97,9 +100,12 @@ function HeroGallery({
 export default function PlaceDetailSheet({
   placeId,
   onClose,
+  onWishlistChange,
 }: {
   placeId: number | null;
   onClose: () => void;
+  /** 하트를 눌러 담기·빼기가 끝났을 때. 위시리스트 화면이 목록을 맞춘다 */
+  onWishlistChange?: (placeId: number, wishlisted: boolean) => void;
 }) {
   const [shown, setShown] = useState(false);
   const [result, setResult] = useState<{
@@ -129,6 +135,53 @@ export default function PlaceDetailSheet({
       cancelled = true;
     };
   }, [placeId]);
+
+  const { status: sessionStatus } = useSession();
+  const [wish, setWish] = useState<{ placeId: number; wishlisted: boolean } | null>(null);
+  const [wishBusy, setWishBusy] = useState(false);
+
+  const loadedDetail = result?.placeId === placeId ? result.data : null;
+  const serverWishlisted = loadedDetail?.wishlisted;
+  // 상세 응답이 담긴 여부를 주지 않는 서버 버전일 때만 내 위시리스트에서 찾는다.
+  // 이 경우 서버가 한 번에 주는 50곳 안에서만 판단할 수 있다.
+  const needsLookup = loadedDetail != null && serverWishlisted === undefined;
+
+  useEffect(() => {
+    if (placeId == null || sessionStatus !== "authenticated" || !needsLookup) return;
+    let cancelled = false;
+    getMyWishlist()
+      .then((res) => {
+        if (!cancelled) {
+          setWish({ placeId, wishlisted: res.items.some((item) => item.placeId === placeId) });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [placeId, sessionStatus, needsLookup]);
+
+  const wishlisted =
+    wish?.placeId === placeId
+      ? wish.wishlisted
+      : typeof serverWishlisted === "boolean" && sessionStatus === "authenticated"
+        ? serverWishlisted
+        : null;
+
+  async function toggleWishlist() {
+    if (placeId == null || wishlisted == null || wishBusy) return;
+    setWishBusy(true);
+    try {
+      const res = wishlisted ? await removeWishlist(placeId) : await addWishlist(placeId);
+      setWish({ placeId, wishlisted: res.wishlisted });
+      onWishlistChange?.(placeId, res.wishlisted);
+      toast.success(res.wishlisted ? "찜한 장소에 담았어요." : "찜한 장소에서 뺐어요.");
+    } catch {
+      toast.error("찜하지 못했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setWishBusy(false);
+    }
+  }
 
   const detail = result?.placeId === placeId ? result.data : null;
   const loading = placeId != null && result?.placeId !== placeId;
@@ -168,6 +221,22 @@ export default function PlaceDetailSheet({
           >
             ✕
           </button>
+          {detail && wishlisted != null && (
+            <button
+              type="button"
+              onClick={toggleWishlist}
+              disabled={wishBusy}
+              aria-label={wishlisted ? "찜 해제" : "찜하기"}
+              aria-pressed={wishlisted}
+              className="absolute top-3 right-13 z-20 grid size-8 shrink-0 place-items-center rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/45 disabled:opacity-60"
+            >
+              <Heart
+                size={16}
+                aria-hidden
+                className={wishlisted ? "fill-[#F16E5E] stroke-[#F16E5E]" : ""}
+              />
+            </button>
+          )}
 
           <div className="flex-1 overflow-y-auto pb-8">
             {loading && (

@@ -24,11 +24,13 @@ import MapViewToggle, { type MapView } from "@/components/map/MapViewToggle";
 import NaverMap from "@/components/map/NaverMap";
 import PageFade from "@/components/ui/PageFade";
 import searchIcon from "@/assets/icons/search.png";
-import { resolvePlace, searchPlaces } from "@/lib/api/places";
-import { placeCategoryLabel } from "@/utils/place-category";
+import { getPlaceDetail, resolvePlace, searchPlaces } from "@/lib/api/places";
+import { placeCategoryDisplay, placeCategoryLabel } from "@/utils/place-category";
 import { searchPlacesGeo } from "@/lib/api/places";
+import { getMyWishlist } from "@/lib/api/wishlists";
 import { useTripDraft } from "@/store/trip-draft";
 import type { PlaceSearchItem, PlaceSummary, PlaceSource } from "@/types/api/place";
+import type { WishlistPlace } from "@/types/api/wishlist";
 
 const BusanDistrictPicker = dynamic(
   () => import("@/components/map/BusanDistrictPicker"),
@@ -150,7 +152,10 @@ export default function AiPlacesSearchPage() {
   const [activePlace, setActivePlace] = useState<PlaceSearchItem | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [mapView, setMapView] = useState<MapView>("2d");
-  const [mode, setMode] = useState<"search" | "region">("search");
+  const [mode, setMode] = useState<"search" | "region" | "wishlist">("search");
+  // 찜한 장소는 탭을 처음 열 때 한 번 읽는다. 담는 것은 사용자가 고른 장소뿐이다.
+  const [wishlist, setWishlist] = useState<WishlistPlace[] | null>(null);
+  const [wishlistFailed, setWishlistFailed] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState<DistrictSelection | null>(null);
   const [showRegionMap, setShowRegionMap] = useState(false);
   const [regionPlaces, setRegionPlaces] = useState<PlaceSummary[]>([]);
@@ -171,6 +176,26 @@ export default function AiPlacesSearchPage() {
   const limit = useMemo(
     () => tripDays(draft.startDate, draft.endDate) * 3,
     [draft.startDate, draft.endDate],
+  );
+
+  useEffect(() => {
+    if (mode !== "wishlist" || wishlist !== null || wishlistFailed) return;
+    let cancelled = false;
+    getMyWishlist()
+      .then((res) => {
+        if (!cancelled) setWishlist(res.items);
+      })
+      .catch(() => {
+        if (!cancelled) setWishlistFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, wishlist, wishlistFailed]);
+
+  const pickedIds = useMemo(
+    () => new Set(picked.flatMap((place) => (place.placeId === null ? [] : [place.placeId]))),
+    [picked],
   );
 
   useEffect(() => {
@@ -290,6 +315,38 @@ export default function AiPlacesSearchPage() {
     savePicked(picked.filter((item) => !isSamePlace(item, place)));
   }
 
+  async function addWishlistPlace(item: WishlistPlace) {
+    if (pickedIds.has(item.placeId)) return;
+    if (picked.length >= limit) {
+      setError(`장소는 최대 ${limit}개까지 담을 수 있어요.`);
+      return;
+    }
+    setResolvingKey(`place:${item.placeId}`);
+    setError(null);
+    try {
+      // 담긴 장소는 출처와 원본 ID 까지 갖춰야 하는데 찜 목록 응답에는 없어 상세를 한 번 읽는다.
+      const detail = await getPlaceDetail(item.placeId);
+      await addPlace({
+        name: detail.name,
+        address: detail.address,
+        longitude: detail.longitude,
+        latitude: detail.latitude,
+        placeId: detail.id,
+        source: detail.source,
+        externalId: detail.externalContentId,
+        category: detail.category ?? "",
+        categoryLabel: placeCategoryDisplay(detail.category, detail.categoryLabel) ?? "",
+        primaryImageUrl: detail.primaryImageUrl ?? item.primaryImageUrl,
+        placeUrl: detail.placeUrl,
+        resolved: true,
+      });
+    } catch {
+      setError("찜한 장소를 담지 못했어요. 가려졌거나 지워진 장소일 수 있어요.");
+    } finally {
+      setResolvingKey(null);
+    }
+  }
+
   function selectDistrict(selection: DistrictSelection) {
     setSelectedDistrict(selection);
     setActivePlace(null);
@@ -376,6 +433,7 @@ export default function AiPlacesSearchPage() {
             [
               { key: "search", label: "검색" },
               { key: "region", label: "지역" },
+              { key: "wishlist", label: "찜한 장소" },
             ] as const
           ).map((tab) => (
             <button
@@ -458,7 +516,7 @@ export default function AiPlacesSearchPage() {
               </div>
             )}
           </div>
-        ) : (
+        ) : mode === "region" ? (
           <div className="relative h-[min(27.5rem,42dvh)] w-full shrink-0 overflow-hidden rounded-3xl bg-zinc-50 ring-1 ring-black/5">
             <AnimatePresence>
               {showRegionMap && selectedDistrict ? (
@@ -571,6 +629,15 @@ export default function AiPlacesSearchPage() {
               )}
             </AnimatePresence>
           </div>
+        ) : (
+          <WishlistPicker
+            items={wishlist}
+            failed={wishlistFailed}
+            pickedIds={pickedIds}
+            busyKey={resolvingKey}
+            onAdd={(item) => void addWishlistPlace(item)}
+            onRetry={() => setWishlistFailed(false)}
+          />
         )}
 
         {mode === "search" && (
@@ -664,5 +731,94 @@ export default function AiPlacesSearchPage() {
         </div>
       </div>
     </PageFade>
+  );
+}
+
+function WishlistPicker({
+  items,
+  failed,
+  pickedIds,
+  busyKey,
+  onAdd,
+  onRetry,
+}: {
+  items: WishlistPlace[] | null;
+  failed: boolean;
+  pickedIds: ReadonlySet<number>;
+  busyKey: string | null;
+  onAdd: (item: WishlistPlace) => void;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="h-[min(27.5rem,42dvh)] w-full shrink-0 overflow-y-auto rounded-3xl bg-zinc-50 p-2 ring-1 ring-black/5">
+      {items === null && !failed && (
+        <p className="py-10 text-center text-sm text-zinc-400">찜한 장소를 불러오는 중...</p>
+      )}
+
+      {failed && (
+        <div className="flex flex-col items-center gap-3 py-10 text-center">
+          <p className="text-sm text-zinc-500">찜한 장소를 불러오지 못했어요.</p>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-600"
+          >
+            다시 시도
+          </button>
+        </div>
+      )}
+
+      {items !== null && items.length === 0 && (
+        <div className="flex flex-col items-center gap-1 py-10 text-center">
+          <p className="text-sm text-zinc-500">찜한 장소가 없어요</p>
+          <p className="text-xs text-zinc-400">장소 상세에서 하트를 눌러 두면 여기서 골라 담을 수 있어요</p>
+        </div>
+      )}
+
+      {items !== null && items.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {items.map((item) => {
+            const added = pickedIds.has(item.placeId);
+            const busy = busyKey === `place:${item.placeId}`;
+            const label = placeCategoryDisplay(item.category, item.categoryLabel);
+            return (
+              <li
+                key={item.placeId}
+                className="flex items-center gap-3 rounded-xl bg-white p-2 shadow-sm ring-1 ring-black/5"
+              >
+                {item.primaryImageUrl ? (
+                  <img
+                    src={item.primaryImageUrl}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    className="size-10 shrink-0 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="size-10 shrink-0 rounded-lg bg-linear-to-br from-[#2E7DF2] to-[#17B89B]" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{item.name}</p>
+                  <p className="mt-0.5 truncate text-xs text-zinc-400">
+                    {[label, item.address].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onAdd(item)}
+                  disabled={added || Boolean(busyKey)}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    added || Boolean(busyKey)
+                      ? "bg-zinc-100 text-zinc-400"
+                      : "bg-[#EAF2FE] text-[#2E7DF2] hover:bg-[#DCEBFD]"
+                  }`}
+                >
+                  {busy ? "확인 중" : added ? "담음" : "+ 추가"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }

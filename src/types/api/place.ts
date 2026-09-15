@@ -56,6 +56,8 @@ export type PlaceImage = {
 
 export type PlaceDetail = {
   id: number;
+  source: PlaceSource;
+  externalContentId: string;
   name: string;
   category: string | null;
   categoryLabel: string | null;
@@ -67,4 +69,6 @@ export type PlaceDetail = {
   overview: string | null;
   operatingInfo: PlaceOperatingInfo | null;
   images: PlaceImage[];
+  /** 내 위시리스트에 담겼는지. 로그인하지 않았으면 null. 아직 주지 않는 서버 버전이 있어 선택 필드다 */
+  wishlisted?: boolean | null;
 };
