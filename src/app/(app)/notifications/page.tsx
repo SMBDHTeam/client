@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Bell, ChevronRight } from "lucide-react";
@@ -13,6 +13,7 @@ import {
 import { ApiError } from "@/lib/api/axios";
 import type { NotificationItem } from "@/types/api/notification";
 import { toast } from "sonner";
+import { useNotificationStream } from "@/lib/notifications/use-notification-stream";
 
 const GROUP_LABELS = ["오늘", "어제", "최근 7일", "이전"] as const;
 const NOTIFICATION_COUNT_REFRESH_EVENT = "notifications:count-refresh";
@@ -149,9 +150,36 @@ export default function NotificationsPage() {
   const groupedNotifications = groupNotifications(notifications);
   const unreadCount = notifications.filter((notification) => !notification.read).length;
 
-  const refreshHeaderUnreadCount = () => {
+  const refreshHeaderUnreadCount = useCallback(() => {
     window.dispatchEvent(new Event(NOTIFICATION_COUNT_REFRESH_EVENT));
-  };
+  }, []);
+
+  const loadNotifications = useCallback(async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+
+    try {
+      const response = await getNotifications({ size: 30 });
+      setNotifications(response.items);
+      setError(null);
+      refreshHeaderUnreadCount();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.payload.message : "알림을 불러오지 못했습니다.");
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  }, [refreshHeaderUnreadCount]);
+
+  const handleStreamNotification = useCallback(() => {
+    void loadNotifications();
+  }, [loadNotifications]);
+
+  useNotificationStream({
+    onNotification: handleStreamNotification,
+  });
 
   const handleNotificationClick = async (notification: NotificationItem) => {
     const href = notificationHref(notification);
@@ -201,7 +229,7 @@ export default function NotificationsPage() {
   useEffect(() => {
     let cancelled = false;
 
-    const loadNotifications = async (showLoading = false) => {
+    const load = async (showLoading = false) => {
       if (showLoading) {
         setLoading(true);
       }
@@ -222,11 +250,11 @@ export default function NotificationsPage() {
       }
     };
 
-    loadNotifications(true);
+    load(true);
 
     const refreshWhenVisible = () => {
       if (document.visibilityState === "visible") {
-        void loadNotifications();
+        void load();
       }
     };
 
@@ -234,7 +262,7 @@ export default function NotificationsPage() {
     document.addEventListener("visibilitychange", refreshWhenVisible);
     const pollingId = window.setInterval(() => {
       if (document.visibilityState === "visible") {
-        void loadNotifications();
+        void load();
       }
     }, NOTIFICATION_LIST_POLLING_MS);
 
@@ -244,7 +272,7 @@ export default function NotificationsPage() {
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
-  }, []);
+  }, [refreshHeaderUnreadCount]);
 
   return (
     <div className="flex flex-1 flex-col bg-[#F6F8FC]">

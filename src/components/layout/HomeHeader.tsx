@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import nubiLogo from "@/assets/icons/header/nubi-logo.png";
 import bellIcon from "@/assets/icons/notification-bell-inactive.png";
 import { getUnreadNotificationCount } from "@/lib/api/notifications";
+import { useNotificationStream } from "@/lib/notifications/use-notification-stream";
 
 const NOTIFICATION_COUNT_REFRESH_EVENT = "notifications:count-refresh";
 const NOTIFICATION_COUNT_POLLING_MS = 60_000;
@@ -16,24 +17,23 @@ export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: stri
   const profileImage = profileImageUrl;
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const refreshUnreadCount = useCallback(() => {
+    getUnreadNotificationCount()
+      .then((response) => {
+        setUnreadCount(response.unreadCount);
+      })
+      .catch(() => {
+        setUnreadCount(0);
+      });
+  }, []);
+
+  useNotificationStream({
+    enabled: status === "authenticated",
+    onNotification: refreshUnreadCount,
+  });
+
   useEffect(() => {
-    let ignore = false;
-
     if (status !== "authenticated") return;
-
-    const refreshUnreadCount = () => {
-      getUnreadNotificationCount()
-        .then((response) => {
-          if (!ignore) {
-            setUnreadCount(response.unreadCount);
-          }
-        })
-        .catch(() => {
-          if (!ignore) {
-            setUnreadCount(0);
-          }
-        });
-    };
 
     refreshUnreadCount();
     window.addEventListener(NOTIFICATION_COUNT_REFRESH_EVENT, refreshUnreadCount);
@@ -45,12 +45,11 @@ export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: stri
     }, NOTIFICATION_COUNT_POLLING_MS);
 
     return () => {
-      ignore = true;
       window.clearInterval(pollingId);
       window.removeEventListener(NOTIFICATION_COUNT_REFRESH_EVENT, refreshUnreadCount);
       window.removeEventListener("focus", refreshUnreadCount);
     };
-  }, [status]);
+  }, [refreshUnreadCount, status]);
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between bg-[#FFFFFF]/90 px-5 py-4 backdrop-blur">
