@@ -3,12 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
+import { toast } from "sonner";
 import ScheduleCourseView, {
   type ScheduleCourseMarker,
   type ScheduleCoursePlace,
 } from "@/components/trip/ScheduleCourseView";
 import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
+import ShareLinkSheet from "@/components/sheet/ShareLinkSheet";
 import { getSchedule, getScheduleMap } from "@/lib/api/schedules";
+import { createShareLink } from "@/lib/api/shares";
 import { formatCourseTime, formatKoreanReturnTime } from "@/lib/schedule-course";
 import { placeCategoryLabel } from "@/utils/place-category";
 import type { ScheduleResponse } from "@/types/api/schedule";
@@ -40,6 +43,8 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
   const [dayIndex, setDayIndex] = useState(0);
   const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,6 +142,19 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
     setDetailPlaceId(null);
   }
 
+  async function handleShare() {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const link = await createShareLink(scheduleId);
+      setShareUrl(`${window.location.origin}/shared/${link.token}`);
+    } catch {
+      toast.error("공유 링크를 만들지 못했어요. 다시 시도해주세요.");
+    } finally {
+      setSharing(false);
+    }
+  }
+
   if (error) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
@@ -183,10 +201,9 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
         <button
           type="button"
           aria-label="공유"
-          onClick={() =>
-            navigator.share?.({ title: "Day " + day.dayNo + " 일정", url: location.href }).catch(() => {})
-          }
-          className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-600 hover:bg-black/5"
+          disabled={sharing}
+          onClick={handleShare}
+          className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-600 hover:bg-black/5 disabled:opacity-50"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
             <circle cx="18" cy="5" r="3" stroke="currentColor" strokeWidth="1.8" />
@@ -241,6 +258,10 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
           placeId={detailPlaceId}
           onClose={() => setDetailPlaceId(null)}
         />
+      )}
+
+      {shareUrl != null && (
+        <ShareLinkSheet url={shareUrl} onClose={() => setShareUrl(null)} />
       )}
     </div>
   );
