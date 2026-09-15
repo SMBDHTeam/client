@@ -9,6 +9,7 @@ export type PostMedia = {
   mediaType: "IMAGE" | "VIDEO";
   sortOrder: number;
   placeId: number | null;
+  placeName?: string | null;
 };
 
 export type FeedPost = {

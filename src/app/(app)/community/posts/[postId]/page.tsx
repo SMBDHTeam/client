@@ -4,13 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X, Trash2, Pencil } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X, Trash2, Pencil, ImagePlus } from "lucide-react";
 import { getPost, deletePost, updatePost, likePost, unlikePost, bookmarkPost, unbookmarkPost, getComments, createComment, deleteComment, likeComment, unlikeComment } from "@/lib/api/posts";
-import { getPlaceDetail } from "@/lib/api/places";
 import { followUser, unfollowUser, getUserProfile } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/axios";
 import type { PostComment, PostDetail } from "@/types/api/post";
-import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 import { toast } from "sonner";
 
 function CommentItem({
@@ -97,8 +95,6 @@ export default function PostDetailPage() {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [taggedPlace, setTaggedPlace] = useState<{ placeId: number; name: string; address: string | null } | null>(null);
-  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
   const [imgIndex, setImgIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -131,12 +127,6 @@ export default function PostDetailPage() {
         if (userId && String(res.author.id) !== userId) {
           getUserProfile(res.author.id)
             .then((profile) => setFollowing(profile.following))
-            .catch(() => {});
-        }
-        const placeId = res.mediaList.find((m) => m.placeId != null)?.placeId;
-        if (placeId != null) {
-          getPlaceDetail(placeId)
-            .then((place) => setTaggedPlace({ placeId, name: place.name, address: place.address }))
             .catch(() => {});
         }
       })
@@ -321,6 +311,7 @@ export default function PostDetailPage() {
 
   const isMyPost = userId != null && post != null && String(post.author.id) === userId;
   const images = post?.mediaList.map((m) => m.url) ?? [];
+  const currentPlaceName = post?.mediaList[imgIndex]?.placeName ?? null;
   const liked = likeState?.liked ?? false;
   const likeCount = likeState?.likeCount ?? 0;
   const isBookmarked = bookmarked ?? false;
@@ -403,7 +394,18 @@ export default function PostDetailPage() {
                     <button key={i} type="button" onClick={(e) => { e.stopPropagation(); setImgIndex(i); }} className={`size-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/40"}`} />
                   ))}
                 </div>
+                <div className="pointer-events-none absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white shadow-sm backdrop-blur-sm">
+                  <ImagePlus size={12} />
+                  {imgIndex + 1}/{images.length}
+                </div>
               </>
+            )}
+
+            {currentPlaceName && (
+              <div className="pointer-events-none absolute bottom-2.5 left-2.5 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white shadow-sm backdrop-blur-sm">
+                <MapPin size={11} className="shrink-0" />
+                <span className="max-w-40 truncate">{currentPlaceName}</span>
+              </div>
             )}
           </div>
         )}
@@ -549,20 +551,6 @@ export default function PostDetailPage() {
           )}
         </div>
 
-        {/* 위치 */}
-        {taggedPlace && (
-          <button
-            type="button"
-            onClick={() => setDetailPlaceId(taggedPlace.placeId)}
-            className="mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-1.5 rounded-xl bg-zinc-50 px-3 py-2.5 text-left hover:bg-zinc-100 cursor-pointer"
-          >
-            <MapPin size={14} className="text-[#2E7DF2] shrink-0" />
-            <span className="text-xs text-zinc-600">
-              {taggedPlace.name}
-              {taggedPlace.address && ` · ${taggedPlace.address}`}
-            </span>
-          </button>
-        )}
 
         {/* 댓글 버튼 */}
         <button
@@ -638,10 +626,6 @@ export default function PostDetailPage() {
             </motion.div>
         )}
       </AnimatePresence>
-
-      {detailPlaceId != null && (
-        <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
-      )}
     </div>
   );
 }
