@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, X } from "lucide-react";
-import { getUserProfile, getUserPosts, followUser, unfollowUser, getFollowers, getFollowings, type UserProfile, type UserSummary } from "@/lib/api/users";
+import { ChevronLeft, MoreVertical, X } from "lucide-react";
+import { toast } from "sonner";
+import { getUserProfile, getUserPosts, followUser, unfollowUser, getFollowers, getFollowings, blockUser, unblockUser, type UserProfile, type UserSummary } from "@/lib/api/users";
 import type { FeedPost } from "@/types/api/post";
 
 export default function UserProfilePage() {
@@ -22,6 +23,10 @@ export default function UserProfilePage() {
   const [followModal, setFollowModal] = useState<"followers" | "followings" | null>(null);
   const [followList, setFollowList] = useState<UserSummary[]>([]);
   const [followListLoading, setFollowListLoading] = useState(false);
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
 
   useEffect(() => {
     const id = Number(userId);
@@ -74,14 +79,64 @@ export default function UserProfilePage() {
     router.push(`/community/posts/${post.id}`);
   }
 
+  async function toggleBlock() {
+    if (!profile) return;
+    setBlockLoading(true);
+    try {
+      const result = blocked ? await unblockUser(profile.id) : await blockUser(profile.id);
+      setBlocked(result.blocked);
+      setMenuOpen(false);
+      toast.success(result.blocked ? "차단했어요." : "차단을 해제했어요.");
+      if (result.blocked) {
+        setProfile((prev) => (prev ? { ...prev, following: false } : prev));
+      }
+    } catch {
+      toast.error("처리하지 못했어요. 다시 시도해주세요.");
+    } finally {
+      setBlockLoading(false);
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center gap-2 border-b border-black/5 px-4 py-3">
+      <header className="relative flex items-center gap-2 border-b border-black/5 px-4 py-3">
         <button type="button" onClick={() => router.back()} className="grid size-8 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100">
           <ChevronLeft size={22} />
         </button>
         <h1 className="flex-1 text-center text-base font-semibold">{profile?.nickname ?? ""}</h1>
-        <div className="size-8" />
+        {profile && !profile.me ? (
+          <button
+            type="button"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            aria-label="더보기"
+            className="grid size-8 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100"
+          >
+            <MoreVertical size={20} />
+          </button>
+        ) : (
+          <div className="size-8" />
+        )}
+
+        {menuOpen && (
+          <>
+            <button
+              type="button"
+              aria-label="닫기"
+              onClick={() => setMenuOpen(false)}
+              className="fixed inset-0 z-40"
+            />
+            <div className="absolute right-4 top-full z-50 mt-1 w-40 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
+              <button
+                type="button"
+                disabled={blockLoading}
+                onClick={toggleBlock}
+                className="w-full px-4 py-3 text-left text-sm font-medium text-red-500 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                {blocked ? "차단 해제" : "차단하기"}
+              </button>
+            </div>
+          </>
+        )}
       </header>
 
       {loading ? (

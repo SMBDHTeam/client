@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
-import { Bell, Bookmark, ChevronRight, Heart, HelpCircle, Info, LogOut, MapPin, Pencil, User } from "lucide-react";
+import { Ban, Bell, Bookmark, ChevronRight, Heart, HelpCircle, Info, LogOut, MapPin, Pencil, User } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
 import { WISHLIST_PLACES } from "@/mocks/wishlist";
 import { getUserProfile, type UserProfile } from "@/lib/api/users";
@@ -117,7 +117,7 @@ export default function ProfilePage() {
           {user?.id && (
             <Link
               href={`/community/users/${user.id}`}
-              className="flex items-center gap-3 px-4 py-3.5"
+              className="flex items-center gap-3 border-b border-zinc-100 px-4 py-3.5"
             >
               <span className="grid size-8 shrink-0 place-items-center rounded-full bg-zinc-100 text-zinc-500">
                 <User size={16} aria-hidden />
@@ -126,6 +126,16 @@ export default function ProfilePage() {
               <ChevronRight size={16} className="text-zinc-300" aria-hidden />
             </Link>
           )}
+          <Link
+            href="/profile/blocked"
+            className="flex items-center gap-3 px-4 py-3.5"
+          >
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-zinc-100 text-zinc-500">
+              <Ban size={16} aria-hidden />
+            </span>
+            <span className="flex-1 text-sm font-medium text-zinc-700">차단한 사용자</span>
+            <ChevronRight size={16} className="text-zinc-300" aria-hidden />
+          </Link>
         </div>
 
         <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/5">
