@@ -23,6 +23,7 @@ import MapTiler3D, { type MapTiler3DMarker } from "@/components/map/MapTiler3D";
 import MapViewToggle, { type MapView } from "@/components/map/MapViewToggle";
 import NaverMap from "@/components/map/NaverMap";
 import PageFade from "@/components/ui/PageFade";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 import searchIcon from "@/assets/icons/search.png";
 import { getPlaceDetail, resolvePlace, searchPlaces } from "@/lib/api/places";
 import { placeCategoryDisplay, placeCategoryLabel } from "@/utils/place-category";
@@ -146,6 +147,7 @@ export default function AiPlacesSearchPage() {
   const [results, setResults] = useState<PlaceSearchItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
+  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<PlaceSearchItem[]>(draft.selectedPlaces);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>();
@@ -636,6 +638,7 @@ export default function AiPlacesSearchPage() {
             pickedIds={pickedIds}
             busyKey={resolvingKey}
             onAdd={(item) => void addWishlistPlace(item)}
+            onDetail={setDetailPlaceId}
             onRetry={() => setWishlistFailed(false)}
           />
         )}
@@ -700,13 +703,20 @@ export default function AiPlacesSearchPage() {
                     {i + 1}
                   </span>
                   <PlaceThumbnail place={place} />
-                  <div className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    disabled={place.placeId === null}
+                    onClick={() => {
+                      if (place.placeId !== null) setDetailPlaceId(place.placeId);
+                    }}
+                    className="min-w-0 flex-1 text-left enabled:cursor-pointer"
+                  >
                     <p className="truncate text-sm font-semibold">{place.name}</p>
                     <p className="mt-0.5 truncate text-xs text-zinc-400">
                       {place.categoryLabel ?? placeCategoryLabel(place.category)}
                       {place.address ? ` · ${place.address}` : ""}
                     </p>
-                  </div>
+                  </button>
                   <button
                     type="button"
                     onClick={() => removePlace(place)}
@@ -730,6 +740,9 @@ export default function AiPlacesSearchPage() {
           </button>
         </div>
       </div>
+      {detailPlaceId != null && (
+        <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
+      )}
     </PageFade>
   );
 }
@@ -740,6 +753,7 @@ function WishlistPicker({
   pickedIds,
   busyKey,
   onAdd,
+  onDetail,
   onRetry,
 }: {
   items: WishlistPlace[] | null;
@@ -747,6 +761,7 @@ function WishlistPicker({
   pickedIds: ReadonlySet<number>;
   busyKey: string | null;
   onAdd: (item: WishlistPlace) => void;
+  onDetail: (placeId: number) => void;
   onRetry: () => void;
 }) {
   return (
@@ -796,12 +811,16 @@ function WishlistPicker({
                 ) : (
                   <div className="size-10 shrink-0 rounded-lg bg-linear-to-br from-[#2E7DF2] to-[#17B89B]" />
                 )}
-                <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => onDetail(item.placeId)}
+                  className="min-w-0 flex-1 cursor-pointer text-left"
+                >
                   <p className="truncate text-sm font-semibold">{item.name}</p>
                   <p className="mt-0.5 truncate text-xs text-zinc-400">
                     {[label, item.address].filter(Boolean).join(" · ")}
                   </p>
-                </div>
+                </button>
                 <button
                   type="button"
                   onClick={() => onAdd(item)}

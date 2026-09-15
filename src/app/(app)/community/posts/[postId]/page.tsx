@@ -10,6 +10,7 @@ import { followUser, unfollowUser, getUserProfile } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/axios";
 import type { PostComment, PostDetail } from "@/types/api/post";
 import ReportSheet from "@/components/community/ReportSheet";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 import type { ReportTargetType } from "@/types/api/report";
 import { toast } from "sonner";
 
@@ -105,6 +106,7 @@ export default function PostDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imgIndex, setImgIndex] = useState(0);
+  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
@@ -326,6 +328,7 @@ export default function PostDetailPage() {
   const isMyPost = userId != null && post != null && String(post.author.id) === userId;
   const images = post?.mediaList.map((m) => m.url) ?? [];
   const currentPlaceName = post?.mediaList[imgIndex]?.placeName ?? null;
+  const currentPlaceId = post?.mediaList[imgIndex]?.placeId ?? null;
   const liked = likeState?.liked ?? false;
   const likeCount = likeState?.likeCount ?? 0;
   const isBookmarked = bookmarked ?? false;
@@ -425,7 +428,18 @@ export default function PostDetailPage() {
               </>
             )}
 
-            {currentPlaceName && (
+            {currentPlaceName && currentPlaceId != null && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setDetailPlaceId(currentPlaceId); }}
+                aria-label={`${currentPlaceName} 장소 상세`}
+                className="absolute bottom-2.5 left-2.5 flex cursor-pointer items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white shadow-sm backdrop-blur-sm hover:bg-black/70"
+              >
+                <MapPin size={11} className="shrink-0" />
+                <span className="max-w-40 truncate">{currentPlaceName}</span>
+              </button>
+            )}
+            {currentPlaceName && currentPlaceId == null && (
               <div className="pointer-events-none absolute bottom-2.5 left-2.5 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white shadow-sm backdrop-blur-sm">
                 <MapPin size={11} className="shrink-0" />
                 <span className="max-w-40 truncate">{currentPlaceName}</span>
@@ -651,6 +665,9 @@ export default function PostDetailPage() {
         )}
       </AnimatePresence>
 
+      {detailPlaceId != null && (
+        <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
+      )}
       {reportTarget && (
         <ReportSheet targetType={reportTarget.type} targetId={reportTarget.id} onClose={() => setReportTarget(null)} />
       )}
