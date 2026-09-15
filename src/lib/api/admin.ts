@@ -15,6 +15,7 @@ import type {
   ReportStatus,
   ReportTargetType,
   StatsMetric,
+  UserRole,
   UserStatus,
 } from "@/types/api/admin";
 import apiClient from "./axios";
@@ -70,6 +71,8 @@ export async function deleteComment(commentId: number) {
 export async function getUsers(params: {
   keyword?: string;
   status?: UserStatus;
+  /** 운영자 화면이 관리자와 지정 후보를 나눠 볼 때 쓴다 */
+  role?: UserRole;
   page?: number;
   size?: number;
 } = {}) {

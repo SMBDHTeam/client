@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
-import { BarChart3, Flag, MapPinOff, ScrollText, Users } from "lucide-react";
+import { BarChart3, Flag, MapPinOff, ScrollText, ShieldCheck, Users } from "lucide-react";
 
 /**
  * 관리자 콘솔 레이아웃.
@@ -20,6 +20,7 @@ const NAV = [
   { href: "/admin", label: "대시보드", icon: BarChart3 },
   { href: "/admin/reports", label: "신고", icon: Flag },
   { href: "/admin/users", label: "사용자", icon: Users },
+  { href: "/admin/operators", label: "운영자", icon: ShieldCheck },
   { href: "/admin/places", label: "장소", icon: MapPinOff },
   { href: "/admin/actions", label: "이력", icon: ScrollText },
 ];
