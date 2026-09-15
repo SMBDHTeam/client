@@ -18,6 +18,7 @@ import type {
   UserStatus,
 } from "@/types/api/admin";
 import apiClient from "./axios";
+import type { ReportReasonType } from "@/types/api/report";
 
 /**
  * 관리자 API.
@@ -34,6 +35,7 @@ import apiClient from "./axios";
 export async function getReports(params: {
   status?: ReportStatus;
   targetType?: ReportTargetType;
+  reasonType?: ReportReasonType;
   page?: number;
   size?: number;
 } = {}) {

@@ -8,6 +8,7 @@ import { ChevronLeft, MoreVertical, X } from "lucide-react";
 import { toast } from "sonner";
 import { getUserProfile, getUserPosts, followUser, unfollowUser, getFollowers, getFollowings, blockUser, unblockUser, type UserProfile, type UserSummary } from "@/lib/api/users";
 import type { FeedPost } from "@/types/api/post";
+import ReportSheet from "@/components/community/ReportSheet";
 
 export default function UserProfilePage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function UserProfilePage() {
   const [followModal, setFollowModal] = useState<"followers" | "followings" | null>(null);
   const [followList, setFollowList] = useState<UserSummary[]>([]);
   const [followListLoading, setFollowListLoading] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [blocked, setBlocked] = useState(false);
@@ -126,6 +128,18 @@ export default function UserProfilePage() {
               className="fixed inset-0 z-40"
             />
             <div className="absolute right-4 top-full z-50 mt-1 w-40 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
+              {requesterId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setReportOpen(true);
+                  }}
+                  className="w-full border-b border-zinc-100 px-4 py-3 text-left text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                >
+                  신고하기
+                </button>
+              )}
               <button
                 type="button"
                 disabled={blockLoading}
@@ -258,6 +272,10 @@ export default function UserProfilePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {reportOpen && profile && (
+        <ReportSheet targetType="USER" targetId={profile.id} onClose={() => setReportOpen(false)} />
+      )}
     </div>
   );
 }
