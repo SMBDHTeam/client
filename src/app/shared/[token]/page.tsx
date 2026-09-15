@@ -5,8 +5,10 @@ import ScheduleCourseView, {
   type ScheduleCourseMarker,
   type ScheduleCoursePlace,
 } from "@/components/trip/ScheduleCourseView";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 import { getSharedSchedule, getSharedScheduleMap } from "@/lib/api/shares";
 import { formatCourseTime } from "@/lib/schedule-course";
+import { placeCategoryLabel } from "@/utils/place-category";
 import { ApiError } from "@/lib/api/axios";
 import type { SharedScheduleResponse } from "@/types/api/shared-schedule";
 import type { ScheduleMapResponse } from "@/types/api/schedule-map";
@@ -40,6 +42,7 @@ export default function SharedSchedulePage({
   } | null>(null);
   const [dayIndex, setDayIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,22 +84,33 @@ export default function SharedSchedulePage({
     () =>
       day?.stops.map((stop) => {
         const marker = mapData?.markers.find(
-          (item) => item.dayNo === day.dayNo && (item.placeId === stop.placeId || item.order === stop.order),
+          (item) =>
+            item.dayNo === day.dayNo &&
+            (item.placeId === stop.place.id || item.order === stop.order),
         );
         return {
-          id: stop.stopId,
-          placeId: stop.placeId,
+          id: stop.id,
+          placeId: stop.place.id,
           order: stop.order,
-          latitude: finiteCoordinate(marker?.latitude),
-          longitude: finiteCoordinate(marker?.longitude),
-          imageUrl: null,
-          arrivalTime: formatCourseTime(marker?.arriveAtDateTime ?? marker?.arriveAt),
-          title: marker?.name ?? `장소 #${stop.placeId}`,
-          categoryLabel: marker?.subtitle ?? null,
+          latitude:
+            finiteCoordinate(marker?.latitude) ?? finiteCoordinate(stop.place.latitude),
+          longitude:
+            finiteCoordinate(marker?.longitude) ?? finiteCoordinate(stop.place.longitude),
+          imageUrl: stop.place.primaryImageUrl ?? null,
+          arrivalTime: formatCourseTime(stop.arriveAtDateTime ?? stop.arriveAt),
+          title: stop.place.name,
+          categoryLabel:
+            stop.place.categoryLabel || placeCategoryLabel(stop.place.category),
           stayMinutes: stop.stayMinutes,
-          inboundTransit: null,
-          waitingMinutesBefore: 0,
-          warnings: [],
+          inboundTransit: stop.inboundTransit,
+          mealLabel:
+            stop.mealTimeSlot === "LUNCH"
+              ? "점심 추천"
+              : stop.mealTimeSlot === "DINNER"
+                ? "저녁 추천"
+                : null,
+          waitingMinutesBefore: stop.waitingMinutesBefore,
+          warnings: stop.warnings ?? [],
         };
       }) ?? [],
     [day, mapData?.markers],
@@ -166,9 +180,14 @@ export default function SharedSchedulePage({
             endMarker={endMarker}
             finalTransit={day.finalTransit}
             finalTransitTitle="마지막 도착지로 이동"
+            onPlaceDetail={setDetailPlaceId}
           />
         </div>
       </div>
+
+      {detailPlaceId != null && (
+        <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
+      )}
     </div>
   );
 }

@@ -1,28 +1,4 @@
-import type { LocationInput } from "./common";
-import type { ScheduleTransit } from "./schedule";
-
-export type SharedScheduleStop = {
-  stopId: string;
-  placeId: number;
-  dayNo: number;
-  order: number;
-  stayMinutes: number;
-  referenceValid: boolean;
-};
-
-export type SharedScheduleDay = {
-  dayNo: number;
-  date: string;
-  startTime: string;
-  endTime: string;
-  startLocation: LocationInput | null;
-  endLocation: LocationInput | null;
-  startLocationSource: string | null;
-  endLocationSource: string | null;
-  summary: string;
-  stops: SharedScheduleStop[];
-  finalTransit: ScheduleTransit | null;
-};
+import type { ScheduleDay } from "./schedule";
 
 export type SharedScheduleResponse = {
   id: string;
@@ -33,7 +9,7 @@ export type SharedScheduleResponse = {
   dailyStartTime: string;
   dailyEndTime: string;
   styleSummary: string;
-  days: SharedScheduleDay[];
+  days: ScheduleDay[];
 };
 
 export type ShareLink = {
