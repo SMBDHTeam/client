@@ -19,7 +19,7 @@ export function useNotificationStream({
     if (!enabled) return;
 
     let stopped = false;
-    let retryTimer: ReturnType<typeof window.setTimeout> | null = null;
+    let retryTimer: number | null = null;
     let controller: AbortController | null = null;
 
     const connect = async () => {
