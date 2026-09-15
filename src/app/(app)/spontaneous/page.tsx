@@ -85,8 +85,8 @@ export default function SpontaneousStartPage() {
               <div className="size-4 animate-spin rounded-full border-2 border-zinc-200 border-t-[#2E7DF2]" />
             )}
           </div>
-          <p className="mt-2 px-1 text-xs text-zinc-500">
-            부산 내에서만 출발할 수 있어요.
+          <p className="mt-2 px-1 text-xs font-semibold text-blue-700">
+            부산 내에서만 검색할 수 있어요.
           </p>
 
           {results.length > 0 && (

@@ -39,10 +39,12 @@ function formatDisplayTime(value: string) {
 
 function TimeInput({
   label,
+  dateLabel,
   value,
   onChange,
 }: {
   label: string;
+  dateLabel: string;
   value: string;
   onChange: (v: string) => void;
 }) {
@@ -59,6 +61,11 @@ function TimeInput({
         <Clock size={13} className="text-[#2E7DF2]" />
         <p className="text-xs text-zinc-400">{label}</p>
       </div>
+      {dateLabel && (
+        <span className="mt-2 self-start whitespace-nowrap rounded-full bg-[#2E7DF2] px-2 py-0.5 text-[11px] font-semibold text-white">
+          {dateLabel}
+        </span>
+      )}
       <div className="mt-1 flex items-baseline gap-1">
         <span className="text-xs font-semibold text-zinc-500">{period}</span>
         <span className="text-xl font-bold text-zinc-800">{time}</span>
@@ -111,6 +118,23 @@ function toKSTIso(date: Date, time: string, dayOffset = 0) {
   return `${y}-${m}-${d}T${time}:00+09:00`;
 }
 
+function formatKSTDate(date: Date, dayOffset = 0) {
+  const [, month, day] = toKSTIso(date, "00:00", dayOffset)
+    .slice(0, 10)
+    .split("-")
+    .map(Number);
+  return `${month}월 ${day}일`;
+}
+
+function getElapsedMinutes(startTime: string, returnTime: string, isNextDayReturn: boolean) {
+  const [startHour, startMinute] = startTime.split(":").map(Number);
+  const [returnHour, returnMinute] = returnTime.split(":").map(Number);
+  return (
+    returnHour * 60 + returnMinute - (startHour * 60 + startMinute) +
+    (isNextDayReturn ? 24 * 60 : 0)
+  );
+}
+
 
 export default function SpontaneousConditionsPage() {
   const router = useRouter();
@@ -118,6 +142,7 @@ export default function SpontaneousConditionsPage() {
 
   const [startTime, setStartTime] = useState("");
   const [returnTime, setReturnTime] = useState("03:00");
+  const [today, setToday] = useState<Date | null>(null);
   const [transportMode, setTransportMode] = useState<TransportMode>("WALK");
   const [desiredThemes, setDesiredThemes] = useState<TravelTheme[]>([]);
   const [loading, setLoading] = useState(false);
@@ -140,6 +165,16 @@ export default function SpontaneousConditionsPage() {
     window.cancelAnimationFrame(frameId);
   };
 }, []);
+
+  useEffect(() => {
+    const updateToday = () => setToday(new Date());
+    const frameId = window.requestAnimationFrame(updateToday);
+    const intervalId = window.setInterval(updateToday, 60_000);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   // const timeError =
   //   startTime && returnTime && returnTime <= startTime
@@ -168,6 +203,16 @@ const ready = Boolean(
     !timeError &&
     !loading,
 );
+
+const elapsedMinutes = startTime && returnTime && !timeError
+  ? getElapsedMinutes(startTime, returnTime, isNextDayReturn)
+  : null;
+const returnDateLabel = today
+  ? `${isNextDayReturn ? "내일" : "오늘"} · ${formatKSTDate(today, isNextDayReturn ? 1 : 0)}`
+  : "";
+const elapsedLabel = elapsedMinutes !== null
+  ? `${Math.floor(elapsedMinutes / 60) > 0 ? `${Math.floor(elapsedMinutes / 60)}시간 ` : ""}${elapsedMinutes % 60}분`
+  : "";
 
 
 
@@ -239,14 +284,25 @@ const conditions = {
         <section className="flex flex-col gap-3">
           <h2 className="text-base font-semibold">여행 시간</h2>
           <div className="grid grid-cols-2 gap-3">
-            <TimeInput label="출발" value={startTime} onChange={setStartTime} />
+            <TimeInput
+              label="출발"
+              dateLabel={today ? `오늘 · ${formatKSTDate(today)}` : ""}
+              value={startTime}
+              onChange={setStartTime}
+            />
             {/* <TimeInput label="복귀" value={returnTime} onChange={setReturnTime} /> */}
             <TimeInput
-  label={isNextDayReturn ? "복귀 · 다음 날" : "복귀"}
-  value={returnTime}
-  onChange={setReturnTime}
-/>
+              label="복귀"
+              dateLabel={returnDateLabel}
+              value={returnTime}
+              onChange={setReturnTime}
+            />
           </div>
+          {elapsedMinutes !== null && (
+            <p className="text-sm font-medium text-zinc-600">
+              {isNextDayReturn ? "다음 날 복귀" : "당일 복귀"} · 출발부터 복귀까지 {elapsedLabel}
+            </p>
+          )}
           {timeError && (
             <p className="text-sm font-medium text-[#F16E5E]">{timeError}</p>
           )}
