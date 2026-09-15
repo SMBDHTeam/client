@@ -72,3 +72,11 @@ export type PlaceDetail = {
   /** 내 위시리스트에 담겼는지. 로그인하지 않았으면 null. 아직 주지 않는 서버 버전이 있어 선택 필드다 */
   wishlisted?: boolean | null;
 };
+
+/** 카카오맵 장소 페이지 주소. matched 가 false 면 url 은 이름 검색 결과 페이지다 */
+export type PlaceKakaoLink = {
+  placeId: number;
+  kakaoPlaceId: string | null;
+  url: string;
+  matched: boolean;
+};

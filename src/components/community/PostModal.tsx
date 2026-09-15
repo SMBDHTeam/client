@@ -9,6 +9,7 @@ import { followUser, unfollowUser } from "@/lib/api/users";
 import type { FeedPost, PostComment, PostDetail } from "@/types/api/post";
 import { toast } from "sonner";
 import ReportSheet from "@/components/community/ReportSheet";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 
 function CommentItem({
   comment,
@@ -290,6 +291,12 @@ function ModalContent({
   const [followLoading, setFollowLoading] = useState(false);
   const [commentCountOverride, setCommentCountOverride] = useState<number | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
+  // 피드 항목은 장소 이름만 준다. ID 는 상세를 받은 뒤 사진에서 찾는다.
+  const headerPlaceId =
+    detail?.mediaList.find((m) => m.placeId != null && m.placeName === post.placeName)?.placeId ??
+    detail?.mediaList.find((m) => m.placeId != null)?.placeId ??
+    null;
 
   const isMyPost = userId != null && String(post.author.id) === userId;
   const baseFollowing = following ?? false;
@@ -355,13 +362,21 @@ function ModalContent({
           )}
         </button>
         <div className="flex-1 min-w-0">
-          <button type="button" onClick={() => { onClose(); router.push(`/community/users/${post.author.id}`); }} className="text-left">
+          <button type="button" onClick={() => { onClose(); router.push(`/community/users/${post.author.id}`); }} className="block text-left">
             <p className="text-sm font-semibold leading-tight">{post.author.nickname}</p>
-            {post.placeName && (
-              <p className="flex items-center gap-1 text-xs text-zinc-400"><MapPin size={10} />{post.placeName}</p>
-            )}
-            <p className="text-xs text-zinc-400">{detail?.createdAgo ?? post.createdAgo}</p>
           </button>
+          {post.placeName && (headerPlaceId != null ? (
+            <button
+              type="button"
+              onClick={() => setDetailPlaceId(headerPlaceId)}
+              className="flex max-w-full cursor-pointer items-center gap-1 text-left text-xs text-zinc-400 hover:text-zinc-600"
+            >
+              <MapPin size={10} className="shrink-0" /><span className="truncate">{post.placeName}</span>
+            </button>
+          ) : (
+            <p className="flex items-center gap-1 text-xs text-zinc-400"><MapPin size={10} />{post.placeName}</p>
+          ))}
+          <p className="text-xs text-zinc-400">{detail?.createdAgo ?? post.createdAgo}</p>
         </div>
         {!isMyPost && (
           <button
@@ -377,6 +392,9 @@ function ModalContent({
         )}
         {!isMyPost && userId && (
           <button type="button" onClick={() => setReportOpen(true)} aria-label="게시물 신고" className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100"><Flag size={15} /></button>
+        )}
+        {detailPlaceId != null && (
+          <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
         )}
         {reportOpen && (
           <ReportSheet targetType="POST" targetId={post.id} onClose={() => setReportOpen(false)} />

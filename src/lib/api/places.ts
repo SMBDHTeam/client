@@ -1,5 +1,6 @@
 import type {
   PlaceDetail,
+  PlaceKakaoLink,
   PlaceSearchItem,
   PlaceSearchResponse,
   PlaceSummary,
@@ -9,6 +10,12 @@ import apiClient from "./axios";
 
 export async function getPlaceDetail(placeId: number) {
   const { data } = await apiClient.get<PlaceDetail>(`/places/${placeId}`);
+  return data;
+}
+
+/** 장소 상세 시트가 앱 안에 띄울 카카오맵 페이지 주소 */
+export async function getPlaceKakaoLink(placeId: number) {
+  const { data } = await apiClient.get<PlaceKakaoLink>(`/places/${placeId}/kakao-link`);
   return data;
 }
 
