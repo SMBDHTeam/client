@@ -77,7 +77,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 gap-4">
             {popularPlaces.map((place) => (
               <button
-                key={place.id}
+                key={place.placeId}
                 type="button"
                 onClick={() => setDetailPlaceId(place.placeId)}
                 className="overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-black/5"
