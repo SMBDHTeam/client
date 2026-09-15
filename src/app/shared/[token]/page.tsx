@@ -112,56 +112,62 @@ export default function SharedSchedulePage({
 
   if (error) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <p className="text-sm text-red-600">{error}</p>
+      <div className="relative mx-auto flex h-dvh w-full max-w-lg flex-col bg-white text-zinc-900 shadow-[0_0_60px_-15px_rgba(15,23,42,0.25)]">
+        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
       </div>
     );
   }
 
   if (!schedule || !day) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="size-10 animate-spin rounded-full border-4 border-zinc-200 border-t-[#2E7DF2]" />
+      <div className="relative mx-auto flex h-dvh w-full max-w-lg flex-col bg-white text-zinc-900 shadow-[0_0_60px_-15px_rgba(15,23,42,0.25)]">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="size-10 animate-spin rounded-full border-4 border-zinc-200 border-t-[#2E7DF2]" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center gap-2 px-5 pt-4 pb-2">
-        <h1 className="flex-1 text-center text-lg font-bold">
-          {schedule.styleSummary || "공유된 일정"} · Day {day.dayNo}
-        </h1>
-      </header>
+    <div className="relative mx-auto flex h-dvh w-full max-w-lg flex-col bg-white text-zinc-900 shadow-[0_0_60px_-15px_rgba(15,23,42,0.25)]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-none">
+        <header className="flex items-center gap-2 px-5 pt-4 pb-2">
+          <h1 className="flex-1 text-center text-lg font-bold">
+            {schedule.styleSummary || "공유된 일정"} · Day {day.dayNo}
+          </h1>
+        </header>
 
-      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 pt-2 pb-6">
-        <div className="flex gap-1 rounded-full bg-zinc-100 p-1">
-          {schedule.days.map((item, index) => (
-            <button
-              key={item.dayNo}
-              type="button"
-              onClick={() => setDayIndex(index)}
-              className={
-                "flex-1 rounded-full py-2.5 text-sm font-semibold transition-colors " +
-                (index === dayIndex
-                  ? "bg-linear-to-br from-[#2E7DF2] to-[#17B89B] font-bold text-white shadow-sm"
-                  : "text-zinc-400")
-              }
-            >
-              Day {item.dayNo}
-            </button>
-          ))}
+        <div className="flex flex-1 flex-col gap-5 px-5 pt-2 pb-6">
+          <div className="flex gap-1 rounded-full bg-zinc-100 p-1">
+            {schedule.days.map((item, index) => (
+              <button
+                key={item.dayNo}
+                type="button"
+                onClick={() => setDayIndex(index)}
+                className={
+                  "flex-1 rounded-full py-2.5 text-sm font-semibold transition-colors " +
+                  (index === dayIndex
+                    ? "bg-linear-to-br from-[#2E7DF2] to-[#17B89B] font-bold text-white shadow-sm"
+                    : "text-zinc-400")
+                }
+              >
+                Day {item.dayNo}
+              </button>
+            ))}
+          </div>
+
+          <ScheduleCourseView
+            key={day.dayNo}
+            places={places}
+            routeLines={dayRouteLines}
+            startMarker={startMarker}
+            endMarker={endMarker}
+            finalTransit={day.finalTransit}
+            finalTransitTitle="마지막 도착지로 이동"
+          />
         </div>
-
-        <ScheduleCourseView
-          key={day.dayNo}
-          places={places}
-          routeLines={dayRouteLines}
-          startMarker={startMarker}
-          endMarker={endMarker}
-          finalTransit={day.finalTransit}
-          finalTransitTitle="마지막 도착지로 이동"
-        />
       </div>
     </div>
   );
