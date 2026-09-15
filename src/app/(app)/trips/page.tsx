@@ -170,7 +170,6 @@ export default function TripsPage() {
                 </div>
             ) : (
             <div className="flex flex-col gap-6 px-5 pt-2 pb-8">
-                {featured && (
                 <section>
                     <h2 className="mb-2 flex items-center gap-1 text-sm text-zinc-500">
                         <Clock size={14} strokeWidth={1.8} aria-hidden />
@@ -179,6 +178,7 @@ export default function TripsPage() {
                     <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#2E7DF2] to-[#17B89B] p-6 text-white">
                         <div className="absolute -top-8 -right-6 size-32 rounded-full bg-white/10" />
                         <div className="absolute top-10 right-10 size-16 rounded-full bg-white/10" />
+                        {featured ? (
                         <div className="relative">
                             <span className="inline-block rounded-full bg-[#F16E5E] px-2.5 py-1 text-xs font-bold">
                                 {getFeaturedStatusLabel(featured, now)}
@@ -209,9 +209,26 @@ export default function TripsPage() {
                                 </Link>
                             </div>
                         </div>
+                        ) : (
+                        <div className="relative">
+                            <h3 className="text-lg font-bold">
+                                아직 계획한 여행이 없어요
+                            </h3>
+                            <p className="mt-1 text-sm text-white/90">
+                                지금 바로 나만의 일정을 만들어보세요
+                            </p>
+
+                            <button
+                                type="button"
+                                onClick={() => { resetDraft(); router.push("/trips/new/date"); }}
+                                className="mt-5 w-full rounded-full bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 transition-transform active:scale-95 cursor-pointer"
+                            >
+                                일정 생성하러 가볼까요?
+                            </button>
+                        </div>
+                        )}
                     </div>
                 </section>
-                )}
 
                 <section className="grid grid-cols-2 gap-4">
                     <button
