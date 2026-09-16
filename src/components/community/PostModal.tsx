@@ -31,8 +31,6 @@ function CommentItem({
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
   const liked = likeState?.liked ?? comment.liked;
   const likeCount = likeState?.likeCount ?? comment.likeCount;
-  const isMine = userId != null && String(comment.author.id) === userId;
-
   async function toggleLike() {
     if (!userId) return;
     try {
@@ -45,7 +43,7 @@ function CommentItem({
     }
   }
 
-  if (comment.deleted) {
+  if (comment.deleted || comment.author == null || comment.content == null) {
     return (
       <div className={`flex gap-2 text-sm ${isReply ? "pl-9" : ""}`}>
         <div className="size-7 shrink-0 rounded-full bg-zinc-100" />
@@ -54,17 +52,20 @@ function CommentItem({
     );
   }
 
+  const author = comment.author;
+  const isMine = userId != null && String(author.id) === userId;
+
   return (
     <div className={`flex gap-2 text-sm ${isReply ? "pl-9" : ""}`}>
-      {comment.author.profileImageUrl ? (
-        <img src={comment.author.profileImageUrl} alt={comment.author.nickname} className="size-7 shrink-0 rounded-full object-cover" />
+      {author.profileImageUrl ? (
+        <img src={author.profileImageUrl} alt={author.nickname} className="size-7 shrink-0 rounded-full object-cover" />
       ) : (
         <div className="size-7 shrink-0 rounded-full bg-zinc-200" />
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <span className="font-semibold">{comment.author.nickname}</span>
+            <span className="font-semibold">{author.nickname}</span>
             <span className="ml-1.5 text-zinc-700">{comment.content}</span>
           </div>
           <button type="button" onClick={toggleLike} className="shrink-0 flex items-center gap-0.5 text-zinc-400 active:scale-90 transition-transform">
@@ -75,7 +76,7 @@ function CommentItem({
         <div className="mt-0.5 flex items-center gap-2.5">
           <span className="text-xs text-zinc-400">{comment.createdAgo}</span>
           {!isReply && (
-            <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="text-xs text-zinc-400">
+            <button type="button" onClick={() => onReply(comment.id, author.nickname)} className="text-xs text-zinc-400">
               답글 달기
             </button>
           )}

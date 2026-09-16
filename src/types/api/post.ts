@@ -61,8 +61,8 @@ export type LikeResponse = {
 
 export type PostComment = {
   id: number;
-  author: PostAuthor;
-  content: string;
+  author: PostAuthor | null;
+  content: string | null;
   likeCount: number;
   liked: boolean;
   createdAt: string;
