@@ -276,6 +276,7 @@ export default function CommunityNewPage() {
         content: text.trim(),
         mediaList: uploaded.map((m, i) => ({
           url: m.url,
+          thumbnailUrl: m.thumbnailUrl,
           mediaType: m.mediaType,
           sortOrder: i,
           placeId: mediaPlaces[i]?.placeId ?? null,
