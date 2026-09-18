@@ -14,6 +14,7 @@ import type {
   Destination,
   CourseResponse,
 } from "@/types/api/spontaneous-trip";
+import type { SpontaneousCourseFailure } from "@/lib/spontaneous-course-error";
 
 const STORAGE_KEY = "tour:spontaneous-draft:v1";
 
@@ -23,6 +24,7 @@ type SpontaneousDraft = {
   destinations: Destination[] | null;
   selectedDestinationId: string | null;
   course: CourseResponse | null;
+  courseFailures: Record<string, SpontaneousCourseFailure>;
   saveIdempotencyKey: string | null;
 };
 
@@ -32,6 +34,7 @@ const INITIAL_DRAFT: SpontaneousDraft = {
   destinations: null,
   selectedDestinationId: null,
   course: null,
+  courseFailures: {},
   saveIdempotencyKey: null,
 };
 
@@ -43,6 +46,8 @@ type SpontaneousDraftContextValue = {
   setDestinations: (destinations: Destination[]) => void;
   setSelectedDestinationId: (id: string) => void;
   setCourse: (course: CourseResponse) => void;
+  setCourseFailure: (failure: SpontaneousCourseFailure) => void;
+  clearCourseFailure: (destinationId: string) => void;
   setSaveIdempotencyKey: (key: string) => void;
   resetDraft: () => void;
 };
@@ -83,6 +88,7 @@ export function SpontaneousDraftProvider({ children }: { children: React.ReactNo
       destinations: null,
       selectedDestinationId: null,
       course: null,
+      courseFailures: {},
       saveIdempotencyKey: null,
     }));
   }, []);
@@ -94,6 +100,7 @@ export function SpontaneousDraftProvider({ children }: { children: React.ReactNo
       destinations: null,
       selectedDestinationId: null,
       course: null,
+      courseFailures: {},
       saveIdempotencyKey: null,
     }));
   }, []);
@@ -113,6 +120,24 @@ export function SpontaneousDraftProvider({ children }: { children: React.ReactNo
 
   const setCourse = useCallback((course: CourseResponse) => {
     setDraft((prev) => ({ ...prev, course, saveIdempotencyKey: null }));
+  }, []);
+
+  const setCourseFailure = useCallback((failure: SpontaneousCourseFailure) => {
+    setDraft((prev) => ({
+      ...prev,
+      courseFailures: {
+        ...prev.courseFailures,
+        [failure.destinationId]: failure,
+      },
+    }));
+  }, []);
+
+  const clearCourseFailure = useCallback((destinationId: string) => {
+    setDraft((prev) => {
+      const courseFailures = { ...prev.courseFailures };
+      delete courseFailures[destinationId];
+      return { ...prev, courseFailures };
+    });
   }, []);
 
   const setSaveIdempotencyKey = useCallback((key: string) => {
@@ -136,10 +161,12 @@ export function SpontaneousDraftProvider({ children }: { children: React.ReactNo
       setDestinations,
       setSelectedDestinationId,
       setCourse,
+      setCourseFailure,
+      clearCourseFailure,
       setSaveIdempotencyKey,
       resetDraft,
     }),
-    [draft, hydrated, setStartLocation, setConditions, setDestinations, setSelectedDestinationId, setCourse, setSaveIdempotencyKey, resetDraft],
+    [draft, hydrated, setStartLocation, setConditions, setDestinations, setSelectedDestinationId, setCourse, setCourseFailure, clearCourseFailure, setSaveIdempotencyKey, resetDraft],
   );
 
   return (

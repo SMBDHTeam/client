@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CalendarDays, ChevronLeft, RotateCw } from "lucide-react";
 import ScheduleCourseView, {
   type ScheduleCourseMarker,
   type ScheduleCoursePlace,
@@ -173,19 +175,30 @@ export default function SpontaneousResultPage() {
   const canSave = Boolean(course.previewId && course.previewToken);
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center gap-2 px-5 pt-4 pb-2">
+    <div className="flex flex-1 flex-col bg-[#fbfdff]">
+      <header className="relative shrink-0 overflow-hidden border-b border-[#edf4fb] px-24 pt-4 pb-4 text-center">
+        <Image
+          src="/trips-covers/header-busan.png"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 512px) 100vw, 512px"
+          className="pointer-events-none object-cover object-[72%_65%] opacity-55"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-white via-white/82 to-white/48" />
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="뒤로 가기"
-          className="-ml-1 grid size-8 shrink-0 place-items-center rounded-full text-2xl leading-none text-zinc-600 hover:bg-black/5"
+          className="absolute top-2.5 left-3 z-10 grid size-11 place-items-center rounded-full text-[#0d234f] transition-colors hover:bg-white/75 active:bg-white"
         >
-          ‹
+          <ChevronLeft size={34} strokeWidth={2.35} />
         </button>
-        <div className="flex-1 text-center">
-          <h1 className="text-lg font-bold">{course.name}</h1>
-          <p className="text-xs text-zinc-400">
+        <div className="relative z-10 min-w-0">
+          <h1 className="truncate text-xl font-extrabold tracking-[-0.045em] text-[#0b2146]">
+            {course.name}
+          </h1>
+          <p className="mt-1 truncate text-xs font-medium text-[#708199]">
             {course.startLocation?.name || draft.startLocation?.name || "선택한 출발지"}에서 출발
           </p>
         </div>
@@ -195,13 +208,14 @@ export default function SpontaneousResultPage() {
             resetDraft();
             router.replace("/spontaneous");
           }}
-          className="grid size-8 shrink-0 place-items-center rounded-full text-xs font-bold text-zinc-500 hover:bg-black/5"
+          className="absolute top-3 right-3 z-10 flex items-center gap-1 rounded-full px-2.5 py-2 text-xs font-bold text-[#2f7ff2] transition-colors hover:bg-white/75 active:bg-white"
         >
-          새로
+          새로 추천
+          <RotateCw size={18} strokeWidth={2.35} />
         </button>
       </header>
 
-      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 pt-2 pb-6">
+      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 pt-3 pb-6 scrollbar-none">
         <ScheduleCourseView
           places={places}
           routeLines={course.routeLines ?? []}
@@ -212,6 +226,7 @@ export default function SpontaneousResultPage() {
           returnArrivalLabel={returnArrivalLabel}
           imageUnavailableLabel="대표 이미지 준비 중"
           showSpontaneousRoadGuidance
+          appearance="spontaneous-result"
         />
 
         {saveError && (
@@ -228,8 +243,9 @@ export default function SpontaneousResultPage() {
           type="button"
           onClick={() => void handleSave()}
           disabled={saving || !canSave}
-          className="w-full rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B] py-3.5 text-center font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-linear-to-r from-[#2f7ff2] via-[#1eabe0] to-[#17c6b2] py-4 text-center text-lg font-bold text-white shadow-[0_12px_26px_rgba(35,151,207,0.22)] transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_30px_rgba(35,151,207,0.28)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
         >
+          <CalendarDays size={22} strokeWidth={2.2} />
           {saving ? "저장 중..." : "이 일정 저장"}
         </button>
       </div>

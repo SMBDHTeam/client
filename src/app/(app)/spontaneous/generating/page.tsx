@@ -1,63 +1,107 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { CircleAlert, ServerCrash } from "lucide-react";
 import { useSpontaneousDraft } from "@/store/spontaneous-draft";
+import { getSpontaneousCourseErrorPresentation } from "@/lib/spontaneous-course-error";
 
-/**
- * useSearchParams 를 쓰는 부분만 Suspense 안에 둔다.
- *
- * <p>이 훅은 렌더를 클라이언트로 미루므로, 페이지 최상위에서 부르면 정적 생성이
- * 통째로 막히고 빌드가 실패한다. 경계를 두면 그 안쪽만 클라이언트에서 그린다.
- *
- * <p>fallback 은 로딩 화면 그대로다. 다른 것을 넣으면 찰나에 화면이 바뀐다.
- */
 export default function SpontaneousGeneratingPage() {
-  return (
-    <Suspense fallback={<Loading />}>
-      <GeneratingView />
-    </Suspense>
-  );
-}
-
-function GeneratingView() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { draft } = useSpontaneousDraft();
-  const error = searchParams.get("error");
+  const { draft, hydrated } = useSpontaneousDraft();
+  const selectedDestinationId = draft.selectedDestinationId;
+  const failure = selectedDestinationId
+    ? draft.courseFailures?.[selectedDestinationId]
+    : undefined;
+  const presentation = failure
+    ? getSpontaneousCourseErrorPresentation(
+        failure,
+        draft.conditions?.transportMode ?? "WALK",
+      )
+    : null;
 
   useEffect(() => {
-    if (!draft.selectedDestinationId) {
+    if (hydrated && !selectedDestinationId) {
       router.replace("/spontaneous");
     }
-  }, [draft.selectedDestinationId, router]);
+  }, [hydrated, router, selectedDestinationId]);
 
-  if (error) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-        <div className="w-full rounded-2xl bg-red-50 p-5">
-          <p className="text-sm font-semibold text-red-700">코스를 만들지 못했어요</p>
-          <p className="mt-1 text-xs text-red-500">{error}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => router.replace("/spontaneous/destinations")}
-          className="mt-4 text-sm font-bold text-[#2E7DF2]"
-        >
-          다른 목적지 선택
-        </button>
-        <button
-          type="button"
-          onClick={() => router.replace("/spontaneous")}
-          className="mt-2 text-sm text-zinc-400"
-        >
-          처음부터 다시
-        </button>
-      </div>
-    );
+  if (!hydrated || !presentation) {
+    return <Loading />;
   }
 
-  return <Loading />;
+  const isConditionFailure = presentation.kind === "conditions";
+
+  return (
+    <div className="flex flex-1 flex-col justify-center px-6 py-8">
+      <div
+        className={`rounded-3xl border p-6 ${
+          isConditionFailure
+            ? "border-orange-100 bg-orange-50"
+            : "border-red-100 bg-red-50"
+        }`}
+      >
+        <div
+          className={`grid size-12 place-items-center rounded-2xl ${
+            isConditionFailure
+              ? "bg-orange-100 text-orange-600"
+              : "bg-red-100 text-red-600"
+          }`}
+        >
+          {isConditionFailure ? <CircleAlert size={24} /> : <ServerCrash size={24} />}
+        </div>
+
+        <p
+          className={`mt-5 text-xs font-bold ${
+            isConditionFailure ? "text-orange-600" : "text-red-600"
+          }`}
+        >
+          {isConditionFailure
+            ? "여행 조건을 만족하는 코스가 없어요"
+            : "일시적인 서비스 오류예요"}
+        </p>
+        <h1 className="mt-1 text-xl font-bold leading-snug text-zinc-900">
+          {presentation.title}
+        </h1>
+        <p className="mt-3 text-sm leading-relaxed text-zinc-600">
+          {presentation.description}
+        </p>
+        <p className="mt-2 text-sm font-semibold leading-relaxed text-zinc-800">
+          {presentation.guidance}
+        </p>
+
+        <div className="mt-5 rounded-2xl bg-white/80 px-4 py-3">
+          <p className="text-xs leading-relaxed text-zinc-500">
+            {isConditionFailure
+              ? "요청은 정상적으로 처리됐지만, 선택한 조건으로 실행 가능한 코스를 찾지 못했어요."
+              : "선택한 여행 조건의 문제는 아니에요. 잠시 후 같은 목적지로 다시 시도할 수 있어요."}
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => router.replace("/spontaneous/destinations")}
+        className="mt-6 w-full rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B] py-3.5 text-center font-semibold text-white"
+      >
+        {isConditionFailure ? "다른 목적지 선택" : "목적지에서 다시 시도"}
+      </button>
+      <button
+        type="button"
+        onClick={() => router.replace("/spontaneous/conditions")}
+        className="mt-3 w-full rounded-full border border-zinc-200 bg-white py-3.5 text-center font-semibold text-zinc-700"
+      >
+        여행 조건 변경
+      </button>
+      <button
+        type="button"
+        onClick={() => router.replace("/spontaneous")}
+        className="mt-3 text-sm text-zinc-400"
+      >
+        처음부터 다시
+      </button>
+    </div>
+  );
 }
 
 function Loading() {

@@ -146,6 +146,7 @@ export default function NaverMap({
   endMarker = null,
   activeOrder,
   showRouteLine = true,
+  routeAppearance = "default",
   activeRouteOrder = null,
   onRouteMarkerSelect,
   onRouteMarkerAdd,
@@ -162,6 +163,7 @@ export default function NaverMap({
   endMarker?: MapMarker | null;
   activeOrder?: number;
   showRouteLine?: boolean;
+  routeAppearance?: "default" | "spontaneous-result";
   activeRouteOrder?: number | null;
   onRouteMarkerSelect?: (order: number | null) => void;
   onRouteMarkerAdd?: (order: number) => void;
@@ -336,7 +338,10 @@ export default function NaverMap({
           segment.coordinates.length < 2 ||
           segment.coordinates.some((coordinate) => !coordinate.every(Number.isFinite))
         ) return;
-        const style = PATH_STYLE[segment.mode] ?? PATH_STYLE.BUS;
+        const style =
+          routeAppearance === "spontaneous-result"
+            ? { color: "#2F7FF2", style: "solid", weight: 6 }
+            : (PATH_STYLE[segment.mode] ?? PATH_STYLE.BUS);
         const path = segment.coordinates.map(([lng, lat]) => {
           const coordinate = new maps.LatLng(lat, lng);
           bounds.extend(coordinate);
@@ -523,6 +528,7 @@ export default function NaverMap({
     onRouteMarkerAdd,
     onRouteMarkerSelect,
     route,
+    routeAppearance,
     routeLines,
     showRouteLine,
     startMarker,
