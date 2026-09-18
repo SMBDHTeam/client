@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
+import { Heart, MessageCircle, MapPin, X, Send, ChevronLeft, ChevronRight, Bookmark, Flag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { bookmarkPost, createComment, deleteComment, getComments, likeComment, unlikeComment, likePost, unbookmarkPost, unlikePost } from "@/lib/api/posts";
 import { followUser, unfollowUser } from "@/lib/api/users";
 import type { FeedPost, PostComment, PostDetail } from "@/types/api/post";
 import { toast } from "sonner";
+import ReportSheet from "@/components/community/ReportSheet";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 
 function CommentItem({
   comment,
@@ -15,6 +17,7 @@ function CommentItem({
   userId,
   onReply,
   onDelete,
+  onReport,
   isReply,
 }: {
   comment: PostComment;
@@ -22,13 +25,12 @@ function CommentItem({
   userId: string | undefined;
   onReply: (commentId: number, nickname: string) => void;
   onDelete: (commentId: number) => void;
+  onReport: (commentId: number) => void;
   isReply?: boolean;
 }) {
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
   const liked = likeState?.liked ?? comment.liked;
   const likeCount = likeState?.likeCount ?? comment.likeCount;
-  const isMine = userId != null && String(comment.author.id) === userId;
-
   async function toggleLike() {
     if (!userId) return;
     try {
@@ -41,7 +43,7 @@ function CommentItem({
     }
   }
 
-  if (comment.deleted) {
+  if (comment.deleted || comment.author == null || comment.content == null) {
     return (
       <div className={`flex gap-2 text-sm ${isReply ? "pl-9" : ""}`}>
         <div className="size-7 shrink-0 rounded-full bg-zinc-100" />
@@ -50,17 +52,20 @@ function CommentItem({
     );
   }
 
+  const author = comment.author;
+  const isMine = userId != null && String(author.id) === userId;
+
   return (
     <div className={`flex gap-2 text-sm ${isReply ? "pl-9" : ""}`}>
-      {comment.author.profileImageUrl ? (
-        <img src={comment.author.profileImageUrl} alt={comment.author.nickname} className="size-7 shrink-0 rounded-full object-cover" />
+      {author.profileImageUrl ? (
+        <img src={author.profileImageUrl} alt={author.nickname} className="size-7 shrink-0 rounded-full object-cover" />
       ) : (
         <div className="size-7 shrink-0 rounded-full bg-zinc-200" />
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <span className="font-semibold">{comment.author.nickname}</span>
+            <span className="font-semibold">{author.nickname}</span>
             <span className="ml-1.5 text-zinc-700">{comment.content}</span>
           </div>
           <button type="button" onClick={toggleLike} className="shrink-0 flex items-center gap-0.5 text-zinc-400 active:scale-90 transition-transform">
@@ -69,14 +74,20 @@ function CommentItem({
           </button>
         </div>
         <div className="mt-0.5 flex items-center gap-2.5">
+          <span className="text-xs text-zinc-400">{comment.createdAgo}</span>
           {!isReply && (
-            <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="text-xs text-zinc-400">
+            <button type="button" onClick={() => onReply(comment.id, author.nickname)} className="text-xs text-zinc-400">
               답글 달기
             </button>
           )}
           {isMine && (
             <button type="button" onClick={() => onDelete(comment.id)} className="text-xs text-zinc-400 hover:text-red-500">
               삭제
+            </button>
+          )}
+          {!isMine && userId != null && (
+            <button type="button" onClick={() => onReport(comment.id)} className="text-xs text-zinc-400 hover:text-red-500">
+              신고
             </button>
           )}
         </div>
@@ -90,26 +101,33 @@ function CommentSheet({
   commentCount,
   userId,
   onClose,
+  onCommentCountChange,
 }: {
   postId: number;
   commentCount: number;
   userId: string | undefined;
   onClose: () => void;
+  onCommentCountChange: (count: number) => void;
 }) {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentText, setCommentText] = useState("");
-  const [loading, setLoading] = useState(true);
+  // 마지막으로 불러오기를 마친 요청. 지금 요청과 다르면 불러오는 중이다.
+  // effect 안에서 로딩 상태를 바로 켜면 렌더가 한 번 더 돌아 lint(set-state-in-effect)에 걸린다.
+  const requestKey = `${postId}:${userId ?? ""}`;
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const loading = loadedKey !== requestKey;
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<{ id: number; nickname: string } | null>(null);
+  const [reportCommentId, setReportCommentId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setLoading(true);
+    const key = `${postId}:${userId ?? ""}`;
     getComments(postId, { size: 30 })
       .then((res) => setComments(res.items))
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => setLoadedKey(key));
   }, [postId, userId]);
 
   function handleReply(commentId: number, nickname: string) {
@@ -133,7 +151,7 @@ function CommentSheet({
             onClick={async () => {
               toast.dismiss(t);
               try {
-                await deleteComment(postId, commentId);
+                const result = await deleteComment(postId, commentId);
                 setComments((prev) =>
                   prev.map((c) => {
                     if (c.id === commentId) return { ...c, deleted: true };
@@ -143,6 +161,7 @@ function CommentSheet({
                     return c;
                   }),
                 );
+                onCommentCountChange(result.postCommentCount);
               } catch {
                 toast.error("댓글을 삭제하지 못했어요.");
               }
@@ -173,6 +192,7 @@ function CommentSheet({
       } else {
         setComments((prev) => [...prev, newComment]);
       }
+      onCommentCountChange(newComment.postCommentCount);
       setCommentText("");
       setReplyTo(null);
       setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: "smooth" }), 0);
@@ -205,9 +225,9 @@ function CommentSheet({
         )}
         {comments.map((c) => (
           <div key={c.id} className="space-y-3">
-            <CommentItem comment={c} postId={postId} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} />
+            <CommentItem comment={c} postId={postId} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} onReport={setReportCommentId} />
             {c.replies.map((reply) => (
-              <CommentItem key={reply.id} comment={reply} postId={postId} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} isReply />
+              <CommentItem key={reply.id} comment={reply} postId={postId} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} onReport={setReportCommentId} isReply />
             ))}
           </div>
         ))}
@@ -241,6 +261,9 @@ function CommentSheet({
           </button>
         </form>
       </div>
+      {reportCommentId != null && (
+        <ReportSheet targetType="COMMENT" targetId={reportCommentId} onClose={() => setReportCommentId(null)} />
+      )}
     </motion.div>
   );
 }
@@ -267,6 +290,14 @@ function ModalContent({
   const [bookmarked, setBookmarked] = useState<boolean | null>(null);
   const [following, setFollowing] = useState<boolean | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
+  const [commentCountOverride, setCommentCountOverride] = useState<number | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
+  // 피드 항목은 장소 이름만 준다. ID 는 상세를 받은 뒤 사진에서 찾는다.
+  const headerPlaceId =
+    detail?.mediaList.find((m) => m.placeId != null && m.placeName === post.placeName)?.placeId ??
+    detail?.mediaList.find((m) => m.placeId != null)?.placeId ??
+    null;
 
   const isMyPost = userId != null && String(post.author.id) === userId;
   const baseFollowing = following ?? false;
@@ -289,7 +320,7 @@ function ModalContent({
   const baseLiked = likeState?.liked ?? detail?.liked ?? post.liked;
   const baseLikeCount = likeState?.likeCount ?? detail?.likeCount ?? post.likeCount;
   const baseBookmarked = bookmarked ?? detail?.bookmarked ?? post.bookmarked;
-  const commentCount = detail?.commentCount ?? post.commentCount;
+  const commentCount = commentCountOverride ?? detail?.commentCount ?? post.commentCount;
 
   async function toggleLike() {
     if (!userId) return;
@@ -332,12 +363,21 @@ function ModalContent({
           )}
         </button>
         <div className="flex-1 min-w-0">
-          <button type="button" onClick={() => { onClose(); router.push(`/community/users/${post.author.id}`); }} className="text-left">
+          <button type="button" onClick={() => { onClose(); router.push(`/community/users/${post.author.id}`); }} className="block text-left">
             <p className="text-sm font-semibold leading-tight">{post.author.nickname}</p>
-            {post.placeName && (
-              <p className="flex items-center gap-1 text-xs text-zinc-400"><MapPin size={10} />{post.placeName}</p>
-            )}
           </button>
+          {post.placeName && (headerPlaceId != null ? (
+            <button
+              type="button"
+              onClick={() => setDetailPlaceId(headerPlaceId)}
+              className="flex max-w-full cursor-pointer items-center gap-1 text-left text-xs text-zinc-400 hover:text-zinc-600"
+            >
+              <MapPin size={10} className="shrink-0" /><span className="truncate">{post.placeName}</span>
+            </button>
+          ) : (
+            <p className="flex items-center gap-1 text-xs text-zinc-400"><MapPin size={10} />{post.placeName}</p>
+          ))}
+          <p className="text-xs text-zinc-400">{detail?.createdAgo ?? post.createdAgo}</p>
         </div>
         {!isMyPost && (
           <button
@@ -350,6 +390,15 @@ function ModalContent({
           >
             {followLoading ? "..." : baseFollowing ? "팔로잉" : "팔로우"}
           </button>
+        )}
+        {!isMyPost && userId && (
+          <button type="button" onClick={() => setReportOpen(true)} aria-label="게시물 신고" className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100"><Flag size={15} /></button>
+        )}
+        {detailPlaceId != null && (
+          <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
+        )}
+        {reportOpen && (
+          <ReportSheet targetType="POST" targetId={post.id} onClose={() => setReportOpen(false)} />
         )}
         <button type="button" onClick={onClose} className="grid size-7 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100"><X size={16} /></button>
       </div>
@@ -425,6 +474,7 @@ function ModalContent({
             commentCount={commentCount}
             userId={userId}
             onClose={() => setShowComments(false)}
+            onCommentCountChange={setCommentCountOverride}
           />
         )}
       </AnimatePresence>

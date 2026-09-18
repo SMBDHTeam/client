@@ -8,6 +8,7 @@ import ScheduleCourseView, {
   type ScheduleCourseMarker,
   type ScheduleCoursePlace,
 } from "@/components/trip/ScheduleCourseView";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 import { saveSpontaneousSchedule } from "@/lib/api/spontaneous-trips";
 import { ApiError } from "@/lib/api/axios";
 import {
@@ -64,6 +65,7 @@ export default function SpontaneousResultPage() {
   } = useSpontaneousDraft();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
 
   useEffect(() => {
     if (hydrated && !draft.course) {
@@ -227,6 +229,7 @@ export default function SpontaneousResultPage() {
           imageUnavailableLabel="대표 이미지 준비 중"
           showSpontaneousRoadGuidance
           appearance="spontaneous-result"
+          onPlaceDetail={setDetailPlaceId}
         />
 
         {saveError && (
@@ -249,6 +252,9 @@ export default function SpontaneousResultPage() {
           {saving ? "저장 중..." : "이 일정 저장"}
         </button>
       </div>
+      {detailPlaceId != null && (
+        <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
+      )}
     </div>
   );
 }

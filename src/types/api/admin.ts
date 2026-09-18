@@ -4,6 +4,8 @@
  * 서버의 `com.server.admin.dto` 와 짝을 이룬다. 서버 DTO 가 바뀌면 여기도 함께 고친다.
  */
 
+import type { ReportReasonType } from "./report";
+
 export type ReportStatus = "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED";
 export type ReportTargetType = "POST" | "COMMENT" | "USER";
 export type UserStatus = "ACTIVE" | "SUSPENDED" | "WITHDRAWN";
@@ -20,7 +22,9 @@ export type AdminReport = {
   reporter: AdminActor | null;
   targetType: ReportTargetType;
   targetId: number;
-  reason: string;
+  reasonType: ReportReasonType;
+  /** 신고자가 덧붙인 설명. 없으면 null */
+  reason: string | null;
   status: ReportStatus;
   createdAt: string;
   /** 아직 처리 전이면 null */
@@ -140,4 +144,42 @@ export type AdminStatsPopular = {
   type: "PLACE" | "HASHTAG";
   /** 해시태그면 id 가 null 이다 */
   items: { id: number | null; name: string; count: number }[];
+};
+
+/** 관리자가 한 조치의 종류. 서버 enum 과 짝을 이룬다. */
+export type AdminActionType =
+  | "REPORT_STATUS_CHANGED"
+  | "POST_DELETED"
+  | "COMMENT_DELETED"
+  | "USER_SUSPENDED"
+  | "USER_SUSPENSION_RELEASED"
+  | "USER_ROLE_CHANGED"
+  | "PLACE_HIDDEN"
+  | "PLACE_UNHIDDEN"
+  | "INGESTION_RUN";
+
+export type AdminActionTargetType =
+  | "REPORT"
+  | "POST"
+  | "COMMENT"
+  | "USER"
+  | "PLACE"
+  | "SYSTEM";
+
+export type AdminAction = {
+  id: number;
+  /** 조치한 관리자. 탈퇴했으면 nickname 이 null 이고 id 만 남는다 */
+  admin: { id: number; nickname: string | null };
+  action: AdminActionType;
+  targetType: AdminActionTargetType;
+  /** 대상이 없는 조치(적재 실행 등)면 null */
+  targetId: number | null;
+  reason: string | null;
+  detail: string | null;
+  createdAt: string;
+};
+
+export type AdminActionList = {
+  items: AdminAction[];
+  totalCount: number;
 };

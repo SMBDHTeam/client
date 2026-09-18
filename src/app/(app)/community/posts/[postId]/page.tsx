@@ -4,11 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X, Trash2, Pencil } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MapPin, ChevronLeft, ChevronRight, Send, X, Trash2, Pencil, ImagePlus, Flag } from "lucide-react";
 import { getPost, deletePost, updatePost, likePost, unlikePost, bookmarkPost, unbookmarkPost, getComments, createComment, deleteComment, likeComment, unlikeComment } from "@/lib/api/posts";
 import { followUser, unfollowUser, getUserProfile } from "@/lib/api/users";
 import { ApiError } from "@/lib/api/axios";
 import type { PostComment, PostDetail } from "@/types/api/post";
+import ReportSheet from "@/components/community/ReportSheet";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
+import type { ReportTargetType } from "@/types/api/report";
 import { toast } from "sonner";
 
 function CommentItem({
@@ -17,6 +20,7 @@ function CommentItem({
   userId,
   onReply,
   onDelete,
+  onReport,
   isReply,
 }: {
   comment: PostComment;
@@ -24,13 +28,12 @@ function CommentItem({
   userId: string | undefined;
   onReply: (commentId: number, nickname: string) => void;
   onDelete: (commentId: number) => void;
+  onReport: (commentId: number) => void;
   isReply?: boolean;
 }) {
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
   const liked = likeState?.liked ?? comment.liked;
   const likeCount = likeState?.likeCount ?? comment.likeCount;
-  const isMine = userId != null && String(comment.author.id) === userId;
-
   async function toggleLike() {
     if (!userId) return;
     try {
@@ -41,7 +44,7 @@ function CommentItem({
     } catch { /* */ }
   }
 
-  if (comment.deleted) {
+  if (comment.deleted || comment.author == null || comment.content == null) {
     return (
       <div className={`flex gap-3 ${isReply ? "pl-10" : ""}`}>
         <div className="size-8 shrink-0 rounded-full bg-zinc-100" />
@@ -50,17 +53,20 @@ function CommentItem({
     );
   }
 
+  const author = comment.author;
+  const isMine = userId != null && String(author.id) === userId;
+
   return (
     <div className={`flex gap-3 ${isReply ? "pl-10" : ""}`}>
-      {comment.author.profileImageUrl ? (
-        <img src={comment.author.profileImageUrl} alt={comment.author.nickname} className="size-8 shrink-0 rounded-full object-cover" />
+      {author.profileImageUrl ? (
+        <img src={author.profileImageUrl} alt={author.nickname} className="size-8 shrink-0 rounded-full object-cover" />
       ) : (
         <div className="size-8 shrink-0 rounded-full bg-zinc-200" />
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <span className="text-sm font-semibold">{comment.author.nickname}</span>
+            <span className="text-sm font-semibold">{author.nickname}</span>
             <p className="mt-0.5 text-sm text-zinc-600 leading-snug">{comment.content}</p>
           </div>
           <button type="button" onClick={toggleLike} className="shrink-0 flex flex-col items-center gap-0.5 text-zinc-400 active:scale-90 transition-transform pt-0.5 cursor-pointer">
@@ -69,14 +75,20 @@ function CommentItem({
           </button>
         </div>
         <div className="mt-1 flex items-center gap-3">
+          <span className="text-xs text-zinc-400">{comment.createdAgo}</span>
           {!isReply && (
-            <button type="button" onClick={() => onReply(comment.id, comment.author.nickname)} className="text-xs text-zinc-400 cursor-pointer">
+            <button type="button" onClick={() => onReply(comment.id, author.nickname)} className="text-xs text-zinc-400 cursor-pointer">
               답글 달기
             </button>
           )}
           {isMine && (
             <button type="button" onClick={() => onDelete(comment.id)} className="text-xs text-zinc-400 hover:text-red-500 cursor-pointer">
               삭제
+            </button>
+          )}
+          {!isMine && userId != null && (
+            <button type="button" onClick={() => onReport(comment.id)} className="text-xs text-zinc-400 hover:text-red-500 cursor-pointer">
+              신고
             </button>
           )}
         </div>
@@ -95,6 +107,7 @@ export default function PostDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imgIndex, setImgIndex] = useState(0);
+  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const [likeState, setLikeState] = useState<{ likeCount: number; liked: boolean } | null>(null);
@@ -105,6 +118,7 @@ export default function PostDetailPage() {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: number } | null>(null);
 
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -248,6 +262,10 @@ export default function PostDetailPage() {
     inputRef.current?.focus();
   }
 
+  function handleReportComment(commentId: number) {
+    setReportTarget({ type: "COMMENT", id: commentId });
+  }
+
   function handleDeleteComment(commentId: number) {
     if (!post) return;
     toast.custom((t) => (
@@ -265,7 +283,7 @@ export default function PostDetailPage() {
             onClick={async () => {
               toast.dismiss(t);
               try {
-                await deleteComment(post.id, commentId);
+                const result = await deleteComment(post.id, commentId);
                 setComments((prev) =>
                   prev.map((c) => {
                     if (c.id === commentId) return { ...c, deleted: true };
@@ -275,6 +293,7 @@ export default function PostDetailPage() {
                     return c;
                   }),
                 );
+                setPost((prev) => (prev ? { ...prev, commentCount: result.postCommentCount } : prev));
               } catch {
                 toast.error("댓글을 삭제하지 못했어요.");
               }
@@ -298,6 +317,7 @@ export default function PostDetailPage() {
       } else {
         setComments((prev) => [...prev, newComment]);
       }
+      setPost((prev) => (prev ? { ...prev, commentCount: newComment.postCommentCount } : prev));
       setCommentText("");
       setReplyTo(null);
       setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: "smooth" }), 0);
@@ -308,6 +328,8 @@ export default function PostDetailPage() {
 
   const isMyPost = userId != null && post != null && String(post.author.id) === userId;
   const images = post?.mediaList.map((m) => m.url) ?? [];
+  const currentPlaceName = post?.mediaList[imgIndex]?.placeName ?? null;
+  const currentPlaceId = post?.mediaList[imgIndex]?.placeId ?? null;
   const liked = likeState?.liked ?? false;
   const likeCount = likeState?.likeCount ?? 0;
   const isBookmarked = bookmarked ?? false;
@@ -356,6 +378,16 @@ export default function PostDetailPage() {
             </button>
           </>
         )}
+        {!isMyPost && userId && (
+          <button
+            type="button"
+            onClick={() => setReportTarget({ type: "POST", id: post.id })}
+            aria-label="게시물 신고"
+            className="grid size-9 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100"
+          >
+            <Flag size={18} />
+          </button>
+        )}
       </header>
 
       {/* 스크롤 영역 */}
@@ -390,7 +422,29 @@ export default function PostDetailPage() {
                     <button key={i} type="button" onClick={(e) => { e.stopPropagation(); setImgIndex(i); }} className={`size-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/40"}`} />
                   ))}
                 </div>
+                <div className="pointer-events-none absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white shadow-sm backdrop-blur-sm">
+                  <ImagePlus size={12} />
+                  {imgIndex + 1}/{images.length}
+                </div>
               </>
+            )}
+
+            {currentPlaceName && currentPlaceId != null && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setDetailPlaceId(currentPlaceId); }}
+                aria-label={`${currentPlaceName} 장소 상세`}
+                className="absolute bottom-2.5 left-2.5 flex cursor-pointer items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white shadow-sm backdrop-blur-sm hover:bg-black/70"
+              >
+                <MapPin size={11} className="shrink-0" />
+                <span className="max-w-40 truncate">{currentPlaceName}</span>
+              </button>
+            )}
+            {currentPlaceName && currentPlaceId == null && (
+              <div className="pointer-events-none absolute bottom-2.5 left-2.5 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white shadow-sm backdrop-blur-sm">
+                <MapPin size={11} className="shrink-0" />
+                <span className="max-w-40 truncate">{currentPlaceName}</span>
+              </div>
             )}
           </div>
         )}
@@ -463,6 +517,7 @@ export default function PostDetailPage() {
           </button>
           <button type="button" onClick={() => router.push(`/community/users/${post.author.id}`)} className="flex-1 text-left cursor-pointer">
             <p className="text-sm font-semibold">{post.author.nickname}</p>
+            <p className="text-xs text-zinc-400">{post.createdAgo}</p>
           </button>
           {!isMyPost && following !== null && (
             <button
@@ -535,13 +590,6 @@ export default function PostDetailPage() {
           )}
         </div>
 
-        {/* 위치 */}
-        {post.placeTags.length > 0 && (
-          <div className="mx-4 mb-4 flex items-center gap-1.5 rounded-xl bg-zinc-50 px-3 py-2.5">
-            <MapPin size={14} className="text-[#2E7DF2] shrink-0" />
-            <span className="text-xs text-zinc-600">위치 태그 있음</span>
-          </div>
-        )}
 
         {/* 댓글 버튼 */}
         <button
@@ -581,9 +629,9 @@ export default function PostDetailPage() {
                 )}
                 {comments.map((c) => (
                   <div key={c.id} className="space-y-4">
-                    <CommentItem comment={c} postId={post.id} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} />
+                    <CommentItem comment={c} postId={post.id} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} onReport={handleReportComment} />
                     {c.replies.map((reply) => (
-                      <CommentItem key={reply.id} comment={reply} postId={post.id} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} isReply />
+                      <CommentItem key={reply.id} comment={reply} postId={post.id} userId={userId} onReply={handleReply} onDelete={handleDeleteComment} onReport={handleReportComment} isReply />
                     ))}
                   </div>
                 ))}
@@ -617,6 +665,13 @@ export default function PostDetailPage() {
             </motion.div>
         )}
       </AnimatePresence>
+
+      {detailPlaceId != null && (
+        <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
+      )}
+      {reportTarget && (
+        <ReportSheet targetType={reportTarget.type} targetId={reportTarget.id} onClose={() => setReportTarget(null)} />
+      )}
     </div>
   );
 }

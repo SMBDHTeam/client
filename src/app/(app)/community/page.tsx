@@ -38,9 +38,10 @@ function GridTile({ post, onClick, index }: { post: FeedPost; onClick: () => voi
       )}
       <div className="absolute bottom-0 left-0 right-0 p-3">
         <p className="truncate text-xs font-semibold text-white drop-shadow">{post.placeName ?? post.content}</p>
-        <div className="mt-0.5 flex gap-2 text-[11px] text-white/80">
+        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-white/80">
           <span className="flex items-center gap-0.5"><Heart size={10} className="fill-white/80 stroke-none" /> {post.likeCount}</span>
           <span className="flex items-center gap-0.5"><MessageCircle size={10} /> {post.commentCount}</span>
+          <span>· {post.createdAgo}</span>
         </div>
       </div>
     </button>
@@ -73,6 +74,7 @@ function SquareGridTile({ post, onClick }: { post: FeedPost; onClick: () => void
         <span className="flex items-center gap-1 text-xs font-semibold text-white">
           <MessageCircle size={13} className="fill-white stroke-none" /> {post.commentCount}
         </span>
+        <span className="text-xs font-semibold text-white">{post.createdAgo}</span>
       </div>
     </button>
   );
@@ -289,6 +291,7 @@ function onTagMouseDown(e: React.MouseEvent) {
                 <div className="mt-0.5 flex items-center gap-1 text-[10px] text-white/80">
                   <Heart size={9} className="fill-red-400 stroke-none" />
                   <span>{post.likeCount}</span>
+                  <span>· {post.createdAgo}</span>
                 </div>
               </div>
               <div className="absolute left-2 top-2">

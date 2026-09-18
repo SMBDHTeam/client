@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ChevronLeft, ImagePlus, X, ChevronRight, MapPin, ChevronDown } from "lucide-react";
+import { ChevronLeft, ImagePlus, X, ChevronRight, MapPin, ChevronDown, Check } from "lucide-react";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
 import { createPost, uploadMedia } from "@/lib/api/posts";
 import { getSchedules, getSchedule } from "@/lib/api/schedules";
@@ -58,8 +58,9 @@ export default function CommunityNewPage() {
   const [selectedTags, setSelectedTags] = useState<CommunityTagId[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const [step, setStep] = useState<"idle" | "trip" | "place">("idle");
+  const [step, setStep] = useState<"idle" | "photos" | "trip" | "place">("idle");
   const [pickerTab, setPickerTab] = useState<"trip" | "search">("trip");
+  const [pickerSelection, setPickerSelection] = useState<Set<number>>(new Set());
 
   const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
   const [schedulesLoading, setSchedulesLoading] = useState(true);
@@ -74,7 +75,7 @@ export default function CommunityNewPage() {
   const [activeSearchPlace, setActiveSearchPlace] = useState<PlaceSearchItem | null>(null);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>();
 
-  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
+  const [mediaPlaces, setMediaPlaces] = useState<(SelectedPlace | null)[]>([]);
 
   useEffect(() => {
     getSchedules()
@@ -159,6 +160,7 @@ export default function CommunityNewPage() {
 
     if (newItems.length > 0) {
       setMediaItems((prev) => [...prev, ...newItems]);
+      setMediaPlaces((prev) => [...prev, ...newItems.map(() => null)]);
     }
   }
 
@@ -169,11 +171,40 @@ export default function CommunityNewPage() {
       setImgIndex((cur) => Math.min(cur, Math.max(next.length - 1, 0)));
       return next;
     });
+    setMediaPlaces((prev) => prev.filter((_, i) => i !== index));
+    setPickerSelection((prev) => {
+      const next = new Set<number>();
+      prev.forEach((i) => {
+        if (i < index) next.add(i);
+        else if (i > index) next.add(i - 1);
+      });
+      return next;
+    });
+  }
+
+  function togglePhotoSelection(index: number) {
+    setPickerSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }
+
+  function openPhotoTagger() {
+    setPickerSelection(new Set());
+    setStep("photos");
   }
 
   function openPicker() {
     setPickerTab("trip");
     setStep("trip");
+  }
+
+  function applyPlaceToSelection(place: SelectedPlace) {
+    setMediaPlaces((prev) => prev.map((p, i) => (pickerSelection.has(i) ? place : p)));
+    setPickerSelection(new Set());
+    setStep("photos");
   }
 
   function pickTrip(schedule: ScheduleSummary) {
@@ -187,14 +218,13 @@ export default function CommunityNewPage() {
   }
 
   function pickPlace(place: SchedulePlace) {
-    setSelectedPlace({
+    applyPlaceToSelection({
       placeId: place.id,
       name: place.name,
       address: place.address,
       latitude: place.latitude,
       longitude: place.longitude,
     });
-    setStep("idle");
   }
 
   function focusSearchPlace(item: PlaceSearchItem) {
@@ -208,14 +238,13 @@ export default function CommunityNewPage() {
     try {
       const resolved = item.placeId !== null && item.resolved ? item : await resolvePlace(item);
       if (resolved.placeId == null) throw new Error("장소를 확인하지 못했어요.");
-      setSelectedPlace({
+      applyPlaceToSelection({
         placeId: resolved.placeId,
         name: resolved.name,
         address: resolved.address ?? null,
         latitude: resolved.latitude,
         longitude: resolved.longitude,
       });
-      setStep("idle");
     } catch {
       toast.error("장소를 선택하지 못했어요. 다시 시도해주세요.");
     } finally {
@@ -223,14 +252,12 @@ export default function CommunityNewPage() {
     }
   }
 
-  function clearLocation() {
-    setSelectedSchedule(null);
-    setScheduleDetail(null);
-    setSelectedPlace(null);
-    setStep("idle");
+  function clearPhotoPlace(index: number) {
+    setMediaPlaces((prev) => prev.map((p, i) => (i === index ? null : p)));
   }
 
   const canSubmit = text.trim().length > 0 && mediaItems.length > 0 && !submitting;
+  const taggedPhotoCount = mediaPlaces.filter(Boolean).length;
 
   async function handleSubmit() {
     if (submitting || !session?.user?.id) return;
@@ -247,10 +274,12 @@ export default function CommunityNewPage() {
       const uploaded = await uploadMedia(mediaItems.map((item) => item.file));
       await createPost({
         content: text.trim(),
-        mediaList: uploaded.map((m, i) => ({ url: m.url, mediaType: m.mediaType, sortOrder: i })),
-        placeTags: selectedPlace
-          ? [{ placeId: selectedPlace.placeId, latitude: selectedPlace.latitude, longitude: selectedPlace.longitude }]
-          : [],
+        mediaList: uploaded.map((m, i) => ({
+          url: m.url,
+          mediaType: m.mediaType,
+          sortOrder: i,
+          placeId: mediaPlaces[i]?.placeId ?? null,
+        })),
         categories: selectedTags.map((id) => COMMUNITY_TAGS.find((t) => t.id === id)!.label),
       });
       router.back();
@@ -268,7 +297,8 @@ export default function CommunityNewPage() {
           type="button"
           onClick={() => {
             if (step === "place") { setStep("trip"); return; }
-            if (step === "trip") { setStep("idle"); return; }
+            if (step === "trip") { setStep("photos"); return; }
+            if (step === "photos") { setStep("idle"); return; }
             router.back();
           }}
           className="grid size-8 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100"
@@ -276,7 +306,13 @@ export default function CommunityNewPage() {
           <ChevronLeft size={22} />
         </button>
         <h1 className="flex-1 text-center text-base font-semibold">
-          {step === "trip" ? "장소 태그" : step === "place" ? "장소 선택" : "새 게시물"}
+          {step === "photos"
+            ? "사진 선택"
+            : step === "trip"
+              ? "장소 태그"
+              : step === "place"
+                ? "장소 선택"
+                : "새 게시물"}
         </h1>
         <button
           type="button"
@@ -288,7 +324,79 @@ export default function CommunityNewPage() {
         </button>
       </header>
 
-      {/* 장소 태그 시트: 내 일정 / 장소 검색 탭 */}
+      {step === "photos" && (
+        <div className="flex flex-1 flex-col overflow-y-auto">
+          <div className="px-4 pt-4 pb-2">
+            <p className="text-xs text-zinc-400">
+              장소를 태그할 사진을 선택하세요
+            </p>
+            <p className="mt-0.5 text-xs text-zinc-400">태그하지 않아도 게시할 수 있어요</p>
+          </div>
+          <div className="grid grid-cols-3 gap-0.5 px-0.5">
+            {mediaItems.map((item, index) => {
+              const taggedPlace = mediaPlaces[index];
+              const selected = pickerSelection.has(index);
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => togglePhotoSelection(index)}
+                  className="relative aspect-square overflow-hidden bg-zinc-100"
+                >
+                  {item.file.type.startsWith("video/") ? (
+                    <video src={item.previewUrl} className="h-full w-full object-cover" muted />
+                  ) : (
+                    <img src={item.previewUrl} alt="" className="h-full w-full object-cover" />
+                  )}
+                  <div
+                    className={`absolute inset-0 transition-colors ${selected ? "bg-[#2E7DF2]/25" : "bg-black/0"}`}
+                  />
+
+                  {taggedPlace && (
+                    <div className="absolute left-1.5 top-1.5 flex items-center gap-0.5 rounded-full bg-[#17B89B] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      <Check size={10} strokeWidth={3} />
+                      완료
+                    </div>
+                  )}
+
+                  <div
+                    className={`absolute right-1.5 top-1.5 grid size-5 place-items-center rounded-full border-2 ${
+                      selected ? "border-[#2E7DF2] bg-[#2E7DF2] text-white" : "border-white bg-black/20 text-transparent"
+                    }`}
+                  >
+                    <Check size={12} strokeWidth={3} />
+                  </div>
+
+                  {taggedPlace && (
+                    <p className="absolute inset-x-0 bottom-0 truncate bg-black/50 px-1.5 py-1 text-center text-[10px] font-medium text-white">
+                      {taggedPlace.name}
+                    </p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-auto flex items-center gap-2 border-t border-zinc-100 px-4 py-3">
+            <button
+              type="button"
+              onClick={() => setStep("idle")}
+              className="rounded-full px-4 py-2.5 text-sm font-semibold text-zinc-500"
+            >
+              완료
+            </button>
+            <button
+              type="button"
+              disabled={pickerSelection.size === 0}
+              onClick={openPicker}
+              className="flex-1 rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B] py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              장소 선택 ({pickerSelection.size})
+            </button>
+          </div>
+        </div>
+      )}
+
       {step === "trip" && (
         <div className="flex flex-1 flex-col overflow-y-auto">
           <div className="mx-4 mt-4 flex gap-1 rounded-full bg-zinc-100 p-1">
@@ -369,10 +477,7 @@ export default function CommunityNewPage() {
                       ? {
                           name: activeSearchPlace.name,
                           tag: `${activeSearchPlace.categoryLabel || placeCategoryLabel(activeSearchPlace.category)} · ${activeSearchPlace.address ?? ""}`,
-                          alreadyAdded:
-                            selectedPlace != null &&
-                            activeSearchPlace.placeId != null &&
-                            selectedPlace.placeId === activeSearchPlace.placeId,
+                          alreadyAdded: false,
                         }
                       : null
                   }
@@ -425,7 +530,6 @@ export default function CommunityNewPage() {
         </div>
       )}
 
-      {/* 장소 선택 시트 */}
       {step === "place" && selectedSchedule && (
         <div className="flex flex-1 flex-col overflow-y-auto">
           <p className="px-4 pt-4 pb-2 text-xs text-zinc-400">
@@ -461,7 +565,6 @@ export default function CommunityNewPage() {
         </div>
       )}
 
-      {/* 메인 작성 화면 */}
       {step === "idle" && (
         <div className="flex flex-1 flex-col overflow-y-auto">
           {mediaItems.length > 0 ? (
@@ -486,6 +589,20 @@ export default function CommunityNewPage() {
               >
                 <X size={14} />
               </button>
+
+              {mediaPlaces[imgIndex] && (
+                <div className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-black/55 py-1 pl-2.5 pr-1 text-xs font-medium text-white shadow-sm backdrop-blur-sm">
+                  <MapPin size={12} className="shrink-0" />
+                  <span className="max-w-32 truncate">{mediaPlaces[imgIndex]!.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => clearPhotoPlace(imgIndex)}
+                    className="grid size-4 shrink-0 place-items-center rounded-full hover:bg-white/20"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              )}
 
               {imgIndex > 0 && (
                 <button
@@ -569,7 +686,6 @@ export default function CommunityNewPage() {
 
             <div className="h-px bg-zinc-100" />
 
-            {/* 태그 */}
             <div>
               <p className="mb-2 text-xs font-medium text-zinc-400">태그 선택 (복수 가능)</p>
               <div className="flex flex-wrap gap-2">
@@ -593,29 +709,16 @@ export default function CommunityNewPage() {
 
             <div className="h-px bg-zinc-100" />
 
-            {/* 장소 */}
-            <div className="flex items-center gap-2">
-              <MapPin size={15} className={`shrink-0 ${selectedPlace ? "text-[#2E7DF2]" : "text-zinc-400"}`} />
-              {selectedPlace ? (
-                <div className="flex flex-1 items-center justify-between">
-                  <button type="button" onClick={openPicker} className="min-w-0 text-left">
-                    <p className="truncate text-sm font-medium text-zinc-800">{selectedPlace.name}</p>
-                    {selectedPlace.address && <p className="text-xs text-zinc-400">{selectedPlace.address}</p>}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearLocation}
-                    className="grid size-6 shrink-0 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-              ) : (
-                <button type="button" onClick={openPicker} className="text-sm text-zinc-400">
-                  내 일정에서 장소 태그
+            {mediaItems.length > 0 && (
+              <div className="flex items-center gap-2">
+                <MapPin size={15} className={`shrink-0 ${taggedPhotoCount > 0 ? "text-[#2E7DF2]" : "text-zinc-400"}`} />
+                <button type="button" onClick={openPhotoTagger} className="text-sm text-zinc-500">
+                  {taggedPhotoCount > 0
+                    ? `사진별 장소 태그 (${taggedPhotoCount}/${mediaItems.length}장)`
+                    : "사진별로 장소 태그"}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}

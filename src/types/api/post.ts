@@ -8,12 +8,8 @@ export type PostMedia = {
   url: string;
   mediaType: "IMAGE" | "VIDEO";
   sortOrder: number;
-};
-
-export type PostPlaceTag = {
-  placeId: number;
-  latitude: number;
-  longitude: number;
+  placeId: number | null;
+  placeName?: string | null;
 };
 
 export type FeedPost = {
@@ -29,6 +25,7 @@ export type FeedPost = {
   liked: boolean;
   bookmarked: boolean;
   createdAt: string;
+  createdAgo: string;
 };
 
 export type PostDetail = {
@@ -36,13 +33,13 @@ export type PostDetail = {
   author: PostAuthor;
   content: string;
   mediaList: PostMedia[];
-  placeTags: PostPlaceTag[];
   categories: string[];
   likeCount: number;
   commentCount: number;
   liked: boolean;
   bookmarked: boolean;
   createdAt: string;
+  createdAgo: string;
   updatedAt: string;
 };
 
@@ -54,7 +51,6 @@ export type FeedResponse = {
 export type CreatePostRequest = {
   content: string;
   mediaList: PostMedia[];
-  placeTags: PostPlaceTag[];
   categories: string[];
 };
 
@@ -65,11 +61,12 @@ export type LikeResponse = {
 
 export type PostComment = {
   id: number;
-  author: PostAuthor;
-  content: string;
+  author: PostAuthor | null;
+  content: string | null;
   likeCount: number;
   liked: boolean;
   createdAt: string;
+  createdAgo: string;
   deleted: boolean;
   hiddenReason: string | null;
   replies: PostComment[];
@@ -78,4 +75,12 @@ export type PostComment = {
 export type CommentListResponse = {
   items: PostComment[];
   nextCursor: number | null;
+};
+
+export type CreateCommentResponse = PostComment & {
+  postCommentCount: number;
+};
+
+export type DeleteCommentResponse = {
+  postCommentCount: number;
 };

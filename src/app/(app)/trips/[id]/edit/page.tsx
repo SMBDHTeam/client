@@ -7,6 +7,7 @@ import { getSchedule, updateSchedule } from "@/lib/api/schedules";
 import { searchPlacesGeo as searchPlaces } from "@/lib/api/places";
 import { toast } from "sonner";
 import type { PlaceSummary } from "@/types/api/place";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 
 type EditableStop = {
   key: string;
@@ -30,6 +31,7 @@ export default function EditSchedulePage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceSummary[]>([]);
   const [searching, setSearching] = useState(false);
+  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
 
   useEffect(() => {
     getSchedule(params.id)
@@ -185,12 +187,16 @@ export default function EditSchedulePage() {
                     <span className="grid size-6 shrink-0 place-items-center rounded-full bg-zinc-900 text-xs font-bold text-white">
                       {i + 1}
                     </span>
-                    <div className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => setDetailPlaceId(s.placeId)}
+                      className="min-w-0 flex-1 cursor-pointer text-left"
+                    >
                       <p className="truncate text-sm font-semibold">{s.name}</p>
                       {s.subtitle && (
                         <p className="mt-0.5 truncate text-xs text-zinc-400">{s.subtitle}</p>
                       )}
-                    </div>
+                    </button>
                     <button
                       type="button"
                       onClick={() => removeStop(s.key)}
@@ -255,6 +261,9 @@ export default function EditSchedulePage() {
             )}
           </section>
         </div>
+      )}
+      {detailPlaceId != null && (
+        <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
       )}
     </div>
   );

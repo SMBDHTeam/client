@@ -25,7 +25,7 @@ export function QueryState({
           <button
             type="button"
             onClick={onRetry}
-            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white"
+            className="h-9 rounded-lg bg-zinc-900 px-4 text-[13px] font-semibold text-white hover:bg-zinc-700"
           >
             다시 시도
           </button>
@@ -41,7 +41,7 @@ export function QueryState({
 
 function Box({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white px-6 py-12 text-sm text-zinc-500 ring-1 ring-black/5">
+    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl bg-white px-6 py-16 text-sm text-zinc-500 ring-1 ring-black/5">
       {children}
     </div>
   );

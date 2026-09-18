@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getUserDetail, getUsers, updateUserStatus } from "@/lib/api/admin";
+import Link from "next/link";
+import {
+  getAdminActions,
+  getUserDetail,
+  getUsers,
+  updateUserStatus,
+} from "@/lib/api/admin";
 import { useAdminQuery } from "@/lib/api/use-admin-query";
 import { QueryState } from "@/components/admin/QueryState";
+import { FilterTabs, PageHeader } from "@/components/admin/ui";
 import { Pager } from "@/components/admin/Pager";
 import type { UserStatus } from "@/types/api/admin";
 
@@ -47,32 +54,23 @@ export default function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-lg font-bold text-zinc-900">사용자</h1>
+      <PageHeader title="사용자" description="계정 상태와 제재 이력" />
 
       <div className="flex flex-wrap items-center gap-3">
         <input
           value={keywordInput}
           onChange={(event) => setKeywordInput(event.target.value)}
           placeholder="닉네임 또는 이메일"
-          className="min-w-0 flex-1 rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-black/5 outline-none focus:ring-[#2E7DF2]"
+          className="h-10 min-w-0 flex-1 rounded-xl bg-white px-3.5 text-sm ring-1 ring-zinc-200 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-[#2E7DF2]"
         />
-        <div className="flex gap-1 rounded-lg bg-zinc-100 p-0.5">
-          {STATUS_FILTERS.map((filter) => (
-            <button
-              key={filter.label}
-              type="button"
-              onClick={() => {
-                setStatus(filter.value);
-                setPage(0);
-              }}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium ${
-                filter.value === status ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500"
-              }`}
-            >
-              {filter.label}
-            </button>
-          ))}
-        </div>
+        <FilterTabs
+          options={STATUS_FILTERS.map((f) => ({ value: f.value, label: f.label }))}
+          value={status}
+          onChange={(value) => {
+            setStatus(value);
+            setPage(0);
+          }}
+        />
       </div>
 
       <QueryState
@@ -91,7 +89,7 @@ export default function AdminUsersPage() {
                 <button
                   type="button"
                   onClick={() => setSelected(user.id)}
-                  className="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left ring-1 ring-black/5 hover:bg-zinc-50"
+                  className="flex w-full items-center gap-3 rounded-2xl bg-white p-5 text-left ring-1 ring-black/5 transition-colors hover:bg-zinc-50"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 truncate text-sm font-medium text-zinc-900">
@@ -102,7 +100,7 @@ export default function AdminUsersPage() {
                         </span>
                       )}
                     </p>
-                    <p className="truncate text-xs text-zinc-400">{user.email}</p>
+                    <p className="truncate text-[13px] text-zinc-400">{user.email}</p>
                   </div>
                   <StatusBadge user={user} />
                 </button>
@@ -189,7 +187,7 @@ function UserDetailSheet({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
       <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-zinc-900">사용자 #{userId}</h2>
+          <h2 className="text-lg font-bold text-zinc-900">사용자 #{userId}</h2>
           <button type="button" onClick={onClose} className="text-sm text-zinc-500">
             닫기
           </button>
@@ -206,7 +204,7 @@ function UserDetailSheet({
                 {user.nickname}
                 <StatusBadge user={user} />
               </p>
-              <p className="text-xs text-zinc-400">{user.email}</p>
+              <p className="text-[13px] text-zinc-400">{user.email}</p>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
@@ -231,35 +229,44 @@ function UserDetailSheet({
             {failure && <p className="text-sm text-rose-600">{failure}</p>}
 
             <div className="flex flex-col gap-3 border-t border-zinc-100 pt-4">
-              {user.writeBlocked ? (
+              {user.role === "ADMIN" ? (
+                // 서버도 관리자 정지를 막는다. 입력을 받았다가 거절하느니 이유와 갈 곳을 먼저 보여준다.
+                <p className="rounded-xl bg-zinc-50 p-3 text-[13px] leading-relaxed text-zinc-600">
+                  관리자는 정지할 수 없습니다. 제재가 필요하면 먼저{" "}
+                  <Link href="/admin/operators" className="font-semibold text-[#2E7DF2]">
+                    운영자
+                  </Link>{" "}
+                  화면에서 일반 사용자로 바꾸세요.
+                </p>
+              ) : user.writeBlocked ? (
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => run(() => updateUserStatus(userId, { suspended: false }))}
-                  className="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40"
+                  className="h-11 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white disabled:opacity-40"
                 >
                   정지 해제
                 </button>
               ) : (
                 <>
-                  <p className="text-xs font-medium text-zinc-500">쓰기 정지</p>
+                  <p className="text-[13px] font-semibold text-zinc-500">쓰기 정지</p>
                   <div className="flex gap-2">
                     <input
                       value={days}
                       onChange={(event) => setDays(event.target.value.replace(/\D/g, ""))}
                       inputMode="numeric"
                       placeholder="일수"
-                      className="w-20 rounded-xl bg-zinc-50 px-3 py-2 text-sm ring-1 ring-black/5 outline-none"
+                      className="h-10 w-20 rounded-xl bg-white px-3.5 text-sm ring-1 ring-zinc-200 outline-none focus:ring-2 focus:ring-[#2E7DF2]"
                     />
                     <input
                       value={reason}
                       onChange={(event) => setReason(event.target.value)}
                       placeholder="사유"
                       maxLength={500}
-                      className="min-w-0 flex-1 rounded-xl bg-zinc-50 px-3 py-2 text-sm ring-1 ring-black/5 outline-none"
+                      className="h-10 min-w-0 flex-1 rounded-xl bg-white px-3.5 text-sm ring-1 ring-zinc-200 outline-none focus:ring-2 focus:ring-[#2E7DF2]"
                     />
                   </div>
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-[13px] text-zinc-400">
                     일수를 비우면 기한 없는 정지가 됩니다. 정지돼도 읽기는 열려 있습니다.
                   </p>
                   <button
@@ -274,13 +281,15 @@ function UserDetailSheet({
                         }),
                       )
                     }
-                    className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40"
+                    className="h-11 rounded-xl bg-rose-600 px-5 text-sm font-semibold text-white disabled:opacity-40"
                   >
                     정지
                   </button>
                 </>
               )}
             </div>
+
+              <ActionHistory userId={userId} />
           </div>
         )}
       </div>
@@ -309,4 +318,38 @@ function Metric({
 
 function formatDate(value: string) {
   return value.slice(0, 16).replace("T", " ");
+}
+
+
+/** 이 사용자에게 무슨 조치가 있었나. 분쟁 대응의 주 경로다. */
+function ActionHistory({ userId }: { userId: number }) {
+  const history = useAdminQuery(
+    () => getAdminActions({ targetType: "USER", targetId: userId, size: 10 }),
+    `user-actions:${userId}`,
+  );
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-zinc-100 pt-4">
+      <p className="text-[13px] font-semibold text-zinc-500">조치 이력</p>
+      {history.loading && <p className="text-[13px] text-zinc-400">불러오는 중…</p>}
+      {history.error && <p className="text-[13px] text-zinc-400">{history.error}</p>}
+      {history.data && history.data.items.length === 0 && (
+        <p className="text-[13px] text-zinc-400">기록된 조치가 없습니다.</p>
+      )}
+      {history.data && history.data.items.length > 0 && (
+        <ul className="flex flex-col gap-1.5">
+          {history.data.items.map((action) => (
+            <li key={action.id} className="text-xs text-zinc-600">
+              <span className="text-zinc-400">
+                {action.createdAt.slice(0, 16).replace("T", " ")}
+              </span>
+              {" · "}
+              {action.action}
+              {action.reason && <span className="text-zinc-500"> — {action.reason}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }

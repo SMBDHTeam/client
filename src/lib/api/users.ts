@@ -62,3 +62,18 @@ export async function getFollowers(userId: number, params: { page?: number; size
   const { data } = await apiClient.get(`/users/${userId}/followers`, { params });
   return data;
 }
+
+export async function blockUser(userId: number): Promise<{ blocked: boolean }> {
+  const { data } = await apiClient.post(`/users/${userId}/blocks`, null);
+  return data;
+}
+
+export async function unblockUser(userId: number): Promise<{ blocked: boolean }> {
+  const { data } = await apiClient.delete(`/users/${userId}/blocks`);
+  return data;
+}
+
+export async function getBlockedUsers(params: { page?: number; size?: number } = {}): Promise<{ items: UserSummary[] }> {
+  const { data } = await apiClient.get(`/users/me/blocks`, { params });
+  return data;
+}

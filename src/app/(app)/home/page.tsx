@@ -5,21 +5,28 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import HomeHeader from "@/components/layout/HomeHeader";
 import PageFade from "@/components/ui/PageFade";
-import { POPULAR_DESTINATIONS } from "@/mocks/home";
+import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 import { getPopularFeed } from "@/lib/api/posts";
+import { getPopularPlaces } from "@/lib/api/places";
 import { getUserProfile } from "@/lib/api/users";
 import type { FeedPost } from "@/types/api/post";
+import type { PlaceSummary } from "@/types/api/place";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
   const [userName, setUserName] = useState<string | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [communityPosts, setCommunityPosts] = useState<FeedPost[]>([]);
+  const [popularPlaces, setPopularPlaces] = useState<PlaceSummary[]>([]);
+  const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
 
   useEffect(() => {
     if (status === "loading") return;
     getPopularFeed({ size: 2 })
       .then((res) => setCommunityPosts(res.items))
+      .catch(() => {});
+    getPopularPlaces({ size: 10 })
+      .then((res) => setPopularPlaces(res.items))
       .catch(() => {});
   }, [status]);
 
@@ -66,21 +73,36 @@ export default function HomePage() {
 
         <section>
           <h2 className="mb-3 text-lg font-bold">지금 인기 여행지</h2>
+          {popularPlaces.length > 0 ? (
           <div className="grid grid-cols-2 gap-4">
-            {POPULAR_DESTINATIONS.map((place, i) => (
-              <Link
-                key={i}
-                href={place.href}
-                className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5"
+            {popularPlaces.map((place) => (
+              <button
+                key={place.placeId}
+                type="button"
+                onClick={() => setDetailPlaceId(place.placeId)}
+                className="overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-black/5"
               >
-                <div className={`aspect-16/10 bg-linear-to-br ${place.gradient}`} />
-                <div className="px-3 py-3">
-                  <p className="text-sm font-semibold">{place.name}</p>
-                  <p className="mt-0.5 text-xs text-zinc-400">{place.desc}</p>
+                <div className="aspect-16/10 bg-zinc-100">
+                  {place.primaryImageUrl && (
+                    <img
+                      src={place.primaryImageUrl}
+                      alt={place.name}
+                      className="h-full w-full object-cover"
+                    />
+                  )}
                 </div>
-              </Link>
+                <div className="px-3 py-3">
+                  <p className="truncate text-sm font-semibold">{place.name}</p>
+                  <p className="mt-0.5 truncate text-xs text-zinc-400">
+                    {place.categoryLabel ?? place.address ?? ""}
+                  </p>
+                </div>
+              </button>
             ))}
           </div>
+          ) : (
+            <p className="py-8 text-center text-sm text-zinc-400">인기 여행지 정보를 준비 중이에요</p>
+          )}
         </section>
 
         {communityPosts.length > 0 && (
@@ -105,7 +127,7 @@ export default function HomePage() {
                   <div className="px-3 py-3">
                     <p className="truncate text-sm font-semibold">{post.placeName ?? post.content}</p>
                     <p className="mt-0.5 text-xs text-zinc-400">
-                      {post.categories[0] ?? "여행후기"} · 댓글 {post.commentCount}
+                      {post.categories[0] ?? "여행후기"} · 댓글 {post.commentCount} · {post.createdAgo}
                     </p>
                   </div>
                 </Link>
@@ -114,6 +136,10 @@ export default function HomePage() {
           </section>
         )}
       </div>
+
+      {detailPlaceId != null && (
+        <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
+      )}
     </PageFade>
   );
 }

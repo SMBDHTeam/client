@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
-import { BarChart3, Flag, MapPinOff, Users } from "lucide-react";
+import { BarChart3, Flag, MapPinOff, ScrollText, ShieldCheck, Users } from "lucide-react";
 
 /**
  * 관리자 콘솔 레이아웃.
@@ -20,7 +20,9 @@ const NAV = [
   { href: "/admin", label: "대시보드", icon: BarChart3 },
   { href: "/admin/reports", label: "신고", icon: Flag },
   { href: "/admin/users", label: "사용자", icon: Users },
+  { href: "/admin/operators", label: "운영자", icon: ShieldCheck },
   { href: "/admin/places", label: "장소", icon: MapPinOff },
+  { href: "/admin/actions", label: "이력", icon: ScrollText },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -34,11 +36,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (status === "unauthenticated") {
     return (
       <Centered>
-        <p className="text-zinc-600">로그인이 필요합니다.</p>
+        <p className="text-base text-zinc-600">로그인이 필요합니다.</p>
         <button
           type="button"
           onClick={() => signIn("google")}
-          className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+          className="h-10 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white"
         >
           로그인
         </button>
@@ -49,10 +51,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (session?.user?.role !== "ADMIN") {
     return (
       <Centered>
-        <p className="font-medium text-zinc-800">관리자만 볼 수 있는 화면입니다.</p>
-        <p className="text-sm text-zinc-500">
-          권한이 필요하면 담당자에게 문의하세요.
-        </p>
+        <p className="text-lg font-semibold text-zinc-900">관리자만 볼 수 있는 화면입니다.</p>
+        <p className="text-sm text-zinc-500">권한이 필요하면 담당자에게 문의하세요.</p>
         <Link href="/home" className="text-sm font-medium text-[#2E7DF2]">
           홈으로
         </Link>
@@ -63,13 +63,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex flex-1 flex-col bg-zinc-50">
       <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-3">
-          <span className="text-sm font-bold text-zinc-900">관리자 콘솔</span>
-          <span className="truncate text-xs text-zinc-500">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 pt-4 pb-3">
+          <span className="text-base font-bold tracking-tight text-zinc-900">관리자 콘솔</span>
+          <span className="truncate text-sm text-zinc-500">
             {session.user.nickname ?? session.user.email}
           </span>
         </div>
-        <nav className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-3 pb-2">
+        <nav className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4 pb-2">
           {NAV.map(({ href, label, icon: Icon }) => {
             // 대시보드는 정확히 일치할 때만 활성이다. startsWith 로 보면 항상 켜진다.
             const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
@@ -77,11 +77,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={href}
                 href={href}
-                className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium ${
-                  active ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-100"
+                className={`flex h-10 shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors ${
+                  active
+                    ? "bg-zinc-900 text-white"
+                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
                 }`}
               >
-                <Icon size={15} aria-hidden />
+                <Icon size={17} aria-hidden />
                 {label}
               </Link>
             );
@@ -89,7 +91,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-8">{children}</main>
     </div>
   );
 }
