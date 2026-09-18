@@ -60,6 +60,7 @@ type ScheduleCourseViewProps = {
   onPlaceDetail?: (placeId: number) => void;
   imageUnavailableLabel?: string | null;
   showSpontaneousRoadGuidance?: boolean;
+  appearance?: "default" | "spontaneous-result";
 };
 
 function hasCoordinates(
@@ -155,6 +156,7 @@ export default function ScheduleCourseView({
   onPlaceDetail,
   imageUnavailableLabel = null,
   showSpontaneousRoadGuidance = false,
+  appearance = "default",
 }: ScheduleCourseViewProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -187,6 +189,7 @@ export default function ScheduleCourseView({
     () => routeLinesForOrder(routeLines, finalTransit?.routeOrder),
     [finalTransit?.routeOrder, routeLines],
   );
+  const spontaneousResult = appearance === "spontaneous-result";
 
   const activeRoute = useMemo(() => {
     if (!activePlace || !hasCoordinates(activePlace)) return [];
@@ -276,31 +279,57 @@ export default function ScheduleCourseView({
                 : null
             }
             activeOrder={activePlace?.order}
-            className="h-72 w-full overflow-hidden rounded-3xl"
+            routeAppearance={spontaneousResult ? "spontaneous-result" : "default"}
+            className={`w-full overflow-hidden ${
+              spontaneousResult
+                ? "h-[19rem] rounded-[1.8rem] border-4 border-white shadow-[0_14px_34px_rgba(34,89,145,0.16)] ring-1 ring-[#dce9f7]"
+                : "h-72 rounded-3xl"
+            }`}
           />
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">{heading}</h2>
-        <p className="text-sm text-zinc-400">
+      <div className={`flex items-end justify-between ${spontaneousResult ? "pt-1" : ""}`}>
+        <h2
+          className={
+            spontaneousResult
+              ? "text-[1.35rem] font-extrabold tracking-[-0.045em] text-[#0b2146]"
+              : "text-lg font-bold"
+          }
+        >
+          {heading}
+        </h2>
+        <p className={spontaneousResult ? "text-sm font-medium text-[#8996aa]" : "text-sm text-zinc-400"}>
           {places.length}곳{distanceKm != null ? ` · 약 ${distanceKm.toFixed(1)}km` : ""}
         </p>
       </div>
 
       {places.length > 0 ? (
         <>
-          {activeTransit && (
-            <TransitPanel
-              transit={activeTransit}
-              hasRouteGeometry={visibleRouteLines.length > 0}
-              routeLines={activeRouteLines}
-              showSpontaneousRoadGuidance={showSpontaneousRoadGuidance}
-            />
-          )}
+          {activeTransit &&
+            (spontaneousResult ? (
+              <section className="relative pl-5">
+                <span className="absolute top-4 left-0 grid size-3.5 place-items-center rounded-full bg-[#2f7ff2] ring-4 ring-[#e8f2ff]" />
+                <span className="absolute top-8 bottom-[-1rem] left-[0.4rem] border-l-2 border-dotted border-[#90bdf6]" />
+                <TransitPanel
+                  transit={activeTransit}
+                  hasRouteGeometry={visibleRouteLines.length > 0}
+                  routeLines={activeRouteLines}
+                  showSpontaneousRoadGuidance={showSpontaneousRoadGuidance}
+                  appearance="spontaneous-result"
+                />
+              </section>
+            ) : (
+              <TransitPanel
+                transit={activeTransit}
+                hasRouteGeometry={visibleRouteLines.length > 0}
+                routeLines={activeRouteLines}
+                showSpontaneousRoadGuidance={showSpontaneousRoadGuidance}
+              />
+            ))}
 
           <div className="relative">
-            <div ref={viewportRef} className="-mx-5 overflow-hidden py-1">
+            <div ref={viewportRef} className={`-mx-5 overflow-hidden ${spontaneousResult ? "py-2" : "py-1"}`}>
               <div
                 className={`flex gap-3 ${animate ? "transition-transform duration-300 ease-out" : ""}`}
                 style={{ transform: `translateX(${offset}px)` }}
@@ -312,11 +341,25 @@ export default function ScheduleCourseView({
                     <div
                       key={place.id}
                       onClick={() => goTo(index)}
-                      className={`w-[80%] shrink-0 cursor-pointer overflow-hidden rounded-3xl bg-white text-left shadow-sm ring-1 transition-all duration-300 ${
-                        index === activeIndex ? "ring-2 ring-[#2E7DF2]" : "opacity-60 ring-black/5"
+                      className={`shrink-0 cursor-pointer overflow-hidden bg-white text-left ring-1 transition-all duration-300 ${
+                        spontaneousResult
+                          ? "w-[82%] rounded-[1.75rem] shadow-[0_11px_28px_rgba(36,73,119,0.1)]"
+                          : "w-[80%] rounded-3xl shadow-sm"
+                      } ${
+                        index === activeIndex
+                          ? spontaneousResult
+                            ? "ring-[3px] ring-[#2f7ff2]"
+                            : "ring-2 ring-[#2E7DF2]"
+                          : spontaneousResult
+                            ? "opacity-55 ring-[#e0e6ee]"
+                            : "opacity-60 ring-black/5"
                       }`}
                     >
-                      <div className="relative flex h-40 flex-col justify-between overflow-hidden p-4 text-white">
+                      <div
+                        className={`relative flex flex-col justify-between overflow-hidden text-white ${
+                          spontaneousResult ? "h-44 p-4" : "h-40 p-4"
+                        }`}
+                      >
                         <CourseImage
                           key={place.imageUrl ?? "fallback"}
                           imageUrl={place.imageUrl}
@@ -327,7 +370,9 @@ export default function ScheduleCourseView({
 
                         <div className="relative flex items-start justify-between">
                           <span
-                            className="grid size-7 shrink-0 place-items-center rounded-full text-sm font-bold text-white shadow"
+                            className={`grid shrink-0 place-items-center rounded-full font-bold text-white shadow ${
+                              spontaneousResult ? "size-9 text-base ring-4 ring-white/20" : "size-7 text-sm"
+                            }`}
                             style={{ background: MARKER_COLORS[index % MARKER_COLORS.length] }}
                           >
                             {place.order}
@@ -339,7 +384,7 @@ export default function ScheduleCourseView({
                               </span>
                             )}
                             {place.arrivalTime && (
-                              <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-zinc-700">
+                              <span className={`rounded-full bg-white/90 font-semibold text-zinc-700 ${spontaneousResult ? "px-3 py-1.5 text-sm" : "px-2.5 py-1 text-xs"}`}>
                                 {place.arrivalTime}
                               </span>
                             )}
@@ -347,16 +392,18 @@ export default function ScheduleCourseView({
                         </div>
 
                         <div className="relative">
-                          <p className="truncate text-base font-bold">{place.title}</p>
+                          <p className={`truncate font-bold ${spontaneousResult ? "text-lg tracking-[-0.03em]" : "text-base"}`}>
+                            {place.title}
+                          </p>
                           {place.categoryLabel && (
                             <p className="truncate text-xs text-white/75">{place.categoryLabel}</p>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-2 p-3">
+                      <div className={`flex flex-col gap-2 ${spontaneousResult ? "px-4 py-3.5" : "p-3"}`}>
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-medium text-zinc-500">
+                          <p className={`font-medium ${spontaneousResult ? "text-sm text-[#65758e]" : "text-xs text-zinc-500"}`}>
                             체류 {Math.abs(place.stayMinutes)}분
                           </p>
                           {detailPlaceId != null && onPlaceDetail && (
@@ -404,7 +451,7 @@ export default function ScheduleCourseView({
             </button>
           </div>
 
-          <div className="flex justify-center gap-1.5">
+          <div className={`flex justify-center gap-1.5 ${spontaneousResult ? "-mt-1" : ""}`}>
             {places.map((place, index) => (
               <span
                 key={place.id}
@@ -415,14 +462,14 @@ export default function ScheduleCourseView({
             ))}
           </div>
 
-          <div className="mt-2 px-1">
-            <div className="relative h-2 rounded-full bg-zinc-200">
+          <div className={`px-1 ${spontaneousResult ? "mt-3" : "mt-2"}`}>
+            <div className={`relative rounded-full bg-zinc-200 ${spontaneousResult ? "h-1.5" : "h-2"}`}>
               <div
                 className="absolute inset-y-0 left-0 rounded-full bg-linear-to-r from-[#2E7DF2] to-[#17B89B]"
                 style={{ width: `${progress}%` }}
               />
               <div
-                className="absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-[#2E7DF2] bg-white shadow-md"
+                className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-[#2E7DF2] bg-white shadow-md ${spontaneousResult ? "size-4.5" : "size-5"}`}
                 style={{ left: `${progress}%` }}
               />
             </div>
@@ -454,24 +501,51 @@ export default function ScheduleCourseView({
           )}
 
           {visibleFinalTransit && (
-            <section className="mt-2">
-              <h3 className="mb-2 text-sm font-bold text-zinc-800">{finalTransitTitle}</h3>
+            <section className={`mt-2 ${spontaneousResult ? "relative pl-5" : ""}`}>
+              {spontaneousResult && (
+                <>
+                  <span className="absolute top-1 left-0 grid size-3.5 place-items-center rounded-full bg-[#18bba2] ring-4 ring-[#dcf7f1]" />
+                  <span className="absolute top-5 bottom-3 left-[0.4rem] border-l-2 border-dotted border-[#75d7c7]" />
+                </>
+              )}
+              <h3
+                className={
+                  spontaneousResult
+                    ? "mb-2.5 text-base font-extrabold tracking-[-0.025em] text-[#16304f]"
+                    : "mb-2 text-sm font-bold text-zinc-800"
+                }
+              >
+                {finalTransitTitle}
+              </h3>
               <TransitPanel
                 transit={visibleFinalTransit}
                 hasRouteGeometry={renderableRouteLines(finalRouteLines).length > 0}
                 routeLines={finalRouteLines}
                 showSpontaneousRoadGuidance={showSpontaneousRoadGuidance}
+                appearance={spontaneousResult ? "spontaneous-result" : "default"}
               />
             </section>
           )}
 
           {(returnSummary || returnArrivalLabel) && (
-            <section className="rounded-2xl bg-zinc-50 px-4 py-3">
-              <p className="text-xs font-semibold text-zinc-500">복귀 정보</p>
+            <section
+              className={
+                spontaneousResult
+                  ? "rounded-[1.35rem] border border-[#dff4ef] bg-linear-to-r from-[#effaf7] to-[#eaf8fb] px-4 py-3.5"
+                  : "rounded-2xl bg-zinc-50 px-4 py-3"
+              }
+            >
+              <p className={`text-xs font-semibold ${spontaneousResult ? "text-[#52796f]" : "text-zinc-500"}`}>
+                복귀 정보
+              </p>
               <div className="mt-2 flex items-center justify-between gap-3">
-                {returnSummary && <p className="text-sm text-zinc-600">{returnSummary}</p>}
+                {returnSummary && (
+                  <p className={`text-sm ${spontaneousResult ? "text-[#52677c]" : "text-zinc-600"}`}>
+                    {returnSummary}
+                  </p>
+                )}
                 {returnArrivalLabel && (
-                  <p className="ml-auto shrink-0 text-sm font-bold text-[#17B89B]">
+                  <p className={`ml-auto shrink-0 text-sm font-bold ${spontaneousResult ? "text-[#0aaa90]" : "text-[#17B89B]"}`}>
                     {returnArrivalLabel} 도착 예정
                   </p>
                 )}

@@ -1,3 +1,5 @@
+import { ChevronRight, Footprints, Route } from "lucide-react";
+
 import type { ScheduleTransit, ScheduleTransitSegment } from "@/types/api/schedule";
 import type { ScheduleRouteLine } from "@/types/api/schedule-map";
 
@@ -80,9 +82,11 @@ function roadDistanceLabel(distanceMeters: number | null | undefined) {
 function RoadGuidanceDetail({
   routeLine,
   index,
+  emphasized = false,
 }: {
   routeLine: ScheduleRouteLine;
   index: number;
+  emphasized?: boolean;
 }) {
   const instruction = present(routeLine.instruction);
   const lineName = present(routeLine.lineName);
@@ -92,12 +96,31 @@ function RoadGuidanceDetail({
   const metadata = [instruction ? lineName : null, duration, distance].filter(Boolean);
 
   return (
-    <li className="flex items-start gap-2 leading-relaxed">
-      <span className="shrink-0 text-zinc-400">{index + 1}.</span>
+    <li className={`flex items-start gap-3 leading-relaxed ${emphasized ? "relative pb-3 last:pb-0" : ""}`}>
+      <span
+        className={
+          emphasized
+            ? "relative z-10 grid size-6 shrink-0 place-items-center rounded-full bg-[#e8f2ff] text-[0.68rem] font-bold text-[#2f7ff2] ring-4 ring-white"
+            : "shrink-0 text-zinc-400"
+        }
+      >
+        {index + 1}{emphasized ? "" : "."}
+      </span>
+      {emphasized && (
+        <span className="absolute top-5 bottom-0 left-[0.7rem] w-px bg-[#cfe2fb] last:hidden" />
+      )}
       <span className="min-w-0">
-        {primary && <span className="block text-zinc-700">{primary}</span>}
+        {primary && (
+          <span className={`block ${emphasized ? "font-semibold text-[#183153]" : "text-zinc-700"}`}>
+            {primary}
+          </span>
+        )}
         {metadata.length > 0 && (
-          <span className={`${primary ? "mt-0.5 " : ""}block text-zinc-500`}>
+          <span
+            className={`${primary ? "mt-0.5 " : ""}block ${
+              emphasized ? "text-[#7b8ba3]" : "text-zinc-500"
+            }`}
+          >
             {metadata.join(" · ")}
           </span>
         )}
@@ -111,11 +134,13 @@ export default function TransitPanel({
   hasRouteGeometry,
   routeLines = [],
   showSpontaneousRoadGuidance = false,
+  appearance = "default",
 }: {
   transit: ScheduleTransit;
   hasRouteGeometry: boolean;
   routeLines?: ScheduleRouteLine[];
   showSpontaneousRoadGuidance?: boolean;
+  appearance?: "default" | "spontaneous-result";
 }) {
   const provider = present(transit.provider);
   const providerKey = provider?.toUpperCase();
@@ -153,6 +178,103 @@ export default function TransitPanel({
           roadDistanceLabel(routeLine.distanceMeters) != null,
       )
     : [];
+  const hasExpandableDetails = usesSpontaneousRoadGuidance
+    ? roadGuidanceLines.length > 0
+    : transit.segments.length > 0;
+  const primaryMode = roadSegment?.mode ?? transit.segments[0]?.mode ?? "WALK";
+  const PrimaryModeIcon = primaryMode === "WALK" ? Footprints : Route;
+
+  if (appearance === "spontaneous-result") {
+    const routeTitle =
+      originName || destinationName
+        ? [originName, destinationName].filter(Boolean).join(" → ")
+        : transitLabel(transit);
+
+    return (
+      <div className="rounded-[1.35rem] border border-[#e8edf4] bg-white px-4 py-3.5 shadow-[0_7px_20px_rgba(30,64,111,0.06)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold tracking-[-0.025em] text-[#122846]">
+              {routeTitle}
+            </p>
+            <p className="mt-1 text-xs text-[#8190a6]">{transitLabel(transit)}</p>
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-1 text-[0.65rem] font-bold ${
+              verified ? "bg-[#dff8f1] text-[#0a9c80]" : "bg-[#fff1bf] text-[#b37100]"
+            }`}
+          >
+            {statusLabel}
+          </span>
+        </div>
+
+        <details className="group mt-3">
+          <summary
+            className={`flex list-none items-center gap-3 rounded-xl bg-[#f5f7fa] px-3 py-2.5 text-xs text-[#4d607d] [&::-webkit-details-marker]:hidden ${
+              hasExpandableDetails ? "cursor-pointer hover:bg-[#eef3f8]" : "cursor-default"
+            }`}
+          >
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-[#2f7ff2] shadow-sm">
+              <PrimaryModeIcon size={18} strokeWidth={2.15} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="font-bold text-[#30435f]">
+                {modeInfo(primaryMode).label} {transit.totalMinutes}분
+              </span>
+              {provider && <span className="ml-2 text-[#7f8da3]">{provider}</span>}
+            </span>
+            {hasExpandableDetails && (
+              <span className="flex shrink-0 items-center gap-1 font-semibold text-[#42536d]">
+                구간 자세히
+                <ChevronRight
+                  size={17}
+                  className="transition-transform duration-200 group-open:rotate-90"
+                />
+              </span>
+            )}
+          </summary>
+
+          {hasExpandableDetails && (
+            <div className="mt-3 rounded-2xl border border-[#edf1f6] bg-[#fbfcfe] p-3.5">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs font-bold text-[#324764]">상세 이동 안내</p>
+                <span className="text-[0.68rem] text-[#94a0b1]">
+                  {usesSpontaneousRoadGuidance
+                    ? `${roadGuidanceLines.length}단계`
+                    : `${transit.segments.length}구간`}
+                </span>
+              </div>
+
+              {usesSpontaneousRoadGuidance ? (
+                <ol className="max-h-72 space-y-1 overflow-y-auto pr-1 text-xs scrollbar-none">
+                  {roadGuidanceLines.map((routeLine, index) => (
+                    <RoadGuidanceDetail
+                      key={`${routeLine.routeOrder}-${routeLine.lineOrder}`}
+                      routeLine={routeLine}
+                      index={index}
+                      emphasized
+                    />
+                  ))}
+                </ol>
+              ) : (
+                <ol className="max-h-72 space-y-3 overflow-y-auto pr-1 text-xs scrollbar-none">
+                  {transit.segments.map((segment) => (
+                    <SegmentDetail key={`${segment.order}-${segment.mode}`} segment={segment} />
+                  ))}
+                </ol>
+              )}
+            </div>
+          )}
+        </details>
+
+        {warnings.map((warning) => (
+          <p key={warning} className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            {warning}
+          </p>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
