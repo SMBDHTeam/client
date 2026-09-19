@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import heic2any from "heic2any";
 import { ChevronLeft, ImagePlus, X, ChevronRight, MapPin, ChevronDown, Check } from "lucide-react";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
 import { createPost, uploadMedia } from "@/lib/api/posts";
@@ -25,6 +26,28 @@ type SelectedPlace = {
 const MAX_MEDIA_COUNT = 10;
 const MAX_MEDIA_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_MEDIA_TOTAL_SIZE = 50 * 1024 * 1024;
+const HEIC_CONVERT_QUALITY = 0.85;
+const SUPPORTED_MEDIA_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "video/mp4",
+  "video/quicktime",
+]);
+const UNSUPPORTED_HEIC_TYPES = new Set(["image/heic", "image/heif"]);
+const SUPPORTED_MEDIA_ACCEPT = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  ".heic",
+  ".heif",
+  "video/mp4",
+  "video/quicktime",
+].join(",");
 
 function formatDuration(dayCount: number) {
   if (dayCount <= 1) return "당일";
@@ -47,6 +70,39 @@ function formatMegabytes(bytes: number) {
   return `${Math.floor(bytes / 1024 / 1024)}MB`;
 }
 
+function fileExtension(file: File) {
+  const filename = file.name.toLowerCase();
+  const dotIndex = filename.lastIndexOf(".");
+  return dotIndex < 0 ? "" : filename.slice(dotIndex + 1);
+}
+
+function isHeicFile(file: File) {
+  const extension = fileExtension(file);
+  return UNSUPPORTED_HEIC_TYPES.has(file.type) || extension === "heic" || extension === "heif";
+}
+
+function isSupportedMediaFile(file: File) {
+  if (SUPPORTED_MEDIA_TYPES.has(file.type)) return true;
+
+  // 일부 모바일 브라우저는 카메라롤 파일의 MIME 타입을 비워서 넘긴다.
+  if (file.type !== "") return false;
+  return ["jpg", "jpeg", "png", "gif", "webp", "mp4", "mov"].includes(fileExtension(file));
+}
+
+async function convertHeicToJpeg(file: File) {
+  const converted = await heic2any({
+    blob: file,
+    toType: "image/jpeg",
+    quality: HEIC_CONVERT_QUALITY,
+  });
+  const blob = Array.isArray(converted) ? converted[0] : converted;
+  const filename = file.name.replace(/\.(heic|heif)$/i, ".jpg");
+  return new File([blob], filename === file.name ? `${file.name}.jpg` : filename, {
+    type: "image/jpeg",
+    lastModified: file.lastModified,
+  });
+}
+
 export default function CommunityNewPage() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -57,6 +113,7 @@ export default function CommunityNewPage() {
   const [text, setText] = useState("");
   const [selectedTags, setSelectedTags] = useState<CommunityTagId[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [mediaProcessing, setMediaProcessing] = useState(false);
 
   const [step, setStep] = useState<"idle" | "photos" | "trip" | "place">("idle");
   const [pickerTab, setPickerTab] = useState<"trip" | "search">("trip");
@@ -118,38 +175,61 @@ export default function CommunityNewPage() {
     );
   }
 
-  function handleFiles(files: FileList | null) {
+  async function handleFiles(files: FileList | null) {
     if (!files) return;
     const newItems: { file: File; previewUrl: string }[] = [];
-    const rejectedReasons = new Set<"type" | "count" | "fileSize" | "totalSize">();
+    const rejectedReasons = new Set<
+      "type" | "convertFailed" | "convertedFileSize" | "count" | "fileSize" | "totalSize"
+    >();
     let nextTotalSize = mediaItems.reduce((sum, item) => sum + item.file.size, 0);
     let nextCount = mediaItems.length;
+    let convertedCount = 0;
 
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+    setMediaProcessing(true);
+    for (const selectedFile of Array.from(files)) {
+      let file = selectedFile;
+      if (isHeicFile(file)) {
+        try {
+          file = await convertHeicToJpeg(file);
+          convertedCount += 1;
+        } catch {
+          rejectedReasons.add("convertFailed");
+          continue;
+        }
+        if (file.size > MAX_MEDIA_FILE_SIZE) {
+          rejectedReasons.add("convertedFileSize");
+          continue;
+        }
+      }
+      if (!isSupportedMediaFile(file)) {
         rejectedReasons.add("type");
-        return;
+        continue;
       }
       if (file.size > MAX_MEDIA_FILE_SIZE) {
         rejectedReasons.add("fileSize");
-        return;
+        continue;
       }
       if (nextCount >= MAX_MEDIA_COUNT) {
         rejectedReasons.add("count");
-        return;
+        continue;
       }
       if (nextTotalSize + file.size > MAX_MEDIA_TOTAL_SIZE) {
         rejectedReasons.add("totalSize");
-        return;
+        continue;
       }
 
       newItems.push({ file, previewUrl: URL.createObjectURL(file) });
       nextTotalSize += file.size;
       nextCount += 1;
-    });
+    }
+    setMediaProcessing(false);
 
-    if (rejectedReasons.has("type")) {
-      toast.error("사진이나 동영상 파일만 업로드할 수 있어요.");
+    if (rejectedReasons.has("convertFailed")) {
+      toast.error("HEIC/HEIF 사진을 JPG로 변환하지 못했어요. JPG, PNG, WEBP 형식으로 다시 올려주세요.");
+    } else if (rejectedReasons.has("convertedFileSize")) {
+      toast.error(`변환 후 파일이 ${formatMegabytes(MAX_MEDIA_FILE_SIZE)}를 넘어 업로드할 수 없어요.`);
+    } else if (rejectedReasons.has("type")) {
+      toast.error("JPG, PNG, GIF, WEBP, MP4, MOV 파일만 업로드할 수 있어요.");
     } else if (rejectedReasons.has("fileSize")) {
       toast.error(`파일은 1개당 최대 ${formatMegabytes(MAX_MEDIA_FILE_SIZE)}까지 업로드할 수 있어요.`);
     } else if (rejectedReasons.has("totalSize")) {
@@ -161,6 +241,9 @@ export default function CommunityNewPage() {
     if (newItems.length > 0) {
       setMediaItems((prev) => [...prev, ...newItems]);
       setMediaPlaces((prev) => [...prev, ...newItems.map(() => null)]);
+      if (convertedCount > 0) {
+        toast.success("HEIC/HEIF 사진을 JPG로 변환했어요.");
+      }
     }
   }
 
@@ -256,7 +339,7 @@ export default function CommunityNewPage() {
     setMediaPlaces((prev) => prev.map((p, i) => (i === index ? null : p)));
   }
 
-  const canSubmit = text.trim().length > 0 && mediaItems.length > 0 && !submitting;
+  const canSubmit = text.trim().length > 0 && mediaItems.length > 0 && !submitting && !mediaProcessing;
   const taggedPhotoCount = mediaPlaces.filter(Boolean).length;
 
   async function handleSubmit() {
@@ -639,23 +722,25 @@ export default function CommunityNewPage() {
               {mediaItems.length < MAX_MEDIA_COUNT && (
                 <button
                   type="button"
+                  disabled={mediaProcessing}
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-3 right-3 flex items-center gap-1 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white"
+                  className="absolute bottom-3 right-3 flex items-center gap-1 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                 >
                   <ImagePlus size={13} />
-                  {mediaItems.length}/{MAX_MEDIA_COUNT}
+                  {mediaProcessing ? "변환 중" : `${mediaItems.length}/${MAX_MEDIA_COUNT}`}
                 </button>
               )}
             </div>
           ) : (
             <button
               type="button"
+              disabled={mediaProcessing}
               onClick={() => fileInputRef.current?.click()}
-              className="mx-4 mt-4 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 py-12 text-zinc-400 transition-colors hover:border-[#2E7DF2]/40 hover:bg-blue-50/30"
+              className="mx-4 mt-4 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 py-12 text-zinc-400 transition-colors hover:border-[#2E7DF2]/40 hover:bg-blue-50/30 disabled:opacity-60"
             >
               <ImagePlus size={32} strokeWidth={1.5} />
               <div className="text-center">
-                <p className="text-sm font-medium">사진·동영상 추가</p>
+                <p className="text-sm font-medium">{mediaProcessing ? "사진 변환 중..." : "사진·동영상 추가"}</p>
                 <p className="mt-0.5 text-xs text-zinc-400">
                   1개 이상, 최대 {MAX_MEDIA_COUNT}개 · 파일당 {formatMegabytes(MAX_MEDIA_FILE_SIZE)}
                 </p>
@@ -666,11 +751,12 @@ export default function CommunityNewPage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,video/*"
+            accept={SUPPORTED_MEDIA_ACCEPT}
             multiple
+            disabled={mediaProcessing}
             className="hidden"
             onChange={(e) => {
-              handleFiles(e.target.files);
+              void handleFiles(e.target.files);
               e.target.value = "";
             }}
           />
