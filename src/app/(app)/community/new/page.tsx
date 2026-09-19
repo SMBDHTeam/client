@@ -89,6 +89,13 @@ function isSupportedMediaFile(file: File) {
   return ["jpg", "jpeg", "png", "gif", "webp", "mp4", "mov"].includes(fileExtension(file));
 }
 
+function moveArrayItem<T>(items: T[], from: number, to: number) {
+  const next = [...items];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
 async function convertHeicToJpeg(file: File) {
   const converted = await heic2any({
     blob: file,
@@ -263,6 +270,13 @@ export default function CommunityNewPage() {
       });
       return next;
     });
+  }
+
+  function moveMedia(from: number, to: number) {
+    if (to < 0 || to >= mediaItems.length || from === to) return;
+    setMediaItems((prev) => moveArrayItem(prev, from, to));
+    setMediaPlaces((prev) => moveArrayItem(prev, from, to));
+    setImgIndex(to);
   }
 
   function togglePhotoSelection(index: number) {
@@ -672,6 +686,27 @@ export default function CommunityNewPage() {
               >
                 <X size={14} />
               </button>
+
+              {mediaItems.length > 1 && (
+                <div className="absolute left-3 top-3 flex gap-1">
+                  <button
+                    type="button"
+                    disabled={imgIndex === 0}
+                    onClick={() => moveMedia(imgIndex, imgIndex - 1)}
+                    className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-30"
+                  >
+                    앞으로
+                  </button>
+                  <button
+                    type="button"
+                    disabled={imgIndex === mediaItems.length - 1}
+                    onClick={() => moveMedia(imgIndex, imgIndex + 1)}
+                    className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-30"
+                  >
+                    뒤로
+                  </button>
+                </div>
+              )}
 
               {mediaPlaces[imgIndex] && (
                 <div className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-black/55 py-1 pl-2.5 pr-1 text-xs font-medium text-white shadow-sm backdrop-blur-sm">
