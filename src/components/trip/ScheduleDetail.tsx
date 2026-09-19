@@ -179,8 +179,8 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center gap-2 px-5 pt-4 pb-2">
+    <div className="flex flex-1 flex-col bg-[#fbfdff]">
+      <header className="flex items-center gap-2 border-b border-[#edf4fb] bg-white/90 px-5 pt-4 pb-3 backdrop-blur">
         <button
           type="button"
           onClick={() => router.push("/trips")}
@@ -219,8 +219,8 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
         </button>
       </header>
 
-      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 pt-2 pb-6">
-        <div className="flex gap-1 rounded-full bg-zinc-100 p-1">
+      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 pt-3 pb-6 scrollbar-none">
+        <div className="flex gap-1 rounded-full border border-[#e9eff7] bg-[#f3f6fa] p-1 shadow-[0_6px_18px_rgba(30,64,111,0.04)]">
           {schedule.days.map((item, index) => (
             <button
               key={item.dayNo}
@@ -230,7 +230,7 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
                 "flex-1 rounded-full py-2.5 text-sm font-semibold transition-colors " +
                 (index === dayIndex
                   ? "bg-linear-to-br from-[#2E7DF2] to-[#17B89B] font-bold text-white shadow-sm"
-                  : "text-zinc-400")
+                  : "text-[#8b97a9]")
               }
             >
               Day {item.dayNo}
@@ -248,7 +248,10 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
           finalTransitTitle={isSpontaneous ? "출발지로 복귀" : "마지막 도착지로 이동"}
           returnSummary={returnSummary}
           returnArrivalLabel={returnArrivalLabel}
-          showSpontaneousRoadGuidance={isSpontaneous}
+          imageUnavailableLabel="대표 이미지 준비 중"
+          showSpontaneousRoadGuidance
+          showRouteFallback={!isSpontaneous}
+          appearance="spontaneous-result"
           onPlaceDetail={setDetailPlaceId}
         />
       </div>

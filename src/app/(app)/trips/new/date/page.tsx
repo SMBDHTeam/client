@@ -1,9 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin } from "lucide-react";
-import AppHeader from "@/components/layout/AppHeader";
+import { CalendarDays, ChevronLeft, MapPin } from "lucide-react";
 import DateRangeCalendar from "@/components/sheet/DateRangeCalendar";
 import LocationPickerSheet from "@/components/sheet/LocationPickerSheet";
 import PageFade from "@/components/ui/PageFade";
@@ -43,22 +43,22 @@ function LocationField({
       type="button"
       aria-haspopup="dialog"
       onClick={onOpen}
-      className="flex w-full items-center gap-3 rounded-2xl border-2 border-zinc-200 bg-white p-3 text-left transition-colors hover:border-[#2E7DF2]"
+      className="flex h-16 w-full items-center gap-3 rounded-[1.2rem] border border-[#d7e1ee] bg-white px-3.5 text-left shadow-[0_6px_18px_rgba(35,75,123,0.05)] transition-colors hover:border-[#8dbbf8] active:bg-[#f7faff]"
     >
-      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#EAF2FE] text-[#2E7DF2]">
-        <MapPin size={18} aria-hidden />
+      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#eaf4ff] text-[#2f7ff2]">
+        <MapPin size={17} strokeWidth={2.1} aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-xs text-zinc-400">출발지</span>
+        <span className="block text-[0.7rem] font-medium text-[#8695aa]">출발지</span>
         <span
-          className={`block truncate text-base font-semibold ${
-            value ? "text-zinc-900" : "text-zinc-400"
+          className={`block truncate text-sm font-bold tracking-[-0.02em] ${
+            value ? "text-[#10254e]" : "text-[#71819a]"
           }`}
         >
           {value?.name ?? "역, 터미널 또는 장소를 검색하세요"}
         </span>
       </span>
-      <span className="shrink-0 text-zinc-300" aria-hidden>
+      <span className="shrink-0 pr-1 text-xl text-[#a7b5c7]" aria-hidden>
         ›
       </span>
     </button>
@@ -70,10 +70,10 @@ export default function TripDatePage() {
   const { draft, updateDraft } = useTripDraft();
   const [start, setStart] = useState<Date | null>(() => parseDate(draft.startDate));
   const [end, setEnd] = useState<Date | null>(() => parseDate(draft.endDate));
-  const [startLocation, setStartLocation] = useState<LocationInput | undefined>(
-    draft.startLocation,
+  const [startLocation, setStartLocation] = useState<LocationInput | null>(
+    draft.startLocation ?? null,
   );
-  const [picker, setPicker] = useState<"start" | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const nights = start && end ? differenceInDays(start, end) : 0;
@@ -116,72 +116,106 @@ export default function TripDatePage() {
   }
 
   return (
-    <PageFade className="flex flex-1 flex-col">
-      <AppHeader title="여행 날짜" />
+    <PageFade className="flex min-h-0 flex-1 flex-col bg-[#fbfdff]">
+      <header className="relative flex h-24 shrink-0 items-center overflow-hidden px-5">
+        <Image
+          src="/trips-covers/header-busan.png"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 512px) 100vw, 512px"
+          className="object-cover object-[68%_66%] opacity-70"
+        />
+        <div className="absolute inset-0 bg-linear-to-r from-white via-white/60 to-white/12" />
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label="뒤로 가기"
+          className="relative z-10 -ml-2 grid size-11 place-items-center rounded-full text-[#0d234f] transition-colors hover:bg-white/65 active:bg-white/85"
+        >
+          <ChevronLeft size={34} strokeWidth={2.4} />
+        </button>
+        <h1 className="relative z-10 ml-2 text-[1.5rem] font-extrabold tracking-[-0.045em] text-[#0b2146]">
+          여행 날짜
+        </h1>
+      </header>
 
-      <div className="flex flex-1 flex-col gap-6 px-5 pb-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5 pb-6 scrollbar-none">
         <section>
-          <h1 className="text-2xl font-bold">언제 떠나시나요?</h1>
-          <p className="mt-1 text-sm text-zinc-500">출발일과 도착일을 선택해 주세요</p>
+          <h2 className="text-[1.45rem] font-extrabold tracking-[-0.05em] text-[#1769db]">
+            언제 떠나시나요?
+          </h2>
+          <p className="mt-1 text-sm font-medium tracking-[-0.025em] text-[#526f9f]">
+            출발일과 도착일을 선택해 주세요
+          </p>
         </section>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="mt-5 grid grid-cols-2 gap-2.5">
           <div
-            className={`rounded-2xl border-2 p-3 ${
-              start && !end ? "border-[#2E7DF2] bg-[#EAF2FE]" : "border-zinc-200 bg-white"
+            className={`flex h-[6.6rem] items-center justify-between rounded-[1.45rem] border px-4 transition-colors ${
+              start && !end
+                ? "border-[#2f7ff2] bg-[#f0f6ff]"
+                : "border-[#c9d9ef] bg-white"
             }`}
           >
-            <p className="text-xs text-zinc-400">가는 날</p>
-            <p className="mt-1 text-base font-bold">{start ? formatPoint(start) : "-"}</p>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-[#5f78a2]">가는 날</p>
+              <p className="mt-2 truncate text-base font-extrabold tracking-[-0.04em] text-[#102b59]">
+                {start ? formatPoint(start) : "날짜 선택"}
+              </p>
+            </div>
+            <CalendarDays className="ml-2 shrink-0 text-[#284e86]" size={25} strokeWidth={2} />
           </div>
+
           <div
-            className={`rounded-2xl border-2 p-3 ${
-              start && end ? "border-[#2E7DF2] bg-[#EAF2FE]" : "border-zinc-200 bg-white"
+            className={`flex h-[6.6rem] items-center justify-between rounded-[1.45rem] border px-4 transition-colors ${
+              start && end
+                ? "border-[#2f7ff2] bg-[#f0f6ff]"
+                : "border-[#c9d9ef] bg-white"
             }`}
           >
-            <p className="text-xs text-zinc-400">오는 날</p>
-            <p className="mt-1 text-base font-bold">{end ? formatPoint(end) : "-"}</p>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-[#5f78a2]">오는 날</p>
+              <p className="mt-2 truncate text-base font-extrabold tracking-[-0.04em] text-[#102b59]">
+                {end ? formatPoint(end) : "날짜 선택"}
+              </p>
+            </div>
+            <CalendarDays className="ml-2 shrink-0 text-[#284e86]" size={25} strokeWidth={2} />
           </div>
         </div>
 
-        <DateRangeCalendar start={start} end={end} onSelect={handleSelect} />
+        <div className="mt-4">
+          <DateRangeCalendar start={start} end={end} onSelect={handleSelect} />
+        </div>
 
-        {start && end && (
-          <>
-            {tooLong ? (
-              <p className="text-center text-sm font-medium text-[#F16E5E]">
-                여행 기간은 최대 4일까지 선택할 수 있어요
-              </p>
-            ) : (
-              <p className="text-center text-sm font-medium text-[#2E7DF2]">
-                {nights === 0 ? "당일 여행 선택됨" : `${nights}박 ${nights + 1}일 선택됨`}
-              </p>
-            )}
-
-            <section className="flex flex-col gap-3 border-t border-zinc-100 pt-5">
-              <h2 className="text-sm font-semibold">출발지</h2>
-              <LocationField value={startLocation ?? null} onOpen={() => setPicker("start")} />
-            </section>
-          </>
+        {error && (
+          <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-[#e45f58]">
+            {error}
+          </p>
         )}
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {start && end && !tooLong && (
+          <section className="mt-6 border-t border-[#dce8f5] pt-5">
+            <h2 className="mb-3 text-lg font-extrabold tracking-[-0.04em] text-[#0b2146]">출발지</h2>
+            <LocationField value={startLocation} onOpen={() => setPickerOpen(true)} />
+          </section>
+        )}
 
         <button
           type="button"
           disabled={!ready}
           onClick={continueFlow}
-          className="mt-auto w-full rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B] py-3.5 text-center font-medium text-white transition-opacity disabled:opacity-40"
+          className="mt-5 w-full rounded-full bg-linear-to-r from-[#2f7bf4] via-[#20acd8] to-[#36d6bd] py-4 text-center text-base font-bold text-white shadow-[0_10px_24px_rgba(31,142,202,0.2)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
         >
           다음
         </button>
       </div>
 
-      {picker && (
+      {pickerOpen && (
         <LocationPickerSheet
           title="출발지 선택"
           initial={startLocation}
-          onClose={() => setPicker(null)}
+          onClose={() => setPickerOpen(false)}
           onSelect={setStartLocation}
         />
       )}

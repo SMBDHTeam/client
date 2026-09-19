@@ -215,11 +215,11 @@ export default function TripsPage() {
                     className="object-cover object-top"
                 />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[28%] bg-linear-to-b from-transparent via-white/40 to-[#F8FBFF]" />
-                <h1 className="relative pt-[clamp(45px,10.5vw,54px)] text-center text-[clamp(27px,6.34vw,32px)] font-extrabold tracking-tight">내 일정</h1>
+                <h1 className="relative pt-[clamp(45px,10.5vw,54px)] text-center text-[clamp(24px,5.65vw,28px)] font-extrabold tracking-tight">내 일정</h1>
                 <Settings className="absolute top-[clamp(47px,11vw,56px)] right-[clamp(24px,5.6vw,29px)] text-[#61748E]" size={23} strokeWidth={1.7} aria-hidden />
                 <span
                     aria-hidden
-                    className={`${handwritingFont.className} absolute top-[clamp(75px,17.6vw,90px)] left-[clamp(20px,4.7vw,24px)] origin-left -rotate-6 scale-x-[1.2] text-[clamp(27px,6.34vw,32px)] leading-[0.9] text-[#6A9FE1] drop-shadow-[0_1px_2px_rgba(255,255,255,0.95)]`}
+                    className={`${handwritingFont.className} absolute top-[clamp(75px,17.6vw,90px)] left-[clamp(20px,4.7vw,24px)] origin-left -rotate-6 scale-x-[1.2] text-[clamp(24px,5.65vw,29px)] leading-[0.9] text-[#6A9FE1] drop-shadow-[0_1px_2px_rgba(255,255,255,0.95)]`}
                 >
                     언제나,<br />부산으로
                 </span>
@@ -228,7 +228,7 @@ export default function TripsPage() {
                 </svg>
                 <span
                     aria-hidden
-                    className={`${handwritingFont.className} absolute top-[clamp(84px,19.7vw,101px)] right-[clamp(28px,6.6vw,34px)] origin-right rotate-6 scale-x-[1.3] text-right text-[clamp(25px,5.9vw,30px)] leading-[0.9] text-[#6A9FE1] drop-shadow-[0_1px_2px_rgba(255,255,255,0.95)]`}
+                    className={`${handwritingFont.className} absolute top-[clamp(84px,19.7vw,101px)] right-[clamp(28px,6.6vw,34px)] origin-right rotate-6 scale-x-[1.3] text-right text-[clamp(23px,5.4vw,27px)] leading-[0.9] text-[#6A9FE1] drop-shadow-[0_1px_2px_rgba(255,255,255,0.95)]`}
                 >
                     좋은 곳이<br />더 많은 부산
                 </span>
@@ -250,7 +250,7 @@ export default function TripsPage() {
                 <div className="flex flex-col gap-[clamp(16px,3.75vw,20px)] px-[clamp(19px,4.46vw,23px)] pb-8">
                     {featured && (
                         <section className="relative z-[1] -mt-[clamp(54px,12.7vw,64px)]">
-                            <h2 className="mb-[clamp(12px,2.8vw,14px)] text-[clamp(19px,4.46vw,23px)] font-extrabold tracking-tight">가장 가까운 여행</h2>
+                            <h2 className="mb-[clamp(12px,2.8vw,14px)] text-[clamp(16px,3.75vw,18px)] font-extrabold tracking-tight">가장 가까운 여행</h2>
                             <div className="relative aspect-[1.94] min-h-[202px] overflow-hidden rounded-[23px] bg-white shadow-[0_8px_28px_rgba(44,112,191,0.09)]">
                                 <div className="absolute inset-y-0 right-0 w-[52%]" style={{ clipPath: "ellipse(100% 84% at 100% 50%)" }}>
                                     <Image
@@ -263,7 +263,7 @@ export default function TripsPage() {
                                 </div>
                                 <span
                                     aria-hidden
-                                    className={`${handwritingFont.className} absolute top-[clamp(42px,9.86vw,50px)] right-[clamp(48px,11.3vw,58px)] z-[1] w-[clamp(112px,26.3vw,134px)] origin-right -rotate-6 scale-x-[1.2] text-center text-[clamp(27px,6.34vw,32px)] leading-[0.9] text-[#0F5A9F] drop-shadow-[0_1px_2px_rgba(255,255,255,0.95)]`}
+                                    className={`${handwritingFont.className} absolute top-[clamp(42px,9.86vw,50px)] right-[clamp(48px,11.3vw,58px)] z-[1] w-[clamp(112px,26.3vw,134px)] origin-right -rotate-6 scale-x-[1.2] text-center text-[clamp(21px,4.93vw,25px)] leading-[0.9] text-[#0F5A9F] drop-shadow-[0_1px_2px_rgba(255,255,255,0.95)]`}
                                 >
                                     바다,<br />그리고 부산
                                 </span>
@@ -271,23 +271,23 @@ export default function TripsPage() {
                                     <path d="M2 10c18-8 29-8 45-1 9 4 14 3 24-4 6-4 12-4 17-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                                 </svg>
                                 <div className="relative z-[1] flex h-full flex-col items-start p-[clamp(16px,3.75vw,20px)]">
-                                    <span className="rounded-full bg-[#FFE7E4] px-[clamp(12px,2.8vw,14px)] py-1 text-[clamp(12px,2.8vw,14px)] font-bold text-[#D74432]">
+                                    <span className="rounded-full bg-[#FFE7E4] px-[clamp(10px,2.35vw,12px)] py-1 text-[clamp(10px,2.35vw,12px)] font-bold text-[#D74432]">
                                         {getFeaturedStatusLabel(featured, now)}
                                     </span>
-                                    <span className="mt-2 text-[clamp(16px,3.75vw,19px)] font-semibold text-[#64758E]">
+                                    <span className="mt-2 text-[clamp(13px,3.05vw,15px)] font-semibold text-[#64758E]">
                                         {formatDateLabel(featured.startDate, featured.endDate)}
                                     </span>
-                                    <h3 className="mt-1 max-w-[52%] truncate text-[clamp(21px,4.93vw,25px)] font-extrabold tracking-tight">
+                                    <h3 className="mt-1 max-w-[52%] truncate text-[clamp(16px,3.75vw,19px)] font-extrabold tracking-tight">
                                         {getScheduleTitle(featured)}
                                     </h3>
-                                    <p className="mt-1 text-[clamp(14px,3.29vw,17px)] font-medium text-[#64758E]">
+                                    <p className="mt-1 text-[clamp(12px,2.8vw,13px)] font-medium text-[#64758E]">
                                         {formatDuration(featured.dayCount)} · {featured.stopCount}곳
                                     </p>
                                     <Link
                                         href={`/trips/${featured.id}`}
-                                        className="mt-auto flex w-[clamp(166px,39vw,200px)] max-w-[51%] items-center justify-center gap-2 rounded-full bg-[#E4F4FF] py-[clamp(8px,1.88vw,10px)] text-[clamp(15px,3.52vw,18px)] font-bold text-[#1267D0] transition-colors hover:bg-[#D5ECFF]"
+                                        className="mt-auto flex w-[clamp(140px,32.9vw,164px)] max-w-[46%] items-center justify-center gap-1.5 rounded-full bg-[#E4F4FF] py-[clamp(7px,1.64vw,8px)] text-[clamp(12px,2.8vw,14px)] font-bold text-[#1267D0] transition-colors hover:bg-[#D5ECFF]"
                                     >
-                                        일정 보기 <ArrowRight className="size-[clamp(18px,4.2vw,22px)]" strokeWidth={2.2} aria-hidden />
+                                        일정 보기 <ArrowRight className="size-[clamp(16px,3.75vw,18px)]" strokeWidth={2.2} aria-hidden />
                                     </Link>
                                 </div>
                             </div>
@@ -302,8 +302,8 @@ export default function TripsPage() {
                         >
                             <PlanningCalendarIcon />
                             <span className="min-w-0 flex-1">
-                                <span className="block whitespace-nowrap text-[13px] font-bold min-[390px]:text-[clamp(15px,3.52vw,18px)]">일정 계획하기</span>
-                                <span className="mt-1 block whitespace-nowrap text-[11px] text-[#64758E] min-[390px]:text-[clamp(13px,3.05vw,15px)]">3분이면 완성</span>
+                                <span className="block whitespace-nowrap text-xs font-bold min-[390px]:text-[clamp(13px,3.05vw,15px)]">일정 계획하기</span>
+                                <span className="mt-1 block whitespace-nowrap text-[10px] text-[#64758E] min-[390px]:text-[clamp(11px,2.58vw,13px)]">3분이면 완성</span>
                             </span>
                             <ChevronRight className="hidden size-[clamp(15px,3.52vw,18px)] shrink-0 text-[#64758E] min-[390px]:block" aria-hidden />
                         </button>
@@ -314,8 +314,8 @@ export default function TripsPage() {
                         >
                             <ZeroPlanSignpostIcon />
                             <span className="min-w-0 flex-1">
-                                <span className="block whitespace-nowrap text-[13px] font-bold min-[390px]:text-[clamp(15px,3.52vw,18px)]">제로플랜</span>
-                                <span className="mt-1 block whitespace-nowrap text-[11px] text-[#64758E] min-[390px]:text-[clamp(13px,3.05vw,15px)]">지금 바로 출발</span>
+                                <span className="block whitespace-nowrap text-xs font-bold min-[390px]:text-[clamp(13px,3.05vw,15px)]">제로플랜</span>
+                                <span className="mt-1 block whitespace-nowrap text-[10px] text-[#64758E] min-[390px]:text-[clamp(11px,2.58vw,13px)]">지금 바로 출발</span>
                             </span>
                             <ChevronRight className="hidden size-[clamp(15px,3.52vw,18px)] shrink-0 text-[#64758E] min-[390px]:block" aria-hidden />
                         </button>
@@ -323,10 +323,10 @@ export default function TripsPage() {
 
                     <section className="pt-3">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-[clamp(19px,4.46vw,23px)] font-extrabold tracking-tight">
+                            <h2 className="text-[clamp(17px,4vw,20px)] font-extrabold tracking-tight">
                                 모든 일정 <span className="text-[#2E7DF2]">{sorted.length}</span>
                             </h2>
-                            <span className="flex items-center gap-1 text-[clamp(13px,3.05vw,15px)] font-medium text-[#64758E]">
+                            <span className="flex items-center gap-1 text-[clamp(12px,2.8vw,14px)] font-medium text-[#64758E]">
                                 전체 보기 <ChevronRight className="size-[clamp(16px,3.75vw,19px)]" strokeWidth={1.9} aria-hidden />
                             </span>
                         </div>
@@ -352,11 +352,11 @@ export default function TripsPage() {
                                                 />
                                             </span>
                                             <span className="min-w-0 flex-1">
-                                                 <span className="block truncate text-[clamp(17px,4vw,20px)] font-bold">{getScheduleTitle(t)}</span>
-                                                 <span className="mt-1 block text-[clamp(14px,3.29vw,17px)] text-[#64758E]">
+                                                 <span className="block truncate text-[clamp(15px,3.52vw,17px)] font-bold">{getScheduleTitle(t)}</span>
+                                                 <span className="mt-1 block text-[clamp(12px,2.8vw,14px)] text-[#64758E]">
                                                     {formatDateLabel(t.startDate, t.endDate)} · {t.stopCount}곳
                                                 </span>
-                                                 <span className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-[clamp(12px,2.8vw,14px)] font-semibold ${STATUS_STYLE[getStatus(t, now)]}`}>
+                                                 <span className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-[clamp(11px,2.58vw,12px)] font-semibold ${STATUS_STYLE[getStatus(t, now)]}`}>
                                                     {getStatus(t, now)}
                                                 </span>
                                             </span>

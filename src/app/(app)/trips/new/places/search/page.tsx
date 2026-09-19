@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bike,
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { DistrictSelection } from "@/components/map/BusanDistrictPicker";
 import MapTiler3D, { type MapTiler3DMarker } from "@/components/map/MapTiler3D";
@@ -139,11 +139,13 @@ function PlaceThumbnail({ place }: { place: PlaceSearchItem }) {
   );
 }
 
-export default function AiPlacesSearchPage() {
+function AiPlacesSearchContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { draft, updateDraft } = useTripDraft();
+  const initialQuery = searchParams.get("q")?.trim() ?? "";
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<PlaceSearchItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
@@ -152,7 +154,7 @@ export default function AiPlacesSearchPage() {
   const [picked, setPicked] = useState<PlaceSearchItem[]>(draft.selectedPlaces);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>();
   const [activePlace, setActivePlace] = useState<PlaceSearchItem | null>(null);
-  const [showResults, setShowResults] = useState(false);
+  const [showResults, setShowResults] = useState(Boolean(initialQuery));
   const [mapView, setMapView] = useState<MapView>("2d");
   const [mode, setMode] = useState<"search" | "region" | "wishlist">("search");
   // 찜한 장소는 탭을 처음 열 때 한 번 읽는다. 담는 것은 사용자가 고른 장소뿐이다.
@@ -744,6 +746,20 @@ export default function AiPlacesSearchPage() {
         <PlaceDetailSheet placeId={detailPlaceId} onClose={() => setDetailPlaceId(null)} />
       )}
     </PageFade>
+  );
+}
+
+export default function AiPlacesSearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="grid flex-1 place-items-center" aria-label="장소 검색 화면 불러오는 중">
+          <span className="size-8 animate-spin rounded-full border-[3px] border-[#dfe8f4] border-t-[#2e7df2]" />
+        </div>
+      }
+    >
+      <AiPlacesSearchContent />
+    </Suspense>
   );
 }
 
