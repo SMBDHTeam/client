@@ -14,6 +14,8 @@ type FeedParams = {
 
 type UploadedMedia = {
   url: string;
+  /** 목록용 축소본. 서버가 만들지 못했으면 null 이고, 이때 화면은 원본을 쓴다 */
+  thumbnailUrl: string | null;
   mediaType: "IMAGE" | "VIDEO";
 };
 

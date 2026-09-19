@@ -6,6 +6,8 @@ export type PostAuthor = {
 
 export type PostMedia = {
   url: string;
+  /** 목록용 축소본. 없으면 화면이 url 을 쓴다 */
+  thumbnailUrl?: string | null;
   mediaType: "IMAGE" | "VIDEO";
   sortOrder: number;
   placeId: number | null;
