@@ -124,6 +124,7 @@ const PATH_STYLE: Record<
   string,
   { color: string; style: string; weight: number }
 > = {
+  FALLBACK: { color: "#5D9FF2", style: "shortdash", weight: 5 },
   WALK: { color: "#9CA3AF", style: "shortdash", weight: 4 },
   BUS: { color: "#2E7DF2", style: "solid", weight: 5 },
   SUBWAY: { color: "#F59E0B", style: "solid", weight: 5 },
@@ -339,7 +340,9 @@ export default function NaverMap({
           segment.coordinates.some((coordinate) => !coordinate.every(Number.isFinite))
         ) return;
         const style =
-          routeAppearance === "spontaneous-result"
+          segment.mode === "FALLBACK"
+            ? PATH_STYLE.FALLBACK
+            : routeAppearance === "spontaneous-result"
             ? { color: "#2F7FF2", style: "solid", weight: 6 }
             : (PATH_STYLE[segment.mode] ?? PATH_STYLE.BUS);
         const path = segment.coordinates.map(([lng, lat]) => {
@@ -354,7 +357,7 @@ export default function NaverMap({
           strokeColor: style.color,
           strokeStyle: style.style,
           strokeWeight: style.weight,
-          strokeOpacity: 0.9,
+          strokeOpacity: segment.mode === "FALLBACK" ? 0.78 : 0.9,
           strokeLineCap: "round",
           strokeLineJoin: "round",
         });

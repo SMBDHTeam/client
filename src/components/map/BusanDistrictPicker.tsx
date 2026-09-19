@@ -24,7 +24,15 @@ function makeGeo(polygons: Polygon[], bbox: BBox): THREE.ExtrudeGeometry {
     }
     return shape;
   });
-  return new THREE.ExtrudeGeometry(shapes, { depth: 0.28, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 1 });
+  const geometry = new THREE.ExtrudeGeometry(shapes, {
+    depth: 0.42,
+    bevelEnabled: true,
+    bevelThickness: 0.035,
+    bevelSize: 0.028,
+    bevelSegments: 2,
+  });
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 function CameraController({
@@ -40,7 +48,7 @@ function CameraController({
     const speed = Math.min(1, dt * 4);
     if (target) {
       const [cx, cy] = target;
-      const targetPos = new THREE.Vector3(cx * 0.6, 4.5 * distance, -cy * 0.6 + 3 * distance);
+      const targetPos = new THREE.Vector3(cx * 0.6, 4.8 * distance, -cy * 0.6 + 4 * distance);
       const targetLook = new THREE.Vector3(cx * 0.6, 0, -cy * 0.6);
       camera.position.lerp(targetPos, speed);
       const currentLook = new THREE.Vector3();
@@ -48,7 +56,7 @@ function CameraController({
       const dir = targetLook.clone().sub(camera.position).normalize();
       camera.lookAt(camera.position.clone().add(currentLook.lerp(dir, speed)));
     } else {
-      const overviewPos = new THREE.Vector3(0, 9 * distance, 3 * distance);
+      const overviewPos = new THREE.Vector3(0, 8.2 * distance, 4.2 * distance);
       const overviewLook = new THREE.Vector3(0, 0, 0);
       camera.position.lerp(overviewPos, speed);
       const currentLook = new THREE.Vector3();
@@ -76,13 +84,21 @@ function DistrictBlock({
 }) {
   const ref = useRef<THREE.Mesh>(null);
   const [pressing, setPressing] = useState(false);
+  const [hovering, setHovering] = useState(false);
   const zRef = useRef(0);
   const geo = useMemo(() => makeGeo(district.polygons, bbox), [district, bbox]);
+  const edges = useMemo(() => new THREE.EdgesGeometry(geo, 28), [geo]);
+  const surfaceColor = useMemo(() => {
+    const base = new THREE.Color(selected ? "#2E7DF2" : color);
+    if (hovering && !selected) base.lerp(new THREE.Color("#dff8ff"), 0.2);
+    return base;
+  }, [color, hovering, selected]);
 
   useFrame((_, dt) => {
     if (!ref.current) return;
-    const target = pressing ? -0.24 : 0;
-    zRef.current += (target - zRef.current) * Math.min(1, dt * 14);
+    const restingHeight = selected ? 0.48 : hovering ? 0.2 : 0;
+    const target = pressing ? Math.max(0.06, restingHeight - 0.1) : restingHeight;
+    zRef.current += (target - zRef.current) * Math.min(1, dt * 12);
     ref.current.position.z = zRef.current;
   });
 
@@ -90,6 +106,13 @@ function DistrictBlock({
     <mesh
       ref={ref}
       geometry={geo}
+      castShadow
+      receiveShadow
+      renderOrder={selected ? 2 : 1}
+      onPointerEnter={(e) => {
+        e.stopPropagation();
+        setHovering(true);
+      }}
       onPointerDown={(e) => {
         e.stopPropagation();
         setPressing(true);
@@ -99,15 +122,26 @@ function DistrictBlock({
         setPressing(false);
         onSelect();
       }}
-      onPointerLeave={() => setPressing(false)}
+      onPointerLeave={() => {
+        setHovering(false);
+        setPressing(false);
+      }}
     >
       <meshStandardMaterial
-        color={selected ? "#2563eb" : color}
-        roughness={0.38}
-        metalness={0.1}
-        emissive={selected ? "#1e40af" : "#000"}
-        emissiveIntensity={selected ? 0.18 : 0}
+        color={surfaceColor}
+        roughness={0.46}
+        metalness={0.04}
+        emissive={selected ? "#164cb7" : hovering ? color : "#000000"}
+        emissiveIntensity={selected ? 0.22 : hovering ? 0.08 : 0}
       />
+      <lineSegments geometry={edges} renderOrder={3}>
+        <lineBasicMaterial
+          color={selected ? "#ffffff" : "#e9fbff"}
+          transparent
+          opacity={selected ? 0.98 : hovering ? 0.9 : 0.66}
+          depthWrite={false}
+        />
+      </lineSegments>
     </mesh>
   );
 }
@@ -118,38 +152,47 @@ const LABEL_OFFSETS: Record<string, [number, number]> = {
 
 function DistrictLabel({
   district,
+  selected,
   onSelect,
 }: {
   district: District;
+  selected: boolean;
   onSelect: () => void;
 }) {
   const [cx, cy] = district.centroid;
   const [dx, dy] = LABEL_OFFSETS[district.code] ?? [0, 0];
   return (
     <Html
-      position={[cx + dx, cy + dy, 0.3]}
+      position={[cx + dx, cy + dy, selected ? 0.96 : 0.5]}
       center
       distanceFactor={7}
       zIndexRange={[10, 0]}
       occlude={false}
     >
-      <span
+      <button
+        type="button"
         onClick={onSelect}
+        aria-pressed={selected}
+        aria-label={`${district.name} 선택`}
         style={{
           pointerEvents: "auto",
           cursor: "pointer",
           whiteSpace: "nowrap",
           borderRadius: 999,
-          padding: "2px 7px",
+          border: selected ? "1px solid rgba(255,255,255,0.9)" : "1px solid rgba(191,219,254,0.9)",
+          padding: selected ? "3px 8px" : "2px 7px",
           fontSize: 11,
           fontWeight: 700,
-          color: "#0f172a",
-          background: "rgba(255,255,255,0.85)",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
+          color: selected ? "#ffffff" : "#17345e",
+          background: selected ? "rgba(46,125,242,0.96)" : "rgba(255,255,255,0.9)",
+          boxShadow: selected
+            ? "0 5px 14px rgba(46,125,242,0.34)"
+            : "0 2px 7px rgba(36,84,125,0.18)",
+          transition: "background 160ms ease, color 160ms ease, box-shadow 160ms ease",
         }}
       >
         {district.name}
-      </span>
+      </button>
     </Html>
   );
 }
@@ -172,10 +215,27 @@ function Scene({
 
   return (
     <>
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[4, 10, 6]} intensity={1.5} color="#fff8f0" />
-      <pointLight position={[-6, 4, 4]} intensity={0.5} color="#a0c4ff" />
+      <ambientLight intensity={0.72} />
+      <hemisphereLight args={["#e9f8ff", "#72aaa5", 1.05]} />
+      <directionalLight
+        castShadow
+        position={[4, 11, 7]}
+        intensity={1.75}
+        color="#fffdf8"
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-left={-7}
+        shadow-camera-right={7}
+        shadow-camera-top={7}
+        shadow-camera-bottom={-7}
+        shadow-bias={-0.0005}
+      />
+      <pointLight position={[-5, 5, 4]} intensity={0.48} color="#8edbf7" />
       <CameraController target={camTarget} distance={distance} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.16, 0]} receiveShadow>
+        <circleGeometry args={[6.4, 64]} />
+        <shadowMaterial color="#2d6c87" transparent opacity={0.13} />
+      </mesh>
       <group rotation={[-Math.PI / 2, 0, 0]}>
         {districts.map((d, i) => (
           <DistrictBlock
@@ -191,6 +251,7 @@ function Scene({
           <DistrictLabel
             key={`label-${d.code}`}
             district={d}
+            selected={selected === d.code}
             onSelect={() => onSelect(d.code)}
           />
         ))}
@@ -252,9 +313,31 @@ export default function BusanDistrictPicker({
   }
 
   return (
-    <div className={className} onWheel={handleWheel} style={{ touchAction: "none" }}>
+    <div
+      className={`relative overflow-hidden ${className ?? ""}`}
+      onWheel={handleWheel}
+      style={{
+        touchAction: "none",
+        background:
+          "radial-gradient(circle at 50% 36%, rgba(255,255,255,0.98) 0%, rgba(230,247,255,0.96) 48%, rgba(207,239,246,0.98) 100%)",
+      }}
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-20 left-1/2 h-48 w-[115%] -translate-x-1/2 rounded-[50%] border border-white/75 bg-white/20 shadow-[0_-18px_55px_rgba(74,172,196,0.12)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-[48%] h-36 w-[82%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-sky-200/45"
+      />
       {bbox && (
-        <Canvas dpr={[1, 1.5]} camera={{ position: [0, 9, 3], fov: 50 }} gl={{ antialias: true, alpha: true }}>
+        <Canvas
+          className="relative z-10"
+          shadows
+          dpr={[1, 1.5]}
+          camera={{ position: [0, 8.2, 4.2], fov: 50 }}
+          gl={{ antialias: true, alpha: true }}
+        >
           <Suspense fallback={null}>
             <Scene
               districts={districts}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import NaverMap from "@/components/map/NaverMap";
+import NaverMap, { type RouteLineSegment } from "@/components/map/NaverMap";
 import TransitPanel from "@/components/trip/TransitPanel";
 import {
   hasPublicTransit,
@@ -60,6 +60,7 @@ type ScheduleCourseViewProps = {
   onPlaceDetail?: (placeId: number) => void;
   imageUnavailableLabel?: string | null;
   showSpontaneousRoadGuidance?: boolean;
+  showRouteFallback?: boolean;
   appearance?: "default" | "spontaneous-result";
 };
 
@@ -156,6 +157,7 @@ export default function ScheduleCourseView({
   onPlaceDetail,
   imageUnavailableLabel = null,
   showSpontaneousRoadGuidance = false,
+  showRouteFallback = false,
   appearance = "default",
 }: ScheduleCourseViewProps) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -163,9 +165,11 @@ export default function ScheduleCourseView({
   const [animate, setAnimate] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const activePlace = places[activeIndex];
+  const activeRouteOrder =
+    activePlace?.inboundTransit?.routeOrder ?? activePlace?.order;
   const activeRouteLines = useMemo(
-    () => routeLinesForOrder(routeLines, activePlace?.order),
-    [activePlace?.order, routeLines],
+    () => routeLinesForOrder(routeLines, activeRouteOrder),
+    [activeRouteOrder, routeLines],
   );
   const visibleRouteLines = useMemo(
     () => renderableRouteLines(activeRouteLines),
@@ -211,6 +215,40 @@ export default function ScheduleCourseView({
       current,
     ];
   }, [activeIndex, activePlace, places]);
+
+  const fallbackRouteLines = useMemo<RouteLineSegment[]>(() => {
+    if (!showRouteFallback || visibleRouteLines.length > 0 || !activePlace || !hasCoordinates(activePlace)) {
+      return [];
+    }
+
+    const previous = places[activeIndex - 1];
+    const origin =
+      activeIndex === 0 && startMarker
+        ? { latitude: startMarker.latitude, longitude: startMarker.longitude }
+        : previous && hasCoordinates(previous)
+          ? { latitude: previous.latitude, longitude: previous.longitude }
+          : null;
+
+    if (!origin) return [];
+    if (
+      Math.abs(origin.latitude - activePlace.latitude) < 0.0000001 &&
+      Math.abs(origin.longitude - activePlace.longitude) < 0.0000001
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        mode: "FALLBACK",
+        lineName: "예상 연결 경로",
+        coordinates: [
+          [origin.longitude, origin.latitude],
+          [activePlace.longitude, activePlace.latitude],
+        ],
+      },
+    ];
+  }, [activeIndex, activePlace, places, showRouteFallback, startMarker, visibleRouteLines.length]);
+  const mapRouteLines = visibleRouteLines.length > 0 ? visibleRouteLines : fallbackRouteLines;
 
   const mapCenter = useMemo(() => {
     const firstLineCoordinate = visibleRouteLines[0]?.coordinates[0];
@@ -258,7 +296,7 @@ export default function ScheduleCourseView({
           <NaverMap
             center={mapCenter}
             route={activeRoute}
-            routeLines={visibleRouteLines}
+            routeLines={mapRouteLines}
             transferPoints={transferPoints}
             startMarker={
               activeIndex === 0 && startMarker
@@ -286,6 +324,12 @@ export default function ScheduleCourseView({
                 : "h-72 rounded-3xl"
             }`}
           />
+          {fallbackRouteLines.length > 0 && (
+            <div className="pointer-events-none absolute top-3 left-3 z-10 flex items-center gap-2 rounded-full border border-white/90 bg-white/92 px-3 py-1.5 text-[0.68rem] font-semibold text-[#58718f] shadow-[0_5px_15px_rgba(25,73,122,0.14)] backdrop-blur">
+              <span className="w-5 border-t-2 border-dashed border-[#5D9FF2]" />
+              예상 연결 경로
+            </div>
+          )}
         </div>
       )}
 
