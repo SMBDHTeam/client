@@ -1,18 +1,26 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Clock3,
+  Activity,
+  Armchair,
+  Baby,
+  CalendarDays,
   Coffee,
-  Feather,
-  MapPinned,
-  Rocket,
-  Shuffle,
-  Sparkles,
-  Users,
-  Zap,
-  Route as RouteIcon,
+  Ellipsis,
+  Gauge,
+  Heart,
+  Landmark,
+  Mountain,
+  PersonStanding,
+  ShoppingBag,
+  TrainFront,
+  UserRound,
+  UsersRound,
+  Utensils,
+  Waves,
   type LucideIcon,
 } from "lucide-react";
 import PageFade from "@/components/ui/PageFade";
@@ -21,32 +29,43 @@ import { getTripQuestions } from "@/lib/api/questions";
 import { useTripDraft } from "@/store/trip-draft";
 import type { TripQuestion, TripQuestionAnswer } from "@/types/api/question";
 
-const VIBE_ICONS: LucideIcon[] = [
-  Zap,
-  Feather,
-  Rocket,
-  Clock3,
-  MapPinned,
-  Shuffle,
-  Users,
-  Coffee,
-  Sparkles,
-  RouteIcon,
-];
+function answerIcon(label: string): LucideIcon {
+  if (label.includes("혼자")) return UserRound;
+  if (label.includes("친구")) return UsersRound;
+  if (label.includes("배우자") || label.includes("연인")) return Heart;
+  if (label.includes("아이")) return Baby;
+  if (label.includes("부모")) return PersonStanding;
+  if (label.includes("빼곡") || label.includes("알찬")) return CalendarDays;
+  if (label.includes("여유") || label.includes("널널")) return Armchair;
+  if (label.includes("환승")) return TrainFront;
+  if (label.includes("빠른")) return Gauge;
+  if (label.includes("맛집") || label.includes("음식")) return Utensils;
+  if (label.includes("자연")) return Mountain;
+  if (label.includes("문화") || label.includes("역사")) return Landmark;
+  if (label.includes("바다")) return Waves;
+  if (label.includes("체험") || label.includes("액티")) return Activity;
+  if (label.includes("쇼핑")) return ShoppingBag;
+  if (label.includes("휴식") || label.includes("힐링")) return Coffee;
+  return Ellipsis;
+}
 
-function vibeIcon(text: string): LucideIcon {
-  let h = 0;
-  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
-  return VIBE_ICONS[h % VIBE_ICONS.length];
+function answerDescription(label: string) {
+  if (label.includes("빼곡") || label.includes("알찬")) return "많은 장소를 둘러봐요";
+  if (label.includes("여유") || label.includes("널널")) return "머무는 시간을 넉넉하게 잡아요";
+  if (label.includes("환승")) return "환승 횟수를 줄여요";
+  if (label.includes("빠른")) return "도착 시간을 우선해요";
+  return null;
 }
 
 function AnswerGroup({
+  uiStep,
   answers,
   multiple,
   max,
   selectedIds,
   onToggle,
 }: {
+  uiStep: 1 | 2 | 3;
   answers: TripQuestionAnswer[];
   multiple: boolean;
   max: number;
@@ -55,19 +74,9 @@ function AnswerGroup({
 }) {
   const sorted = answers.slice().sort((a, b) => a.displayOrder - b.displayOrder);
 
-  if (!multiple && sorted.length === 2) {
-    const selectedIndex = sorted.findIndex((a) => selectedIds.includes(a.id));
+  if (uiStep === 1 && !multiple && sorted.length === 2) {
     return (
-      <div className="relative flex rounded-full bg-zinc-100 p-1">
-        <div
-          className="absolute top-1 bottom-1 rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B] shadow-sm transition-transform duration-300 ease-out"
-          style={{
-            width: "calc(50% - 4px)",
-            transform:
-              selectedIndex === 1 ? "translateX(calc(100% + 4px))" : "translateX(0)",
-            opacity: selectedIndex === -1 ? 0 : 1,
-          }}
-        />
+      <div className="flex rounded-full border border-[#d7e1ee] bg-white p-1 shadow-[0_5px_16px_rgba(40,76,121,0.04)]">
         {sorted.map((a) => {
           const on = selectedIds.includes(a.id);
           return (
@@ -75,8 +84,8 @@ function AnswerGroup({
               key={a.id}
               type="button"
               onClick={() => onToggle(a.id)}
-              className={`relative z-10 flex-1 rounded-full px-3 py-2.5 text-center text-sm font-semibold transition-colors ${
-                on ? "text-white" : "text-zinc-500"
+              className={`flex-1 rounded-full px-3 py-3 text-center text-sm font-bold transition-all ${
+                on ? "bg-[#e9f3ff] text-[#2376e9]" : "text-[#536681] hover:bg-[#f6f9fc]"
               }`}
             >
               {a.label}
@@ -87,10 +96,81 @@ function AnswerGroup({
     );
   }
 
+  if (uiStep === 2) {
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        {sorted.map((answer) => {
+          const Icon = answerIcon(answer.label);
+          const on = selectedIds.includes(answer.id);
+          const description = answerDescription(answer.label);
+          return (
+            <button
+              key={answer.id}
+              type="button"
+              onClick={() => onToggle(answer.id)}
+              className={`relative flex min-h-[8.25rem] flex-col items-start justify-center rounded-[1.35rem] border px-5 py-5 text-left transition-all ${
+                on
+                  ? "border-2 border-[#2f7ff2] bg-[#edf6ff] text-[#174e9b] shadow-[0_9px_22px_rgba(47,127,242,0.09)]"
+                  : "border-[#d7e0ec] bg-white text-[#14294d] hover:border-[#a9cafa]"
+              }`}
+            >
+              <span
+                className={`absolute top-4 right-4 grid size-6 place-items-center rounded-full border-2 ${
+                  on ? "border-[#2f7ff2]" : "border-[#aab6c8]"
+                }`}
+              >
+                {on && <span className="size-3.5 rounded-full bg-[#2f7ff2]" />}
+              </span>
+              <Icon size={38} strokeWidth={1.8} aria-hidden />
+              <span className="mt-4 text-[1.02rem] font-extrabold tracking-[-0.035em]">
+                {answer.label}
+              </span>
+              {description && (
+                <span className="mt-1 text-sm font-medium text-[#7c899d]">{description}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (uiStep === 3) {
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        {sorted.map((answer) => {
+          const Icon = answerIcon(answer.label);
+          const on = selectedIds.includes(answer.id);
+          const atMax = multiple && !on && selectedIds.length >= max;
+          return (
+            <button
+              key={answer.id}
+              type="button"
+              disabled={atMax}
+              onClick={() => onToggle(answer.id)}
+              className={`flex min-h-[6.7rem] flex-col items-center justify-center rounded-[1.25rem] border text-center transition-all ${
+                on
+                  ? "border-2 border-[#2f7ff2] bg-[#edf6ff] text-[#2376e9] shadow-[0_8px_20px_rgba(47,127,242,0.08)]"
+                  : atMax
+                    ? "cursor-not-allowed border-[#e6eaf0] bg-[#fafbfc] text-[#c5ccd7]"
+                    : "border-[#d7e0ec] bg-white text-[#718099] hover:border-[#a9cafa]"
+              }`}
+            >
+              <Icon size={37} strokeWidth={1.8} aria-hidden />
+              <span className="mt-2.5 text-base font-extrabold tracking-[-0.03em] text-[#14294d]">
+                {answer.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-3 gap-2.5">
       {sorted.map((a) => {
-        const Icon = vibeIcon(a.label);
+        const Icon = answerIcon(a.label);
         const on = selectedIds.includes(a.id);
         const atMax = multiple && !on && selectedIds.length >= max;
         return (
@@ -99,15 +179,15 @@ function AnswerGroup({
             type="button"
             disabled={atMax}
             onClick={() => onToggle(a.id)}
-            className={`flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-center text-xs font-semibold transition-all ${
+            className={`flex min-h-[5.25rem] flex-col items-center justify-center gap-2 rounded-[1.2rem] border p-3 text-center text-sm font-bold transition-all ${
               on
-                ? "border-transparent bg-linear-to-br from-[#2E7DF2] to-[#17B89B] text-white shadow-sm"
+                ? "border-2 border-[#2f7ff2] bg-[#edf6ff] text-[#2376e9] shadow-[0_8px_18px_rgba(47,127,242,0.08)]"
                 : atMax
-                  ? "cursor-not-allowed border-zinc-100 bg-zinc-50 text-zinc-300"
-                  : "border-zinc-200 bg-white text-zinc-600"
+                  ? "cursor-not-allowed border-[#e6eaf0] bg-[#fafbfc] text-[#c5ccd7]"
+                  : "border-[#d7e0ec] bg-white text-[#14294d] hover:border-[#a9cafa]"
             }`}
           >
-            <Icon size={16} />
+            <Icon size={29} strokeWidth={1.8} aria-hidden />
             {a.label}
           </button>
         );
@@ -190,46 +270,80 @@ export default function QuestionStep({
   }
 
   return (
-    <PageFade className="flex flex-1 flex-col">
+    <PageFade className="flex min-h-0 flex-1 flex-col bg-[#fbfdff]">
       <StepProgress step={stepIndex} total={total} title={headerTitle} />
 
-      <div className="flex flex-1 flex-col gap-8 px-5 pt-6 pb-6">
-        <section>
-          <h1 className="text-2xl font-bold">{title}</h1>
-          {subtitle && <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-6 scrollbar-none">
+        <section className="relative -mx-5 min-h-[10.5rem] overflow-hidden px-5 pt-8">
+          <div className="pointer-events-none absolute right-0 bottom-0 h-[9.5rem] w-[72%] opacity-25">
+            <Image
+              src="/trips-covers/header-busan.png"
+              alt=""
+              fill
+              sizes="(max-width: 512px) 72vw, 370px"
+              className="object-cover object-[72%_58%]"
+            />
+          </div>
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-[#fbfdff] via-[#fbfdff]/88 to-transparent" />
+          <h1 className="relative text-[1.85rem] font-extrabold tracking-[-0.055em] text-[#071b3f]">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="relative mt-2 text-base font-medium tracking-[-0.025em] text-[#687b99]">
+              {subtitle}
+            </p>
+          )}
         </section>
 
+        {uiStep === 1 && (
+          <div className="mb-7 flex items-center gap-4 rounded-[1.25rem] bg-[#edf6ff] px-5 py-4 text-[#0e2d5b]">
+            <UsersRound className="shrink-0 text-[#2f7ff2]" size={42} strokeWidth={1.7} aria-hidden />
+            <div>
+              <p className="text-[0.98rem] font-extrabold tracking-[-0.03em]">
+                누구와 떠나시든, 좋아하는 스타일에 맞춰
+              </p>
+              <p className="mt-1 text-sm font-medium text-[#6f8099]">딱 맞는 코스를 추천해드려요.</p>
+            </div>
+          </div>
+        )}
+
         {error && (
-          <p className="text-sm text-[#F16E5E]">
+          <p className="mb-6 rounded-2xl bg-red-50 px-4 py-3 text-sm text-[#F16E5E]">
             질문을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
           </p>
         )}
 
         {!error && questions === null && (
-          <p className="text-sm text-zinc-400">불러오는 중...</p>
+          <div className="grid place-items-center py-16">
+            <span className="size-8 animate-spin rounded-full border-[3px] border-[#dfe8f4] border-t-[#2f7ff2]" />
+          </div>
         )}
 
+        <div className={`flex flex-col ${uiStep === 1 ? "gap-7" : "gap-8"}`}>
         {stepQuestions.map((q) => {
           const multiple = q.type === "MULTIPLE_CHOICE";
           const selectedIds = selectedIdsFor(q);
           return (
             <section key={q.id} className="flex flex-col gap-3">
-              <div>
-                <h2 className="text-base font-semibold">{q.text}</h2>
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <h2 className="text-[1.15rem] font-extrabold tracking-[-0.035em] text-[#0a2148]">
+                    {q.text}
+                  </h2>
+                  {multiple && (
+                    <p className="mt-1 text-sm font-medium text-[#8795aa]">
+                      {q.minSelections}~{q.maxSelections}개 선택 가능
+                    </p>
+                  )}
+                </div>
                 {multiple && (
-                  <p className="mt-0.5 text-xs text-zinc-400">
-                    {q.minSelections}~{q.maxSelections}개 선택 가능 ·{" "}
-                    <span
-                      className={
-                        selectedIds.length > 0 ? "font-semibold text-[#2E7DF2]" : ""
-                      }
-                    >
-                      {selectedIds.length}/{q.maxSelections}
-                    </span>
-                  </p>
+                  <span className="shrink-0 rounded-full bg-[#eaf4ff] px-4 py-2 text-sm font-bold text-[#2376e9]">
+                    {selectedIds.length} / {q.maxSelections} 선택
+                  </span>
                 )}
               </div>
               <AnswerGroup
+                uiStep={uiStep}
                 answers={q.answers}
                 multiple={multiple}
                 max={q.maxSelections}
@@ -239,15 +353,18 @@ export default function QuestionStep({
             </section>
           );
         })}
+        </div>
 
-        <button
-          type="button"
-          disabled={!ready}
-          onClick={handleNext}
-          className="mt-auto w-full rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B] py-3.5 text-center font-medium text-white transition-opacity disabled:opacity-40"
-        >
-          {buttonLabel}
-        </button>
+        <div className="mt-auto pt-10">
+          <button
+            type="button"
+            disabled={!ready}
+            onClick={handleNext}
+            className="w-full rounded-[1.1rem] bg-[#2f7ff2] py-4 text-center text-lg font-bold text-white shadow-[0_10px_24px_rgba(47,127,242,0.2)] transition-all hover:bg-[#246fe0] disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            {buttonLabel}
+          </button>
+        </div>
       </div>
     </PageFade>
   );

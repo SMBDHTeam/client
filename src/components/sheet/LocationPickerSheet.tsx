@@ -25,11 +25,21 @@ export default function LocationPickerSheet({
     initial ?? null,
   );
   const searchWrapRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setShown(true));
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
   }, []);
+
+  function closeSheet() {
+    if (closeTimerRef.current) return;
+    setShown(false);
+    closeTimerRef.current = setTimeout(onClose, 300);
+  }
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -73,7 +83,7 @@ export default function LocationPickerSheet({
   function confirm() {
     if (!candidate) return;
     onSelect(candidate);
-    onClose();
+    closeSheet();
   }
 
   return (
@@ -82,13 +92,16 @@ export default function LocationPickerSheet({
       <button
         type="button"
         aria-label="닫기"
-        onClick={onClose}
+        onClick={closeSheet}
         className={`absolute inset-0 bg-black/40 transition-opacity ${
           shown ? "opacity-100" : "opacity-0"
         }`}
       />
 
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         className={`relative flex flex-col rounded-t-3xl bg-white transition-transform duration-300 ease-out ${
           shown ? "translate-y-0" : "translate-y-full"
         }`}
@@ -98,7 +111,7 @@ export default function LocationPickerSheet({
           <h2 className="flex-1 pt-2 text-base font-semibold">{title}</h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={closeSheet}
             aria-label="닫기"
             className="grid size-8 place-items-center rounded-full text-xl text-zinc-500 hover:bg-black/5"
           >
