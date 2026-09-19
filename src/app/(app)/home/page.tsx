@@ -1,16 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { ArrowRight, MapPin } from "lucide-react";
+
 import HomeHeader from "@/components/layout/HomeHeader";
-import PageFade from "@/components/ui/PageFade";
 import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
-import { getPopularFeed } from "@/lib/api/posts";
+import PageFade from "@/components/ui/PageFade";
 import { getPopularPlaces } from "@/lib/api/places";
+import { getPopularFeed } from "@/lib/api/posts";
 import { getUserProfile } from "@/lib/api/users";
-import type { FeedPost } from "@/types/api/post";
 import type { PlaceSummary } from "@/types/api/place";
+import type { FeedPost } from "@/types/api/post";
+
+const POPULAR_FALLBACK_IMAGES = [
+  "/trips-covers/cover-gwangalli.png",
+  "/trips-covers/cover-hillside.png",
+];
+
+const COMMUNITY_FALLBACK_IMAGES = [
+  "/trips-covers/cover-coastal-temple.png",
+  "/trips-covers/cover-harbor-market.png",
+];
+
+function avatarLabel(name: string | null | undefined) {
+  const normalized = (name ?? "누비").replace(/[0-9\s_-]/g, "");
+  if (/^[가-힣]+$/.test(normalized) && normalized.length >= 3) {
+    return normalized.slice(1, 3);
+  }
+  return normalized.slice(0, 2).toUpperCase() || "누비";
+}
+
+function greetingName(name: string | null | undefined) {
+  const normalized = (name ?? "").replace(/\d+/g, "").trim();
+  return normalized || null;
+}
+
+function CardImage({ src, alt }: { src: string; alt: string }) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      unoptimized={src.startsWith("http")}
+      sizes="(max-width: 512px) 46vw, 235px"
+      className="object-cover transition-transform duration-500 group-hover:scale-[1.035]"
+    />
+  );
+}
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -22,116 +61,183 @@ export default function HomePage() {
 
   useEffect(() => {
     if (status === "loading") return;
-    getPopularFeed({ size: 2 })
-      .then((res) => setCommunityPosts(res.items))
+    let cancelled = false;
+
+    void getPopularFeed({ size: 2 })
+      .then((response) => {
+        if (!cancelled) setCommunityPosts(response.items.slice(0, 2));
+      })
       .catch(() => {});
-    getPopularPlaces({ size: 10 })
-      .then((res) => setPopularPlaces(res.items))
+    void getPopularPlaces({ size: 2 })
+      .then((response) => {
+        if (!cancelled) setPopularPlaces(response.items.slice(0, 2));
+      })
       .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, [status]);
 
   useEffect(() => {
     const userId = session?.user?.id != null ? Number(session.user.id) : null;
     if (!userId) return;
+    let cancelled = false;
+
     getUserProfile(userId)
       .then((profile) => {
+        if (cancelled) return;
         setUserName(profile.nickname);
         setProfileImageUrl(profile.profileImageUrl);
       })
-      .catch(() => setUserName(session?.user?.name ?? null));
+      .catch(() => {
+        if (!cancelled) setUserName(session?.user?.name ?? null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [session]);
 
-  return (
-    <PageFade className="flex flex-1 flex-col bg-[#F6F8FC] text-zinc-900">
-      <HomeHeader profileImageUrl={profileImageUrl} />
+  const displayName = greetingName(userName ?? session?.user?.name);
 
-      <div className="space-y-6 px-5 pt-2 pb-8">
-        <h1 className="text-[22px] font-bold leading-relaxed pt-2">
-          어서오세요{userName ? ` ${userName}님` : ""},
+  return (
+    <PageFade className="flex min-h-full shrink-0 flex-col bg-[#f8fbff] text-[#0b2146]">
+      <HomeHeader
+        profileImageUrl={profileImageUrl}
+        profileLabel={avatarLabel(displayName)}
+      />
+
+      <section className="relative h-[clamp(6rem,24vw,7.5rem)] shrink-0 overflow-hidden">
+        <Image
+          src="/trips-covers/cover-gwangalli.png"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 512px) 100vw, 512px"
+          className="pointer-events-none scale-x-[-1] object-cover object-[50%_30%] opacity-45"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-white/20 via-white/14 to-[#f8fbff]" />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-white/90 via-white/35 to-white/5" />
+
+        <h1 className="absolute inset-x-4 bottom-2 text-[clamp(1.25rem,5vw,1.55rem)] leading-[1.45] font-extrabold tracking-[-0.045em] text-[#081c3d]">
+          어서오세요{displayName ? ` ${displayName}님` : ""},
           <br />
           오늘은 어디로 떠날까요?
         </h1>
+      </section>
 
-<div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#2E7DF2] to-[#17B89B] p-6 text-white">
-          <div className="absolute -top-8 -right-6 size-32 rounded-full bg-white/10" />
-          <div className="absolute top-10 right-10 size-16 rounded-full bg-white/10" />
-          <div className="relative">
-            <h2 className="text-lg font-bold">AI 맞춤 일정 만들기</h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/90">
-              취향만 알려주면 3초 만에
+      <div className="relative z-10 -mt-1 space-y-7 px-4 pb-9">
+        <section className="relative min-h-[12.5rem] overflow-hidden rounded-[1.65rem] border border-white bg-white shadow-[0_12px_32px_rgba(41,100,160,0.12)]">
+          <Image
+            src="/trips-covers/cover-gwangalli.png"
+            alt="광안대교와 부산 바다"
+            fill
+            sizes="(max-width: 512px) 100vw, 512px"
+            className="object-cover object-[50%_34%]"
+          />
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="pointer-events-none absolute inset-0 h-full w-full"
+          >
+            <path
+              d="M0 0H61C56 9 53 19 50 31C47 46 44 64 40 79C38 88 36 95 34 100H0Z"
+              fill="white"
+            />
+          </svg>
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-[38%] bg-linear-to-r from-white via-white/98 to-transparent" />
+
+          <div className="relative z-10 flex min-h-[12.5rem] max-w-[60%] flex-col items-start p-5">
+            <h2 className="text-[clamp(1.15rem,4.7vw,1.45rem)] font-extrabold tracking-[-0.04em] text-[#123d86]">
+              AI 맞춤 일정 만들기
+            </h2>
+            <p className="mt-2 text-[clamp(0.78rem,3.1vw,0.94rem)] leading-7 font-medium text-[#5f718b]">
+              취향만 알려주면 3분 만에
               <br />
               완벽한 여행 코스를 짜드려요
             </p>
             <Link
               href="/trips/new/date"
-              className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-transform active:scale-95"
+              className="mt-auto inline-flex items-center gap-2 rounded-full bg-[#2E7DF2] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_rgba(46,125,242,0.25)] transition-transform hover:-translate-y-0.5 active:scale-95"
             >
-              시작하기 <span aria-hidden>→</span>
+              시작하기
+              <ArrowRight size={18} strokeWidth={2.35} />
             </Link>
           </div>
-        </div>
+
+        </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-bold">지금 인기 여행지</h2>
+          <h2 className="mb-3 text-xl font-extrabold tracking-[-0.04em] text-[#0b2146]">
+            지금 인기 여행지
+          </h2>
           {popularPlaces.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4">
-            {popularPlaces.map((place) => (
-              <button
-                key={place.placeId}
-                type="button"
-                onClick={() => setDetailPlaceId(place.placeId)}
-                className="overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-black/5"
-              >
-                <div className="aspect-16/10 bg-zinc-100">
-                  {place.primaryImageUrl && (
-                    <img
-                      src={place.primaryImageUrl}
-                      alt={place.name}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </div>
-                <div className="px-3 py-3">
-                  <p className="truncate text-sm font-semibold">{place.name}</p>
-                  <p className="mt-0.5 truncate text-xs text-zinc-400">
-                    {place.categoryLabel ?? place.address ?? ""}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
+            <div className="grid grid-cols-2 gap-3">
+              {popularPlaces.map((place, index) => {
+                const imageUrl = place.primaryImageUrl || POPULAR_FALLBACK_IMAGES[index % POPULAR_FALLBACK_IMAGES.length];
+                return (
+                  <button
+                    key={place.placeId}
+                    type="button"
+                    onClick={() => setDetailPlaceId(place.placeId)}
+                    className="group overflow-hidden rounded-[1.35rem] bg-white text-left shadow-[0_8px_24px_rgba(38,83,133,0.1)] ring-1 ring-[#e4edf7]"
+                  >
+                    <span className="relative block aspect-3/2 overflow-hidden bg-[#eaf3fb]">
+                      <CardImage src={imageUrl} alt={place.name} />
+                    </span>
+                    <span className="block px-3.5 py-3">
+                      <span className="flex items-center gap-2 text-base font-extrabold tracking-[-0.03em] text-[#102750]">
+                        <MapPin size={18} strokeWidth={2.3} className="shrink-0 text-[#2E7DF2]" />
+                        부산
+                      </span>
+                      <span className="mt-1 block truncate pl-[1.65rem] text-xs font-medium text-[#8996aa]">
+                        {[place.name, place.categoryLabel].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           ) : (
-            <p className="py-8 text-center text-sm text-zinc-400">인기 여행지 정보를 준비 중이에요</p>
+            <p className="rounded-2xl bg-white py-9 text-center text-sm text-[#8996aa] ring-1 ring-[#e7eef6]">
+              인기 여행지 정보를 준비 중이에요
+            </p>
           )}
         </section>
 
         {communityPosts.length > 0 && (
           <section>
-            <h2 className="mb-3 text-lg font-bold">커뮤니티 인기글</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {communityPosts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/community/posts/${post.id}`}
-                  className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5"
-                >
-                  <div className="aspect-16/10 bg-zinc-100">
-                    {post.thumbnailUrl && (
-                      <img
-                        src={post.thumbnailUrl}
+            <h2 className="mb-3 text-xl font-extrabold tracking-[-0.04em] text-[#0b2146]">
+              커뮤니티 인기글
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              {communityPosts.map((post, index) => {
+                const imageUrl = post.thumbnailUrl || COMMUNITY_FALLBACK_IMAGES[index % COMMUNITY_FALLBACK_IMAGES.length];
+                return (
+                  <Link
+                    key={post.id}
+                    href={`/community/posts/${post.id}`}
+                    className="group overflow-hidden rounded-[1.35rem] bg-white shadow-[0_8px_24px_rgba(38,83,133,0.1)] ring-1 ring-[#e4edf7]"
+                  >
+                    <span className="relative block aspect-3/2 overflow-hidden bg-[#eaf3fb]">
+                      <CardImage
+                        src={imageUrl}
                         alt={post.placeName ?? post.content}
-                        className="h-full w-full object-cover"
                       />
-                    )}
-                  </div>
-                  <div className="px-3 py-3">
-                    <p className="truncate text-sm font-semibold">{post.placeName ?? post.content}</p>
-                    <p className="mt-0.5 text-xs text-zinc-400">
-                      {post.categories[0] ?? "여행후기"} · 댓글 {post.commentCount} · {post.createdAgo}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+                    </span>
+                    <span className="block px-3.5 py-3">
+                      <span className="block truncate text-sm font-extrabold tracking-[-0.025em] text-[#102750]">
+                        {post.author.nickname}
+                      </span>
+                      <span className="mt-1 block truncate text-xs font-medium text-[#8996aa]">
+                        {post.categories[0] ?? "여행후기"} · 댓글 {post.commentCount}
+                      </span>
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </section>
         )}

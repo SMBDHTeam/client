@@ -12,7 +12,13 @@ import { useNotificationStream } from "@/lib/notifications/use-notification-stre
 const NOTIFICATION_COUNT_REFRESH_EVENT = "notifications:count-refresh";
 const NOTIFICATION_COUNT_POLLING_MS = 60_000;
 
-export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: string | null }) {
+export default function HomeHeader({
+  profileImageUrl,
+  profileLabel = "누비",
+}: {
+  profileImageUrl?: string | null;
+  profileLabel?: string;
+}) {
   const { status } = useSession();
   const profileImage = profileImageUrl;
   const [unreadCount, setUnreadCount] = useState(0);
@@ -52,14 +58,14 @@ export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: stri
   }, [refreshUnreadCount, status]);
 
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between bg-[#FFFFFF]/90 px-5 py-4 backdrop-blur">
+    <header className="sticky top-0 z-40 flex shrink-0 items-center justify-between border-b border-white/70 bg-white/80 px-5 pt-4 pb-3 shadow-[0_5px_18px_rgba(47,82,121,0.06)] backdrop-blur-xl backdrop-saturate-150">
       <Image src={nubiLogo} alt="누비" className="h-9 w-auto" priority />
 
       <div className="flex items-center gap-3">
         <Link
           href="/notifications"
           aria-label="알림"
-          className="relative grid size-9 place-items-center rounded-full text-zinc-500 hover:bg-black/5"
+          className="relative grid size-10 place-items-center rounded-full text-[#71839b] transition-colors hover:bg-white/55"
         >
           <Image src={bellIcon} alt="" width={30} height={30} />
           {status === "authenticated" && unreadCount > 0 && (
@@ -71,10 +77,19 @@ export default function HomeHeader({ profileImageUrl }: { profileImageUrl?: stri
         <Link
           href="/profile"
           aria-label="내 정보"
-          className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B]"
+          className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-linear-to-br from-[#79A9F2] to-[#574BCB] text-xs font-bold text-white shadow-[0_5px_12px_rgba(61,85,169,0.16)] ring-1 ring-white/75"
         >
-          {profileImage && (
-            <img src={profileImage} alt="프로필" className="size-full object-cover" referrerPolicy="no-referrer" />
+          {profileImage ? (
+            <Image
+              src={profileImage}
+              alt="프로필"
+              fill
+              unoptimized
+              referrerPolicy="no-referrer"
+              className="object-cover"
+            />
+          ) : (
+            <span>{profileLabel}</span>
           )}
         </Link>
       </div>
