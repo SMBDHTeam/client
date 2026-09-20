@@ -4,21 +4,37 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight, LoaderCircle, MapPin } from "lucide-react";
+import { toast } from "sonner";
 
 import HomeHeader from "@/components/layout/HomeHeader";
 import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 import PageFade from "@/components/ui/PageFade";
-import { getPopularPlaces } from "@/lib/api/places";
+import { getPopularPlaces, resolvePlace, searchPlaces } from "@/lib/api/places";
 import { getPopularFeed } from "@/lib/api/posts";
 import { getUserProfile } from "@/lib/api/users";
 import type { PlaceSummary } from "@/types/api/place";
 import type { FeedPost } from "@/types/api/post";
 
 const POPULAR_FALLBACK_IMAGES = [
-  "/trips-covers/cover-gwangalli.png",
-  "/trips-covers/cover-hillside.png",
+  "/trips-covers/destination-gwangalli-millak.png",
+  "/trips-covers/destination-gamcheon-sunset.png",
 ];
+
+const POPULAR_FALLBACK_PLACES = [
+  {
+    key: "gwangalli",
+    imageUrl: POPULAR_FALLBACK_IMAGES[0],
+    subtitle: "해운대 · 광안리",
+    keyword: "광안리해수욕장",
+  },
+  {
+    key: "gamcheon",
+    imageUrl: POPULAR_FALLBACK_IMAGES[1],
+    subtitle: "감천문화마을 · 태종대",
+    keyword: "감천문화마을",
+  },
+] as const;
 
 const COMMUNITY_FALLBACK_IMAGES = [
   "/trips-covers/cover-coastal-temple.png",
@@ -57,6 +73,9 @@ export default function HomePage() {
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [communityPosts, setCommunityPosts] = useState<FeedPost[]>([]);
   const [popularPlaces, setPopularPlaces] = useState<PlaceSummary[]>([]);
+  const [popularLoading, setPopularLoading] = useState(true);
+  const [resolvingFallback, setResolvingFallback] = useState<string | null>(null);
+  const [fallbackPlaceIds, setFallbackPlaceIds] = useState<Record<string, number>>({});
   const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -72,7 +91,12 @@ export default function HomePage() {
       .then((response) => {
         if (!cancelled) setPopularPlaces(response.items.slice(0, 2));
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setPopularPlaces([]);
+      })
+      .finally(() => {
+        if (!cancelled) setPopularLoading(false);
+      });
 
     return () => {
       cancelled = true;
@@ -100,6 +124,35 @@ export default function HomePage() {
   }, [session]);
 
   const displayName = greetingName(userName ?? session?.user?.name);
+
+  async function openFallbackPlace(place: (typeof POPULAR_FALLBACK_PLACES)[number]) {
+    if (resolvingFallback) return;
+
+    const cachedPlaceId = fallbackPlaceIds[place.key];
+    if (cachedPlaceId != null) {
+      setDetailPlaceId(cachedPlaceId);
+      return;
+    }
+
+    setResolvingFallback(place.key);
+    try {
+      const response = await searchPlaces(place.keyword);
+      const exactMatch = response.items.find((item) => item.name.includes(place.keyword));
+      const match = exactMatch ?? response.items[0];
+      if (!match) throw new Error("추천 장소를 찾지 못했습니다.");
+
+      const resolvedPlaceId =
+        match.placeId !== null && match.resolved
+          ? match.placeId
+          : (await resolvePlace(match)).placeId;
+      setFallbackPlaceIds((current) => ({ ...current, [place.key]: resolvedPlaceId }));
+      setDetailPlaceId(resolvedPlaceId);
+    } catch {
+      toast.error("장소 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setResolvingFallback(null);
+    }
+  }
 
   return (
     <PageFade className="flex min-h-full shrink-0 flex-col bg-[#f8fbff] text-[#0b2146]">
@@ -173,7 +226,22 @@ export default function HomePage() {
           <h2 className="mb-3 text-xl font-extrabold tracking-[-0.04em] text-[#0b2146]">
             지금 인기 여행지
           </h2>
-          {popularPlaces.length > 0 ? (
+          {popularLoading ? (
+            <div className="grid grid-cols-2 gap-3" aria-label="인기 여행지를 불러오는 중">
+              {[0, 1].map((item) => (
+                <div
+                  key={item}
+                  className="overflow-hidden rounded-[1.35rem] bg-white shadow-[0_8px_24px_rgba(38,83,133,0.08)] ring-1 ring-[#e4edf7]"
+                >
+                  <div className="aspect-3/2 animate-pulse bg-[#eaf3fb]" />
+                  <div className="space-y-2 px-3.5 py-3">
+                    <div className="h-4 w-16 animate-pulse rounded-full bg-[#e7eef6]" />
+                    <div className="h-3 w-24 animate-pulse rounded-full bg-[#eef3f8]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : popularPlaces.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
               {popularPlaces.map((place, index) => {
                 const imageUrl = place.primaryImageUrl || POPULAR_FALLBACK_IMAGES[index % POPULAR_FALLBACK_IMAGES.length];
@@ -201,9 +269,39 @@ export default function HomePage() {
               })}
             </div>
           ) : (
-            <p className="rounded-2xl bg-white py-9 text-center text-sm text-[#8996aa] ring-1 ring-[#e7eef6]">
-              인기 여행지 정보를 준비 중이에요
-            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {POPULAR_FALLBACK_PLACES.map((place) => {
+                const resolving = resolvingFallback === place.key;
+                return (
+                  <button
+                    key={place.key}
+                    type="button"
+                    onClick={() => void openFallbackPlace(place)}
+                    disabled={resolvingFallback !== null}
+                    aria-busy={resolving}
+                    className="group overflow-hidden rounded-[1.35rem] bg-white text-left shadow-[0_8px_24px_rgba(38,83,133,0.1)] ring-1 ring-[#e4edf7] transition-transform hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-80"
+                  >
+                    <span className="relative block aspect-3/2 overflow-hidden bg-[#eaf3fb]">
+                      <CardImage src={place.imageUrl} alt={place.subtitle} />
+                      {resolving && (
+                        <span className="absolute inset-0 grid place-items-center bg-[#0b2146]/20" aria-hidden>
+                          <LoaderCircle className="animate-spin text-white" size={28} strokeWidth={2.5} />
+                        </span>
+                      )}
+                    </span>
+                    <span className="block px-3.5 py-3">
+                      <span className="flex items-center gap-2 text-base font-extrabold tracking-[-0.03em] text-[#102750]">
+                        <MapPin size={18} strokeWidth={2.3} className="shrink-0 text-[#2E7DF2]" />
+                        부산
+                      </span>
+                      <span className="mt-1 block truncate pl-[1.65rem] text-xs font-medium text-[#8996aa]">
+                        {place.subtitle}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           )}
         </section>
 

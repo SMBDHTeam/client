@@ -204,7 +204,7 @@ export default function TripsPage() {
     }, [sorted, today]);
 
     return (
-        <div className={`${pageFont.className} flex flex-1 flex-col bg-[#F8FBFF] text-[#14233F]`}>
+        <div className={`${pageFont.className} flex w-full min-w-0 flex-1 flex-col overflow-x-clip bg-[#F8FBFF] text-[#14233F]`}>
             <header className="relative aspect-[2/1] min-h-[166px] shrink-0 overflow-hidden bg-white">
                 <Image
                     src="/trips-covers/header-busan.png"
@@ -247,11 +247,11 @@ export default function TripsPage() {
                     <p className="text-sm text-red-500">{error}</p>
                 </div>
             ) : (
-                <div className="flex flex-col gap-[clamp(16px,3.75vw,20px)] px-[clamp(19px,4.46vw,23px)] pb-8">
+                <div className="flex w-full min-w-0 flex-col gap-[clamp(16px,3.75vw,20px)] px-[clamp(19px,4.46vw,23px)] pb-8">
                     {featured && (
-                        <section className="relative z-[1] -mt-[clamp(54px,12.7vw,64px)]">
+                        <section className="relative z-[1] min-w-0 -mt-[clamp(54px,12.7vw,64px)]">
                             <h2 className="mb-[clamp(12px,2.8vw,14px)] text-[clamp(16px,3.75vw,18px)] font-extrabold tracking-tight">가장 가까운 여행</h2>
-                            <div className="relative aspect-[1.94] min-h-[202px] overflow-hidden rounded-[23px] bg-white shadow-[0_8px_28px_rgba(44,112,191,0.09)]">
+                            <div className="relative w-full min-w-0 aspect-[1.94] min-h-[202px] overflow-hidden rounded-[23px] bg-white shadow-[0_8px_28px_rgba(44,112,191,0.09)]">
                                 <div className="absolute inset-y-0 right-0 w-[52%]" style={{ clipPath: "ellipse(100% 84% at 100% 50%)" }}>
                                     <Image
                                         src="/trips-covers/featured-lighthouse.png"
@@ -294,34 +294,34 @@ export default function TripsPage() {
                         </section>
                     )}
 
-                    <section className="grid grid-cols-2 gap-[clamp(10px,2.35vw,12px)]" aria-label="새 일정 만들기">
+                    <section className="grid w-full min-w-0 grid-cols-2 gap-[clamp(10px,2.35vw,12px)]" aria-label="새 일정 만들기">
                         <button
                             type="button"
                             onClick={() => { resetDraft(); router.push("/trips/new/date"); }}
-                            className="flex aspect-[2.1] min-h-[91px] cursor-pointer items-center gap-[clamp(10px,2.35vw,12px)] rounded-[20px] bg-linear-to-r from-[#EAF6FF] to-[#F5FBFF] px-[clamp(10px,2.35vw,12px)] text-left transition-colors hover:from-[#E0F1FF] max-[359px]:flex-col max-[359px]:justify-center max-[359px]:gap-1"
+                            className="flex min-w-0 aspect-[2.1] min-h-[91px] cursor-pointer items-center gap-[clamp(10px,2.35vw,12px)] overflow-hidden rounded-[20px] bg-linear-to-r from-[#EAF6FF] to-[#F5FBFF] px-[clamp(10px,2.35vw,12px)] text-left transition-colors hover:from-[#E0F1FF] max-[359px]:flex-col max-[359px]:justify-center max-[359px]:gap-1"
                         >
                             <PlanningCalendarIcon />
                             <span className="min-w-0 flex-1">
                                 <span className="block whitespace-nowrap text-xs font-bold min-[390px]:text-[clamp(13px,3.05vw,15px)]">일정 계획하기</span>
                                 <span className="mt-1 block whitespace-nowrap text-[10px] text-[#64758E] min-[390px]:text-[clamp(11px,2.58vw,13px)]">3분이면 완성</span>
                             </span>
-                            <ChevronRight className="hidden size-[clamp(15px,3.52vw,18px)] shrink-0 text-[#64758E] min-[390px]:block" aria-hidden />
+                            <ChevronRight className="hidden size-[clamp(15px,3.52vw,18px)] shrink-0 text-[#64758E] min-[430px]:block" aria-hidden />
                         </button>
                         <button
                             type="button"
                             onClick={() => router.push("/spontaneous")}
-                            className="flex aspect-[2.1] min-h-[91px] cursor-pointer items-center gap-[clamp(10px,2.35vw,12px)] rounded-[20px] bg-linear-to-r from-[#FFF8EB] to-[#FFFDF8] px-[clamp(10px,2.35vw,12px)] text-left transition-colors hover:from-[#FFF0D9] max-[359px]:flex-col max-[359px]:justify-center max-[359px]:gap-1"
+                            className="flex min-w-0 aspect-[2.1] min-h-[91px] cursor-pointer items-center gap-[clamp(10px,2.35vw,12px)] overflow-hidden rounded-[20px] bg-linear-to-r from-[#FFF8EB] to-[#FFFDF8] px-[clamp(10px,2.35vw,12px)] text-left transition-colors hover:from-[#FFF0D9] max-[359px]:flex-col max-[359px]:justify-center max-[359px]:gap-1"
                         >
                             <ZeroPlanSignpostIcon />
                             <span className="min-w-0 flex-1">
                                 <span className="block whitespace-nowrap text-xs font-bold min-[390px]:text-[clamp(13px,3.05vw,15px)]">제로플랜</span>
                                 <span className="mt-1 block whitespace-nowrap text-[10px] text-[#64758E] min-[390px]:text-[clamp(11px,2.58vw,13px)]">지금 바로 출발</span>
                             </span>
-                            <ChevronRight className="hidden size-[clamp(15px,3.52vw,18px)] shrink-0 text-[#64758E] min-[390px]:block" aria-hidden />
+                            <ChevronRight className="hidden size-[clamp(15px,3.52vw,18px)] shrink-0 text-[#64758E] min-[430px]:block" aria-hidden />
                         </button>
                     </section>
 
-                    <section className="pt-3">
+                    <section className="min-w-0 pt-3">
                         <div className="flex items-center justify-between">
                             <h2 className="text-[clamp(17px,4vw,20px)] font-extrabold tracking-tight">
                                 모든 일정 <span className="text-[#2E7DF2]">{sorted.length}</span>
