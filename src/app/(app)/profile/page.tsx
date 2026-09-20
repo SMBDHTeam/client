@@ -271,6 +271,10 @@ export default function ProfilePage() {
           </div>
         </section>
 
+        <p className="px-1 text-center text-[11px] leading-relaxed text-zinc-400">
+          관광지·축제·숙박 등 관광 정보 출처 : ⓒ한국관광공사
+        </p>
+
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/" })}

@@ -381,6 +381,11 @@ export default function PlaceDetailSheet({
                       {parking && <InfoRow kind="parking" label="주차" value={parking} color="text-[#17B89B]" />}
                     </div>
                   )}
+
+                  {/* 한국관광공사 데이터 이용 지침상 표기가 필요하다. TourAPI 에서 온 장소에만 붙인다. */}
+                  {detail.source === "TOUR_API" && (
+                    <p className="pt-1 text-center text-[11px] text-zinc-400">출처 : ⓒ한국관광공사</p>
+                  )}
                 </div>
               </>
             )}
