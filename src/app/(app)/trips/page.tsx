@@ -159,6 +159,7 @@ export default function TripsPage() {
     const { resetDraft } = useTripDraft();
 
     const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
+    const [showAllSchedules, setShowAllSchedules] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [now, setNow] = useState(() => new Date());
@@ -202,6 +203,8 @@ export default function TripsPage() {
         const upcoming = sorted.find((s) => diffDays(today, parseDate(s.endDate)) >= 0);
         return upcoming ?? sorted[sorted.length - 1];
     }, [sorted, today]);
+    const visibleSchedules = showAllSchedules ? sorted : sorted.slice(0, 3);
+    const canToggleSchedules = sorted.length > 3;
 
     return (
         <div className={`${pageFont.className} flex w-full min-w-0 flex-1 flex-col overflow-x-clip bg-[#F8FBFF] text-[#14233F]`}>
@@ -326,16 +329,28 @@ export default function TripsPage() {
                             <h2 className="text-[clamp(17px,4vw,20px)] font-extrabold tracking-tight">
                                 모든 일정 <span className="text-[#2E7DF2]">{sorted.length}</span>
                             </h2>
-                            <span className="flex items-center gap-1 text-[clamp(12px,2.8vw,14px)] font-medium text-[#64758E]">
-                                전체 보기 <ChevronRight className="size-[clamp(16px,3.75vw,19px)]" strokeWidth={1.9} aria-hidden />
-                            </span>
+                            {canToggleSchedules && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAllSchedules((value) => !value)}
+                                    className="flex items-center gap-1 text-[clamp(12px,2.8vw,14px)] font-medium text-[#64758E] transition-colors hover:text-[#2E7DF2]"
+                                    aria-expanded={showAllSchedules}
+                                >
+                                    {showAllSchedules ? "접기" : "전체 보기"}
+                                    <ChevronRight
+                                        className={`size-[clamp(16px,3.75vw,19px)] transition-transform ${showAllSchedules ? "-rotate-90" : ""}`}
+                                        strokeWidth={1.9}
+                                        aria-hidden
+                                    />
+                                </button>
+                            )}
                         </div>
 
                         {sorted.length === 0 ? (
                             <p className="py-12 text-center text-sm text-zinc-400">아직 만든 일정이 없어요</p>
                         ) : (
                             <ul className="mt-3 flex flex-col gap-3">
-                                {sorted.map((t) => (
+                                {visibleSchedules.map((t) => (
                                     <li key={t.id}>
                                         <Link
                                             href={`/trips/${t.id}`}
