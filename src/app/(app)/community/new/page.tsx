@@ -389,8 +389,8 @@ export default function CommunityNewPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-white">
-      <header className="flex items-center gap-2 border-b border-black/5 px-4 py-3">
+    <div className="flex min-h-0 flex-1 flex-col bg-white text-[#0b2146]">
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b border-[#edf1f5] bg-white px-4">
         <button
           type="button"
           onClick={() => {
@@ -399,11 +399,12 @@ export default function CommunityNewPage() {
             if (step === "photos") { setStep("idle"); return; }
             router.back();
           }}
-          className="grid size-8 place-items-center rounded-full text-zinc-500 hover:bg-zinc-100"
+          aria-label="뒤로 가기"
+          className="grid size-9 place-items-center rounded-full text-[#315979] transition-colors hover:bg-[#f3f7fa]"
         >
-          <ChevronLeft size={22} />
+          <ChevronLeft size={24} strokeWidth={2.4} />
         </button>
-        <h1 className="flex-1 text-center text-base font-semibold">
+        <h1 className="flex-1 text-center text-lg font-extrabold tracking-[-0.035em]">
           {step === "photos"
             ? "사진 선택"
             : step === "trip"
@@ -416,21 +417,21 @@ export default function CommunityNewPage() {
           type="button"
           disabled={!canSubmit || step !== "idle"}
           onClick={handleSubmit}
-          className="rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B] px-4 py-1.5 text-sm font-semibold text-white transition-opacity disabled:opacity-40"
+          className="rounded-full bg-linear-to-br from-[#2394eb] to-[#18b8ae] px-4 py-2 text-sm font-bold text-white shadow-[0_5px_14px_rgba(36,151,201,0.2)] transition-all active:scale-95 disabled:shadow-none disabled:opacity-35"
         >
           {submitting ? "게시 중..." : "게시"}
         </button>
       </header>
 
       {step === "photos" && (
-        <div className="flex flex-1 flex-col overflow-y-auto">
-          <div className="px-4 pt-4 pb-2">
-            <p className="text-xs text-zinc-400">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <div className="px-4 pt-5 pb-3">
+            <p className="text-sm font-bold text-[#234566]">
               장소를 태그할 사진을 선택하세요
             </p>
-            <p className="mt-0.5 text-xs text-zinc-400">태그하지 않아도 게시할 수 있어요</p>
+            <p className="mt-1 text-xs text-[#8999aa]">태그하지 않아도 게시할 수 있어요</p>
           </div>
-          <div className="grid grid-cols-3 gap-0.5 px-0.5">
+          <div className="grid grid-cols-3 gap-2 px-4">
             {mediaItems.map((item, index) => {
               const taggedPlace = mediaPlaces[index];
               const selected = pickerSelection.has(index);
@@ -439,11 +440,13 @@ export default function CommunityNewPage() {
                   key={index}
                   type="button"
                   onClick={() => togglePhotoSelection(index)}
-                  className="relative aspect-square overflow-hidden bg-zinc-100"
+                  className="relative aspect-square overflow-hidden rounded-xl bg-[#eef3f7] ring-1 ring-[#e1e8ee]"
                 >
                   {item.file.type.startsWith("video/") ? (
                     <video src={item.previewUrl} className="h-full w-full object-cover" muted />
                   ) : (
+                    // Object URL 미리보기는 Next Image 최적화 대상이 아닙니다.
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={item.previewUrl} alt="" className="h-full w-full object-cover" />
                   )}
                   <div
@@ -475,11 +478,11 @@ export default function CommunityNewPage() {
             })}
           </div>
 
-          <div className="mt-auto flex items-center gap-2 border-t border-zinc-100 px-4 py-3">
+          <div className="mt-auto flex items-center gap-2 border-t border-[#edf1f5] bg-white px-4 py-3">
             <button
               type="button"
               onClick={() => setStep("idle")}
-              className="rounded-full px-4 py-2.5 text-sm font-semibold text-zinc-500"
+              className="rounded-full border border-[#dce4eb] px-4 py-2.5 text-sm font-bold text-[#60758a]"
             >
               완료
             </button>
@@ -487,7 +490,7 @@ export default function CommunityNewPage() {
               type="button"
               disabled={pickerSelection.size === 0}
               onClick={openPicker}
-              className="flex-1 rounded-full bg-linear-to-br from-[#2E7DF2] to-[#17B89B] py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+              className="flex-1 rounded-full bg-linear-to-br from-[#2394eb] to-[#18b8ae] py-3 text-sm font-bold text-white shadow-[0_6px_16px_rgba(36,151,201,0.2)] disabled:shadow-none disabled:opacity-35"
             >
               장소 선택 ({pickerSelection.size})
             </button>
@@ -496,13 +499,13 @@ export default function CommunityNewPage() {
       )}
 
       {step === "trip" && (
-        <div className="flex flex-1 flex-col overflow-y-auto">
-          <div className="mx-4 mt-4 flex gap-1 rounded-full bg-zinc-100 p-1">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <div className="mx-4 mt-4 flex gap-1 rounded-full border border-[#e3e9ee] bg-[#f6f8fa] p-1">
             <button
               type="button"
               onClick={() => setPickerTab("trip")}
               className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${
-                pickerTab === "trip" ? "bg-white text-[#2E7DF2] shadow-sm" : "text-zinc-400"
+                pickerTab === "trip" ? "bg-white text-[#218de5] shadow-sm" : "text-[#8797a8]"
               }`}
             >
               내 일정에서
@@ -511,7 +514,7 @@ export default function CommunityNewPage() {
               type="button"
               onClick={() => setPickerTab("search")}
               className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${
-                pickerTab === "search" ? "bg-white text-[#2E7DF2] shadow-sm" : "text-zinc-400"
+                pickerTab === "search" ? "bg-white text-[#218de5] shadow-sm" : "text-[#8797a8]"
               }`}
             >
               장소 검색
@@ -527,16 +530,16 @@ export default function CommunityNewPage() {
               <p className="px-4 py-16 text-center text-sm text-zinc-400">아직 만든 일정이 없어요</p>
             ) : (
               <>
-                <p className="px-4 pt-4 pb-2 text-xs text-zinc-400">내 일정에서 선택하세요</p>
-                <ul className="flex flex-col divide-y divide-zinc-100">
+                <p className="px-4 pt-5 pb-3 text-sm font-bold text-[#234566]">내 일정에서 선택하세요</p>
+                <ul className="flex flex-col gap-2 px-4 pb-4">
                   {schedules.map((schedule) => (
                     <li key={schedule.id}>
                       <button
                         type="button"
                         onClick={() => pickTrip(schedule)}
-                        className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-zinc-50"
+                        className="flex w-full items-center gap-3 rounded-2xl border border-[#e2e9ef] bg-white px-3.5 py-3.5 text-left shadow-[0_5px_15px_rgba(46,82,116,0.06)] transition-colors hover:bg-[#f8fbfd]"
                       >
-                        <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-linear-to-br from-[#2E7DF2] to-[#17B89B] text-[10px] font-bold text-white">
+                        <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-linear-to-br from-[#2394eb] to-[#18b8ae] text-[10px] font-bold text-white">
                           {formatDuration(schedule.dayCount)}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -554,7 +557,7 @@ export default function CommunityNewPage() {
             )
           ) : (
             <div className="flex flex-1 flex-col px-4 pt-4">
-              <div className="flex items-center gap-2 rounded-full border border-zinc-200 px-4 py-2.5">
+              <div className="flex items-center gap-2 rounded-2xl border border-[#dce5ec] bg-[#f9fbfc] px-4 py-3 shadow-inner">
                 <input
                   value={searchQuery}
                   onChange={(e) => {
@@ -566,7 +569,7 @@ export default function CommunityNewPage() {
                 />
               </div>
 
-              <div className="relative mt-3 h-[min(16rem,32dvh)] w-full shrink-0 overflow-hidden rounded-2xl ring-1 ring-black/5">
+              <div className="relative mt-3 h-[min(16rem,32dvh)] w-full shrink-0 overflow-hidden rounded-[1.35rem] border border-[#dce5ec] shadow-[0_8px_22px_rgba(46,82,116,0.08)]">
                 <NaverMap
                   center={mapCenter}
                   zoom={activeSearchPlace ? 17 : undefined}
@@ -584,7 +587,7 @@ export default function CommunityNewPage() {
                 />
               </div>
 
-              <ul className="mt-2 flex flex-col divide-y divide-zinc-100">
+              <ul className="mt-3 flex flex-col gap-2 pb-4">
                 {searchLoading && (
                   <p className="py-8 text-center text-sm text-zinc-400">검색 중...</p>
                 )}
@@ -595,13 +598,13 @@ export default function CommunityNewPage() {
                   const key = searchItemKey(item);
                   const resolving = resolvingKey === key;
                   return (
-                    <li key={key} className="flex w-full items-center gap-3 py-3.5">
+                    <li key={key} className="flex w-full items-center gap-3 rounded-2xl border border-[#e2e9ef] bg-white px-3 py-3 shadow-[0_4px_12px_rgba(46,82,116,0.05)]">
                       <button
                         type="button"
                         onClick={() => focusSearchPlace(item)}
                         className="flex min-w-0 flex-1 items-center gap-3 text-left"
                       >
-                        <div className="grid size-9 shrink-0 place-items-center rounded-full bg-blue-50 text-[#2E7DF2]">
+                        <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#edf6ff] text-[#218de5]">
                           <MapPin size={16} />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -615,7 +618,7 @@ export default function CommunityNewPage() {
                         type="button"
                         onClick={() => selectSearchPlace(item)}
                         disabled={Boolean(resolvingKey)}
-                        className="shrink-0 rounded-full bg-[#EAF2FE] px-3 py-1.5 text-xs font-semibold text-[#2E7DF2] disabled:opacity-50"
+                        className="shrink-0 rounded-full bg-[#eaf4ff] px-3 py-1.5 text-xs font-bold text-[#218de5] disabled:opacity-50"
                       >
                         {resolving ? "확인 중" : "선택"}
                       </button>
@@ -629,9 +632,9 @@ export default function CommunityNewPage() {
       )}
 
       {step === "place" && selectedSchedule && (
-        <div className="flex flex-1 flex-col overflow-y-auto">
-          <p className="px-4 pt-4 pb-2 text-xs text-zinc-400">
-            <span className="font-medium text-zinc-700">{selectedSchedule.styleSummary}</span>의 장소를 선택하세요
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <p className="px-4 pt-5 pb-3 text-xs text-[#8999aa]">
+            <span className="font-bold text-[#234566]">{selectedSchedule.styleSummary}</span>의 장소를 선택하세요
           </p>
           {scheduleDetailLoading ? (
             <div className="flex flex-1 items-center justify-center py-16">
@@ -640,15 +643,15 @@ export default function CommunityNewPage() {
           ) : places.length === 0 ? (
             <p className="px-4 py-16 text-center text-sm text-zinc-400">등록된 장소가 없어요</p>
           ) : (
-            <ul className="flex flex-col divide-y divide-zinc-100">
+            <ul className="flex flex-col gap-2 px-4 pb-4">
               {places.map((place) => (
                 <li key={place.id}>
                   <button
                     type="button"
                     onClick={() => pickPlace(place)}
-                    className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-zinc-50"
+                    className="flex w-full items-center gap-3 rounded-2xl border border-[#e2e9ef] bg-white px-3.5 py-3.5 text-left shadow-[0_5px_15px_rgba(46,82,116,0.06)] hover:bg-[#f8fbfd]"
                   >
-                    <div className="grid size-9 shrink-0 place-items-center rounded-full bg-blue-50 text-[#2E7DF2]">
+                    <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#edf6ff] text-[#218de5]">
                       <MapPin size={16} />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -664,9 +667,9 @@ export default function CommunityNewPage() {
       )}
 
       {step === "idle" && (
-        <div className="flex flex-1 flex-col overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-5">
           {mediaItems.length > 0 ? (
-            <div className="relative aspect-square w-full overflow-hidden bg-zinc-100">
+            <div className="relative mx-4 mt-4 aspect-square overflow-hidden rounded-[1.5rem] bg-[#edf2f6] shadow-[0_10px_28px_rgba(46,82,116,0.12)] ring-1 ring-[#dce5ec]">
               <div
                 className="flex h-full transition-transform duration-300 ease-in-out"
                 style={{ transform: `translateX(-${imgIndex * 100}%)` }}
@@ -675,6 +678,8 @@ export default function CommunityNewPage() {
                   item.file.type.startsWith("video/") ? (
                     <video key={i} src={item.previewUrl} className="h-full w-full shrink-0 object-cover" muted controls />
                   ) : (
+                    // Object URL 미리보기는 Next Image 최적화 대상이 아닙니다.
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img key={i} src={item.previewUrl} alt="" className="h-full w-full shrink-0 object-contain bg-black" />
                   )
                 ))}
@@ -772,12 +777,16 @@ export default function CommunityNewPage() {
               type="button"
               disabled={mediaProcessing}
               onClick={() => fileInputRef.current?.click()}
-              className="mx-4 mt-4 flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 py-12 text-zinc-400 transition-colors hover:border-[#2E7DF2]/40 hover:bg-blue-50/30 disabled:opacity-60"
+              className="mx-4 mt-4 flex flex-col items-center justify-center gap-3 rounded-[1.5rem] border-2 border-dashed border-[#cfdce6] bg-[#f8fafc] py-12 text-[#7890a4] transition-colors hover:border-[#2394eb]/45 hover:bg-[#f3f9ff] disabled:cursor-wait disabled:opacity-60"
             >
-              <ImagePlus size={32} strokeWidth={1.5} />
+              <span className="grid size-14 place-items-center rounded-full bg-linear-to-br from-[#e9f5ff] to-[#e8fbf8] text-[#218de5]">
+                <ImagePlus size={28} strokeWidth={1.7} />
+              </span>
               <div className="text-center">
-                <p className="text-sm font-medium">{mediaProcessing ? "사진 변환 중..." : "사진·동영상 추가"}</p>
-                <p className="mt-0.5 text-xs text-zinc-400">
+                <p className="text-sm font-bold text-[#294b69]">
+                  {mediaProcessing ? "사진 변환 중..." : "사진·동영상 추가"}
+                </p>
+                <p className="mt-1 text-xs text-[#8b9baa]">
                   1개 이상, 최대 {MAX_MEDIA_COUNT}개 · 파일당 {formatMegabytes(MAX_MEDIA_FILE_SIZE)}
                 </p>
               </div>
@@ -797,19 +806,20 @@ export default function CommunityNewPage() {
             }}
           />
 
-          <div className="flex flex-col gap-4 px-4 py-4">
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="여행 후기를 남겨보세요..."
-              rows={5}
-              className="w-full resize-none text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none"
-            />
+          <div className="flex flex-col gap-3 px-4 py-4">
+            <div className="rounded-[1.35rem] border border-[#e1e8ee] bg-white p-4 shadow-[0_5px_18px_rgba(46,82,116,0.06)]">
+              <p className="mb-2 text-xs font-bold text-[#60758a]">여행 이야기</p>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="여행 후기를 남겨보세요..."
+                rows={5}
+                className="w-full resize-none bg-transparent text-sm leading-6 text-[#1d334a] placeholder:text-[#9aa8b5] focus:outline-none"
+              />
+            </div>
 
-            <div className="h-px bg-zinc-100" />
-
-            <div>
-              <p className="mb-2 text-xs font-medium text-zinc-400">태그 선택 (복수 가능)</p>
+            <div className="rounded-[1.35rem] border border-[#e1e8ee] bg-white p-4 shadow-[0_5px_18px_rgba(46,82,116,0.06)]">
+              <p className="mb-3 text-xs font-bold text-[#60758a]">태그 선택 <span className="font-medium text-[#9aa8b5]">(복수 가능)</span></p>
               <div className="flex flex-wrap gap-2">
                 {COMMUNITY_TAGS.map((tag) => {
                   const active = selectedTags.includes(tag.id);
@@ -818,8 +828,10 @@ export default function CommunityNewPage() {
                       key={tag.id}
                       type="button"
                       onClick={() => toggleTag(tag.id)}
-                      className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                        active ? "bg-[#2E7DF2] text-white" : "bg-zinc-100 text-zinc-500"
+                      className={`rounded-full border px-3.5 py-2 text-xs font-bold transition-all ${
+                        active
+                          ? "border-transparent bg-linear-to-br from-[#2394eb] to-[#18b8ae] text-white shadow-[0_4px_12px_rgba(36,151,201,0.18)]"
+                          : "border-[#dce4eb] bg-[#f8fafc] text-[#526d88]"
                       }`}
                     >
                       {tag.emoji} {tag.label}
@@ -829,17 +841,22 @@ export default function CommunityNewPage() {
               </div>
             </div>
 
-            <div className="h-px bg-zinc-100" />
-
             {mediaItems.length > 0 && (
-              <div className="flex items-center gap-2">
-                <MapPin size={15} className={`shrink-0 ${taggedPhotoCount > 0 ? "text-[#2E7DF2]" : "text-zinc-400"}`} />
-                <button type="button" onClick={openPhotoTagger} className="text-sm text-zinc-500">
+              <button
+                type="button"
+                onClick={openPhotoTagger}
+                className="flex w-full items-center gap-3 rounded-[1.15rem] border border-[#e1e8ee] bg-white px-4 py-3.5 text-left shadow-[0_5px_18px_rgba(46,82,116,0.05)]"
+              >
+                <span className={`grid size-9 shrink-0 place-items-center rounded-full ${taggedPhotoCount > 0 ? "bg-[#e9f5ff] text-[#218de5]" : "bg-[#f3f6f8] text-[#8093a5]"}`}>
+                  <MapPin size={17} />
+                </span>
+                <span className="min-w-0 flex-1 text-sm font-bold text-[#3f5870]">
                   {taggedPhotoCount > 0
                     ? `사진별 장소 태그 (${taggedPhotoCount}/${mediaItems.length}장)`
                     : "사진별로 장소 태그"}
-                </button>
-              </div>
+                </span>
+                <ChevronRight size={18} className="text-[#94a4b3]" />
+              </button>
             )}
           </div>
         </div>
