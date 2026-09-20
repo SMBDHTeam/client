@@ -1,0 +1,470 @@
+.viewport {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 32rem;
+  height: 100dvh;
+  min-height: 36rem;
+  margin: 0 auto;
+  overflow: hidden;
+  color: #071c44;
+  background: #eaf6ff;
+  box-shadow: 0 0 60px -15px rgb(15 23 42 / 25%);
+}
+
+.backgroundArt {
+  z-index: -3;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.01);
+}
+
+.backgroundWash {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 8%) 0%, transparent 36%),
+    linear-gradient(180deg, transparent 50%, rgb(241 249 255 / 16%) 76%, rgb(239 248 255 / 55%) 100%);
+  pointer-events: none;
+}
+
+.branding {
+  position: absolute;
+  z-index: 3;
+  top: clamp(2.6rem, 7.2dvh, 5.4rem);
+  left: clamp(1.5rem, 7vw, 2.5rem);
+  width: calc(100% - 3rem);
+  transform-origin: left top;
+  transition: opacity 450ms ease, transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.brandingLeaving {
+  opacity: 0;
+  transform: translateY(-1rem) scale(0.97);
+}
+
+.heroLogo {
+  width: clamp(7.6rem, 32vw, 10rem);
+  height: auto;
+  filter: drop-shadow(0 4px 12px rgb(255 255 255 / 65%));
+}
+
+.branding h1 {
+  margin: clamp(0.7rem, 1.8dvh, 1.1rem) 0 0;
+  color: #061b43;
+  font-size: clamp(1.75rem, 7vw, 2.45rem);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.065em;
+  text-shadow: 0 2px 18px rgb(255 255 255 / 72%);
+}
+
+.branding p {
+  margin: 0.45rem 0 0;
+  color: #526f96;
+  font-size: clamp(0.9rem, 3.7vw, 1.12rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  text-shadow: 0 1px 10px rgb(255 255 255 / 85%);
+}
+
+.topLettering {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  color: #2977cf;
+  font-family: "Segoe Print", "Nanum Pen Script", cursive;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.08em;
+  transform: rotate(-7deg);
+  opacity: 0.86;
+  text-shadow: 0 1px 8px rgb(255 255 255 / 85%);
+}
+
+.topLettering {
+  top: clamp(2rem, 6dvh, 4.2rem);
+  right: clamp(1.15rem, 5vw, 2rem);
+  font-size: clamp(0.72rem, 3.1vw, 0.96rem);
+}
+
+.topLettering::after {
+  display: block;
+  width: 110%;
+  height: 1px;
+  margin-top: 0.25rem;
+  content: "";
+  background: currentcolor;
+  transform: rotate(-5deg);
+  transform-origin: right center;
+}
+
+.mapStage {
+  position: absolute;
+  z-index: 1;
+  top: clamp(11.8rem, 23.5dvh, 15rem);
+  right: -4%;
+  left: -4%;
+  height: clamp(18rem, 43dvh, 27rem);
+  transition: opacity 500ms ease, transform 1.8s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.mapStageEntering {
+  opacity: 0.75;
+  transform: scale(1.55);
+}
+
+.mapGlow {
+  position: absolute;
+  inset: 15% 13% 4%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / 62%) 0%, rgb(162 225 255 / 20%) 50%, transparent 72%);
+  filter: blur(13px);
+}
+
+.canvasWrap {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0 13px 10px rgb(8 59 113 / 25%));
+  transition: opacity 500ms ease;
+}
+
+.canvasWrap canvas {
+  touch-action: none;
+}
+
+.routeLayer {
+  position: absolute;
+  top: 30%;
+  left: 12%;
+  width: 76%;
+  height: 47%;
+  overflow: visible;
+  opacity: 0;
+  transform: translateY(0.5rem);
+  transition: opacity 360ms ease 80ms, transform 500ms ease 80ms;
+  pointer-events: none;
+}
+
+.routeVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.routeShadow,
+.routePath {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.routeShadow {
+  stroke: rgb(14 63 115 / 20%);
+  stroke-width: 9;
+  transform: translateY(4px);
+}
+
+.routePath {
+  stroke: white;
+  stroke-width: 6;
+  stroke-dasharray: 390;
+  stroke-dashoffset: 390;
+  filter: drop-shadow(0 2px 5px rgb(25 99 168 / 25%));
+}
+
+.routeVisible .routePath {
+  animation: drawRoute 850ms ease-out 120ms forwards;
+}
+
+.routeDot {
+  fill: #2e7df2;
+  stroke: white;
+  stroke-width: 5;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.routeVisible .routeDot {
+  animation: popIn 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 780ms forwards;
+}
+
+.busBadge {
+  color: #2e7df2;
+  opacity: 0;
+}
+
+.busBadge > circle {
+  fill: white;
+  filter: drop-shadow(0 4px 7px rgb(21 76 126 / 26%));
+}
+
+.busBadge rect {
+  fill: none;
+  stroke: #2e7df2;
+  stroke-width: 3;
+}
+
+.busBadge path {
+  fill: none;
+  stroke: #2e7df2;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.busBadge circle:not(:first-child) {
+  fill: #2e7df2;
+}
+
+.routeVisible .busBadge {
+  animation: fadeIn 420ms ease-out 610ms forwards;
+}
+
+.loginSheet {
+  position: absolute;
+  z-index: 5;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  min-height: clamp(16.5rem, 35dvh, 21rem);
+  padding: clamp(1.25rem, 3dvh, 2rem) clamp(1.45rem, 6vw, 2.5rem) max(1.15rem, env(safe-area-inset-bottom));
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid rgb(255 255 255 / 88%);
+  border-radius: clamp(2.3rem, 10vw, 4rem) clamp(2.3rem, 10vw, 4rem) 0 0;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 -14px 42px rgb(40 90 135 / 14%);
+  opacity: 0;
+  transform: translateY(104%);
+  backdrop-filter: blur(18px) saturate(120%);
+  transition:
+    transform 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 420ms ease;
+  pointer-events: none;
+}
+
+.sheetVisible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.sheetLeaving {
+  opacity: 0;
+  transform: translateY(18%);
+  transition-duration: 450ms;
+  pointer-events: none;
+}
+
+.sheetLogo {
+  width: clamp(4.5rem, 20vw, 6rem);
+  height: auto;
+}
+
+.loginSheet h2 {
+  margin: clamp(0.55rem, 1.4dvh, 0.9rem) 0 clamp(0.85rem, 2dvh, 1.2rem);
+  color: #071c44;
+  font-size: clamp(1.25rem, 5.4vw, 1.72rem);
+  font-weight: 900;
+  line-height: 1.28;
+  letter-spacing: -0.055em;
+  text-align: center;
+}
+
+.googleButton {
+  display: grid;
+  width: 100%;
+  min-height: clamp(3.65rem, 7.2dvh, 4.45rem);
+  padding: 0 1.15rem;
+  grid-template-columns: 2rem 1fr 2rem;
+  align-items: center;
+  border: 1px solid rgb(226 233 242 / 82%);
+  border-radius: 1.35rem;
+  color: #10264b;
+  background: white;
+  box-shadow: 0 10px 28px rgb(38 71 117 / 12%);
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.googleButton:hover {
+  box-shadow: 0 12px 32px rgb(38 71 117 / 18%);
+  transform: translateY(-1px);
+}
+
+.googleButton:active {
+  transform: scale(0.985);
+}
+
+.googleButton:focus-visible {
+  outline: 3px solid rgb(46 125 242 / 34%);
+  outline-offset: 3px;
+}
+
+.googleButton:disabled {
+  cursor: wait;
+  opacity: 0.64;
+}
+
+.googleButton span {
+  font-size: clamp(1rem, 4.6vw, 1.3rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  text-align: center;
+}
+
+.buttonArrow {
+  width: 1.45rem;
+  height: 1.45rem;
+  justify-self: end;
+  color: #94a3b8;
+  stroke-width: 2.4;
+}
+
+.divider {
+  width: 100%;
+  height: 1px;
+  margin: clamp(0.85rem, 2dvh, 1.25rem) 0 clamp(0.7rem, 1.5dvh, 1rem);
+  background: #d9e1eb;
+}
+
+.terms {
+  min-height: 2.6rem;
+  margin: 0;
+  color: #64748b;
+  font-size: clamp(0.72rem, 3vw, 0.88rem);
+  font-weight: 600;
+  line-height: 1.65;
+  letter-spacing: -0.035em;
+  text-align: center;
+}
+
+.terms span {
+  color: #2e7df2;
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+}
+
+.errorMessage {
+  min-height: 1rem;
+  margin: 0.25rem 0 0;
+  color: #dc2626;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.flash {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  background: white;
+  transition: opacity 450ms ease;
+  pointer-events: none;
+}
+
+@keyframes drawRoute {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-height: 43rem) {
+  .branding {
+    top: 1.65rem;
+  }
+
+  .heroLogo {
+    width: 6.7rem;
+  }
+
+  .branding h1 {
+    margin-top: 0.45rem;
+    font-size: 1.55rem;
+  }
+
+  .branding p {
+    margin-top: 0.25rem;
+    font-size: 0.78rem;
+  }
+
+  .topLettering {
+    top: 1.6rem;
+  }
+
+  .mapStage {
+    top: 8.5rem;
+    height: 19.5rem;
+  }
+
+  .loginSheet {
+    min-height: 14.7rem;
+    padding-top: 0.9rem;
+  }
+
+  .sheetLogo {
+    width: 4rem;
+  }
+
+  .loginSheet h2 {
+    margin-block: 0.35rem 0.65rem;
+    font-size: 1.15rem;
+  }
+
+  .googleButton {
+    min-height: 3.35rem;
+  }
+
+  .divider {
+    margin-block: 0.65rem 0.45rem;
+  }
+
+  .terms {
+    font-size: 0.68rem;
+    line-height: 1.4;
+  }
+}
+
+@media (min-width: 33rem) {
+  .viewport {
+    border-right: 1px solid rgb(255 255 255 / 75%);
+    border-left: 1px solid rgb(255 255 255 / 75%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .branding,
+  .mapStage,
+  .canvasWrap,
+  .routeLayer,
+  .loginSheet,
+  .flash,
+  .googleButton {
+    transition-duration: 1ms !important;
+  }
+
+  .routePath,
+  .routeDot,
+  .busBadge {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+}

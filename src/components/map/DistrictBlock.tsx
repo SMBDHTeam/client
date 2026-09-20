@@ -2,14 +2,19 @@
 
 import { useRef, useState, useEffect, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
+import { Edges, Html, useCursor } from "@react-three/drei";
 import * as THREE from "three";
 import gsap from "gsap";
 import { simplify } from "@/utils/geoUtils";
 import type { Polygon, District, BBox } from "@/utils/geoUtils";
 import { LANDMARK_MAP, TEXTURE_MAP } from "@/constants/districts";
 
-function makeGeo(polygons: Polygon[], bbox: BBox): THREE.ExtrudeGeometry {
+function seededUnit(seed: number) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+function makeGeo(polygons: Polygon[], bbox: BBox, heroStyle: boolean): THREE.ExtrudeGeometry {
   const shapes = polygons.map((poly) => {
     const shape = new THREE.Shape(
       simplify(poly[0]).map(
@@ -38,10 +43,10 @@ function makeGeo(polygons: Polygon[], bbox: BBox): THREE.ExtrudeGeometry {
     return shape;
   });
   const geo = new THREE.ExtrudeGeometry(shapes, {
-    depth: 0.35,
+    depth: heroStyle ? 0.78 : 0.35,
     bevelEnabled: true,
-    bevelThickness: 0.03,
-    bevelSize: 0.03,
+    bevelThickness: heroStyle ? 0.07 : 0.03,
+    bevelSize: heroStyle ? 0.052 : 0.03,
     bevelSegments: 1,
   });
 
@@ -68,6 +73,8 @@ export function DistrictBlock({
   color,
   index,
   phase,
+  heroStyle = false,
+  onAssemblyComplete,
   onSelect,
   selected,
   onTap,
@@ -78,6 +85,8 @@ export function DistrictBlock({
   color: string;
   index: number;
   phase: string;
+  heroStyle?: boolean;
+  onAssemblyComplete?: () => void;
   onSelect: (code: string, name: string) => void;
   selected: boolean;
   onTap?: (name: string) => void;
@@ -88,41 +97,82 @@ export function DistrictBlock({
     const src = TEXTURE_MAP[district.name];
     return src ? new THREE.TextureLoader().load(src) : null;
   }, [district.name]);
-  const floatSeed = useMemo(() => Math.random() * Math.PI * 2, []);
+  const floatSeed = seededUnit(index + 1) * Math.PI * 2;
   const scatterPos = useMemo(
     () =>
       new THREE.Vector3(
-        (Math.random() - 0.5) * 16,
-        (Math.random() - 0.5) * 10,
-        (Math.random() - 0.5) * 8,
+        (seededUnit(index + 11) - 0.5) * (heroStyle ? 13 : 16),
+        (seededUnit(index + 23) - 0.5) * (heroStyle ? 8 : 10),
+        (seededUnit(index + 37) - 0.5) * (heroStyle ? 12 : 8),
       ),
-    [],
+    [heroStyle, index],
   );
   const currentPos = useRef(scatterPos.clone());
-  const geo = useMemo(() => makeGeo(district.polygons, bbox), [district, bbox]);
+  const geo = useMemo(
+    () => makeGeo(district.polygons, bbox, heroStyle),
+    [bbox, district.polygons, heroStyle],
+  );
+  const heroSideColor = useMemo(
+    () => new THREE.Color(selected ? "#1d4ed8" : color).multiplyScalar(0.48),
+    [color, selected],
+  );
   const labelAnchor = useMemo(() => {
     geo.computeBoundingBox();
     const box = geo.boundingBox!;
     return { x: (box.min.x + box.max.x) / 2, y: box.max.y + 0.35 };
   }, [geo]);
   const [pressing, setPressing] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const pressZ = useRef(0);
+  const hoverLift = useRef(0);
   const scaleRef = useRef(1);
   const isDragging = useRef(false);
   const dragMoved = useRef(false);
   const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
   const dragOffset = useRef(new THREE.Vector3());
+  const heroFaceColor = useMemo(() => {
+    const nextColor = new THREE.Color(selected ? "#3b82f6" : color);
+    return hovered ? nextColor.lerp(new THREE.Color("#8be6ff"), 0.24) : nextColor;
+  }, [color, hovered, selected]);
+
+  useCursor(heroStyle && hovered);
 
   useEffect(() => {
     if (phase === "assembling" && ref.current) {
-      gsap.to(currentPos.current, {
-        x: 0, y: 0, z: 0,
-        duration: 1.2 + index * 0.04,
-        ease: "power3.inOut",
-        delay: index * 0.03,
+      if (heroStyle) {
+        ref.current.rotation.set(
+          (seededUnit(index + 41) - 0.5) * 1.1,
+          (seededUnit(index + 53) - 0.5) * 1.5,
+          (seededUnit(index + 67) - 0.5) * 0.8,
+        );
+        scaleRef.current = 0.62;
+        ref.current.scale.setScalar(scaleRef.current);
+      }
+
+      const timeline = gsap.timeline({
+        delay: index * (heroStyle ? 0.045 : 0.03),
+        onComplete: onAssemblyComplete,
       });
+      timeline.to(currentPos.current, {
+        x: 0,
+        y: 0,
+        z: heroStyle ? 0.34 : 0,
+        duration: (heroStyle ? 1.08 : 1.2) + index * 0.04,
+        ease: heroStyle ? "power3.out" : "power3.inOut",
+      });
+      if (heroStyle) {
+        timeline.to(currentPos.current, {
+          z: 0,
+          duration: 0.3,
+          ease: "back.out(2.1)",
+        });
+      }
+
+      return () => {
+        timeline.kill();
+      };
     }
-  }, [phase]);
+  }, [heroStyle, index, onAssemblyComplete, phase]);
 
   useFrame(({ clock }, dt) => {
     if (!ref.current) return;
@@ -139,9 +189,13 @@ export function DistrictBlock({
       ref.current.scale.setScalar(scaleRef.current);
     } else if (phase === "assembling") {
       ref.current.position.copy(currentPos.current);
+      const targetLift = heroStyle && hovered ? 0.3 : 0;
+      hoverLift.current += (targetLift - hoverLift.current) * Math.min(1, dt * 12);
+      ref.current.position.z += hoverLift.current;
       ref.current.rotation.y *= 0.92;
       ref.current.rotation.x *= 0.92;
-      scaleRef.current += (1 - scaleRef.current) * Math.min(1, dt * 8);
+      const targetScale = heroStyle && hovered ? 1.055 : 1;
+      scaleRef.current += (targetScale - scaleRef.current) * Math.min(1, dt * 10);
       ref.current.scale.setScalar(scaleRef.current);
     } else {
       const target = pressing ? -0.22 : 0;
@@ -157,7 +211,17 @@ export function DistrictBlock({
     >
       <mesh
         geometry={geo}
-        onPointerLeave={() => { if (!isDragging.current) setPressing(false); }}
+        castShadow={heroStyle}
+        receiveShadow={heroStyle}
+        onPointerEnter={(e) => {
+          if (!heroStyle) return;
+          e.stopPropagation();
+          setHovered(true);
+        }}
+        onPointerLeave={() => {
+          setHovered(false);
+          if (!isDragging.current) setPressing(false);
+        }}
         onPointerDown={(e) => {
           if (e.button !== 0) return;
           e.stopPropagation();
@@ -194,14 +258,30 @@ export function DistrictBlock({
         {texture ? (
           <meshBasicMaterial map={texture} transparent alphaTest={0.05} />
         ) : (
-          <meshStandardMaterial
-            color={selected ? "#2563eb" : color}
-            roughness={0.35}
-            metalness={0.12}
-            emissive={selected ? "#1e40af" : color}
-            emissiveIntensity={phase === "intro" ? 0.3 : selected ? 0.18 : 0.05}
-          />
+          heroStyle ? (
+            <>
+              <meshBasicMaterial
+                attach="material-0"
+                color={heroFaceColor}
+              />
+              <meshStandardMaterial
+                attach="material-1"
+                color={heroSideColor}
+                roughness={0.48}
+                metalness={0.08}
+              />
+            </>
+          ) : (
+            <meshStandardMaterial
+              color={selected ? "#2563eb" : color}
+              roughness={0.35}
+              metalness={0.12}
+              emissive={selected ? "#1e40af" : color}
+              emissiveIntensity={phase === "intro" ? 0.3 : selected ? 0.18 : 0.05}
+            />
+          )
         )}
+        {heroStyle && <Edges threshold={20} color={hovered ? "#b8f4ff" : "#ffffff"} />}
       </mesh>
 
       {tapped && (
