@@ -37,6 +37,25 @@ function transitLabel(transit: ScheduleTransit) {
   return `${route} · ${transit.totalMinutes}분`;
 }
 
+function hasPublicTransitSegment(transit: ScheduleTransit) {
+  return transit.segments.some((segment) => segment.mode !== "WALK");
+}
+
+function transitSummaryModeLabel(transit: ScheduleTransit) {
+  if (hasPublicTransitSegment(transit)) return "대중교통";
+  const mode = transit.segments[0]?.mode ?? "WALK";
+  return modeInfo(mode).label;
+}
+
+function providerDisplayLabel(provider: string | null) {
+  const key = provider?.toUpperCase();
+  if (!key || key === "FAKE" || key === "UNKNOWN") return null;
+  if (key === "ODSAY") return "대중교통 경로";
+  if (key === "TMAP") return "도보 경로";
+  if (key === "INTERNAL_WALK") return null;
+  return null;
+}
+
 function SegmentDetail({ segment }: { segment: ScheduleTransitSegment }) {
   const mode = modeInfo(segment.mode);
   const lineName = present(segment.lineName);
@@ -154,7 +173,8 @@ export default function TransitPanel({
   const originName = present(transit.originName);
   const destinationName = present(transit.destinationName);
   const warnings = transit.warnings.filter((warning) => present(warning));
-  const hasPublicRide = transit.segments.some((segment) => segment.mode !== "WALK");
+  const hasPublicRide = hasPublicTransitSegment(transit);
+  const providerLabel = providerDisplayLabel(provider);
   const statusLabel = !hasRouteGeometry
     ? "경로 상세 없음"
     : estimated
@@ -181,7 +201,7 @@ export default function TransitPanel({
   const hasExpandableDetails = usesSpontaneousRoadGuidance
     ? roadGuidanceLines.length > 0
     : transit.segments.length > 0;
-  const primaryMode = roadSegment?.mode ?? transit.segments[0]?.mode ?? "WALK";
+  const primaryMode = hasPublicRide ? "TRANSIT" : roadSegment?.mode ?? transit.segments[0]?.mode ?? "WALK";
   const PrimaryModeIcon = primaryMode === "WALK" ? Footprints : Route;
 
   if (appearance === "spontaneous-result") {
@@ -219,9 +239,9 @@ export default function TransitPanel({
             </span>
             <span className="min-w-0 flex-1">
               <span className="font-bold text-[#30435f]">
-                {modeInfo(primaryMode).label} {transit.totalMinutes}분
+                {transitSummaryModeLabel(transit)} {transit.totalMinutes}분
               </span>
-              {provider && <span className="ml-2 text-[#7f8da3]">{provider}</span>}
+              {providerLabel && <span className="ml-2 text-[#7f8da3]">{providerLabel}</span>}
             </span>
             {hasExpandableDetails && (
               <span className="flex shrink-0 items-center gap-1 font-semibold text-[#42536d]">
@@ -302,7 +322,7 @@ export default function TransitPanel({
         {transit.walkMinutes > 0 && <span>도보 {transit.walkMinutes}분</span>}
         {hasPublicRide && <span>환승 {transit.transferCount}회</span>}
         {transit.fareAmount != null && <span>약 {transit.fareAmount.toLocaleString()}원</span>}
-        {provider && <span>{provider}</span>}
+        {providerLabel && <span>{providerLabel}</span>}
       </div>
 
       {usesSpontaneousRoadGuidance ? (
