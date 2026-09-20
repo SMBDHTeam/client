@@ -1,11 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, MessageCircle, ChevronLeft, ChevronRight, Grid3x3, LayoutGrid } from "lucide-react";
-import AppHeader from "@/components/layout/AppHeader";
+import { Heart, MessageCircle, ChevronLeft, ChevronRight, LayoutGrid, List } from "lucide-react";
 import PageFade from "@/components/ui/PageFade";
 import { COMMUNITY_TAGS, type CommunityTagId } from "@/mocks/community-tags";
 import { getFeed, getPopularFeed } from "@/lib/api/posts";
@@ -15,32 +15,54 @@ import type { FeedPost } from "@/types/api/post";
 
 const ASPECT_RATIOS = ["aspect-[3/4]", "aspect-square", "aspect-[4/5]", "aspect-[3/4]", "aspect-square", "aspect-[4/5]"];
 
+function ProfileBadge({ post, size = "size-8" }: { post: FeedPost; size?: string }) {
+  return (
+    <span className={`${size} relative grid shrink-0 place-items-center overflow-hidden rounded-full border-2 border-white bg-linear-to-br from-[#65a7f6] to-[#18b8ae] text-[10px] font-bold text-white shadow-md`}>
+      {post.author.profileImageUrl ? (
+        <Image
+          src={post.author.profileImageUrl}
+          alt={post.author.nickname}
+          fill
+          unoptimized
+          referrerPolicy="no-referrer"
+          className="object-cover"
+        />
+      ) : (
+        post.author.nickname.slice(0, 1)
+      )}
+    </span>
+  );
+}
+
 function GridTile({ post, onClick, index }: { post: FeedPost; onClick: () => void; index: number }) {
   const aspectClass = ASPECT_RATIOS[index % ASPECT_RATIOS.length];
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group relative mb-2 w-full overflow-hidden rounded-2xl bg-zinc-100 ${aspectClass}`}
+      className={`group relative mb-2.5 w-full overflow-hidden rounded-[1.35rem] border border-white/90 bg-[#dfeef7] shadow-[0_8px_22px_rgba(51,112,163,0.13)] ring-1 ring-[#b9dcf2] ${aspectClass}`}
     >
       {post.thumbnailUrl && (
-        <img
+        <Image
           src={post.thumbnailUrl}
           alt={post.placeName ?? post.content}
+          fill
+          unoptimized
+          sizes="(max-width: 512px) 50vw, 250px"
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
       )}
-      <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-t from-[#173b63]/55 via-transparent to-transparent" />
       {post.mediaCount > 1 && (
-        <div className="absolute right-2 top-2 flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5">
-          <span className="text-[10px] font-semibold text-white">{post.mediaCount}</span>
+        <div className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-[#344052]/55 backdrop-blur-sm">
+          <span className="text-[11px] font-bold text-white">{post.mediaCount}</span>
         </div>
       )}
-      <div className="absolute bottom-0 left-0 right-0 p-3">
-        <p className="truncate text-xs font-semibold text-white drop-shadow">{post.placeName ?? post.content}</p>
-        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-white/80">
-          <span className="flex items-center gap-0.5"><Heart size={10} className="fill-white/80 stroke-none" /> {post.likeCount}</span>
-          <span className="flex items-center gap-0.5"><MessageCircle size={10} /> {post.commentCount}</span>
+      <div className="absolute inset-x-1 bottom-1 rounded-[1.1rem] border border-white/35 bg-[#31516f]/45 px-3 py-2.5 text-left shadow-[0_4px_16px_rgba(14,43,72,0.14)] backdrop-blur-md">
+        <p className="truncate text-sm font-bold text-white drop-shadow-sm">{post.placeName ?? post.content}</p>
+        <div className="mt-1 flex items-center gap-2 text-xs font-medium text-white/90">
+          <span className="flex items-center gap-1"><Heart size={13} className="fill-white stroke-none" /> {post.likeCount}</span>
+          <span className="flex items-center gap-1"><MessageCircle size={13} /> {post.commentCount}</span>
           <span>· {post.createdAgo}</span>
         </div>
       </div>
@@ -53,12 +75,15 @@ function SquareGridTile({ post, onClick }: { post: FeedPost; onClick: () => void
     <button
       type="button"
       onClick={onClick}
-      className="group relative aspect-square w-full overflow-hidden bg-zinc-100"
+      className="group relative aspect-square w-full overflow-hidden rounded-xl border border-white/80 bg-[#dfeef7] shadow-sm"
     >
       {post.thumbnailUrl && (
-        <img
+        <Image
           src={post.thumbnailUrl}
           alt={post.placeName ?? post.content}
+          fill
+          unoptimized
+          sizes="(max-width: 512px) 33vw, 170px"
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
       )}
@@ -193,14 +218,26 @@ function onTagMouseDown(e: React.MouseEvent) {
   }
 
   return (
-    <PageFade className="flex flex-1 flex-col">
-      <AppHeader title="커뮤니티" />
+    <PageFade className="flex min-h-0 flex-1 flex-col bg-white text-[#0b2146]">
+      <header className="relative h-16 shrink-0 border-b border-[#edf1f5] bg-white">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label="뒤로 가기"
+          className="absolute left-4 top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full text-[#0b3972] transition-colors hover:bg-white/45"
+        >
+          <ChevronLeft size={28} strokeWidth={2.6} />
+        </button>
+        <h1 className="absolute inset-x-16 top-1/2 z-10 -translate-y-1/2 text-center text-[1.55rem] font-extrabold tracking-[-0.045em] text-[#081d43] drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)]">
+          커뮤니티
+        </h1>
+      </header>
 
       {/* 태그 필터 */}
-      <div className="relative">
+      <div className="relative shrink-0 border-b border-[#edf1f5] bg-white pb-2">
         <div
           ref={tagScrollRef}
-          className="flex gap-2 overflow-x-auto px-4 py-2 scrollbar-none cursor-grab select-none"
+          className="flex cursor-grab select-none gap-2 overflow-x-auto px-4 py-2 scrollbar-none"
           onMouseDown={onTagMouseDown}
           onMouseMove={onTagMouseMove}
           onMouseUp={onTagMouseUp}
@@ -209,8 +246,10 @@ function onTagMouseDown(e: React.MouseEvent) {
         <button
           type="button"
           onClick={() => { setActiveTag(null); void loadFeed(); }}
-          className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-            activeTag === null ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500"
+          className={`h-11 shrink-0 rounded-full border px-4 text-sm font-bold shadow-sm transition-all ${
+            activeTag === null
+              ? "border-transparent bg-linear-to-br from-[#2394eb] to-[#18b8ae] text-white shadow-[0_6px_16px_rgba(37,151,214,0.2)]"
+              : "border-[#dce4eb] bg-[#f8fafc] text-[#526d88]"
           }`}
         >
           전체
@@ -225,20 +264,20 @@ function onTagMouseDown(e: React.MouseEvent) {
                 const label = next ? COMMUNITY_TAGS.find((t) => t.id === next)?.label : undefined;
                 void loadFeed(label);
               }}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+            className={`h-11 shrink-0 rounded-full border px-4 text-sm font-bold shadow-sm transition-all ${
               activeTag === tag.id
-                ? "bg-[#2E7DF2] text-white"
-                : "bg-zinc-100 text-zinc-500"
+                ? "border-transparent bg-linear-to-br from-[#2394eb] to-[#18b8ae] text-white shadow-[0_6px_16px_rgba(37,151,214,0.2)]"
+                : "border-[#dce4eb] bg-[#f8fafc] text-[#526d88]"
             }`}
           >
             {tag.emoji} {tag.label}
           </button>
         ))}
         </div>
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-white to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-white to-transparent" />
       </div>
 
-      <div className="flex flex-1 flex-col overflow-y-auto scrollbar-none">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-4 scrollbar-none">
       {loading ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20">
           <div className="size-8 animate-spin rounded-full border-4 border-zinc-200 border-t-[#2E7DF2]" />
@@ -251,21 +290,31 @@ function onTagMouseDown(e: React.MouseEvent) {
       ) : (
         <>
       {topPosts.length > 0 && (
-      <section className="mb-5">
-        <div className="flex items-center px-4 pb-2 pt-1">
-          <h2 className="flex-1 text-sm font-bold text-zinc-800">인기 후기 🔥</h2>
-          <div className="flex gap-1">
-            <button type="button" onClick={() => scrollPopular("left")} className="grid size-7 place-items-center rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200">
-              <ChevronLeft size={15} />
+      <section className="mb-7 pt-5">
+        <div className="flex items-center px-4 pb-3">
+          <h2 className="flex-1 text-[1.35rem] font-extrabold tracking-[-0.04em] text-[#0a2b5e]">인기 후기 🔥</h2>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => scrollPopular("left")}
+              aria-label="인기 후기 이전"
+              className="grid size-10 place-items-center rounded-full border border-white/90 bg-white/55 text-[#164a83] shadow-sm backdrop-blur-sm transition-transform hover:scale-105 active:scale-95"
+            >
+              <ChevronLeft size={21} strokeWidth={2.5} />
             </button>
-            <button type="button" onClick={() => scrollPopular("right")} className="grid size-7 place-items-center rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200">
-              <ChevronRight size={15} />
+            <button
+              type="button"
+              onClick={() => scrollPopular("right")}
+              aria-label="인기 후기 다음"
+              className="grid size-10 place-items-center rounded-full border border-white/90 bg-white/55 text-[#164a83] shadow-sm backdrop-blur-sm transition-transform hover:scale-105 active:scale-95"
+            >
+              <ChevronRight size={21} strokeWidth={2.5} />
             </button>
           </div>
         </div>
         <div
           ref={popularScrollRef}
-          className="flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-none cursor-grab select-none"
+          className="flex cursor-grab snap-x snap-mandatory select-none gap-3 overflow-x-auto px-4 pb-2 scrollbar-none"
           onMouseDown={onPopularMouseDown}
           onMouseMove={onPopularMouseMove}
           onMouseUp={onPopularMouseUp}
@@ -276,28 +325,29 @@ function onTagMouseDown(e: React.MouseEvent) {
               key={post.id}
               type="button"
               onClick={() => openPost(post)}
-              className="group relative h-48 w-36 shrink-0 overflow-hidden rounded-2xl bg-zinc-100"
+              className="group relative h-[13rem] w-[9.5rem] shrink-0 snap-start overflow-hidden rounded-[1.35rem] border border-white/90 bg-[#dfeef7] shadow-[0_9px_24px_rgba(51,112,163,0.16)] ring-1 ring-[#b9dcf2]"
             >
               {post.thumbnailUrl && (
-                <img
+                <Image
                   src={post.thumbnailUrl}
                   alt={post.placeName ?? post.content}
+                  fill
+                  unoptimized
+                  sizes="152px"
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               )}
-              <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                <p className="truncate text-[11px] font-semibold text-white">{post.placeName ?? post.content}</p>
-                <div className="mt-0.5 flex items-center gap-1 text-[10px] text-white/80">
-                  <Heart size={9} className="fill-red-400 stroke-none" />
+              <div className="absolute inset-0 bg-linear-to-t from-[#173b63]/55 via-transparent to-transparent" />
+              <div className="absolute inset-x-1 bottom-1 rounded-[1.05rem] border border-white/35 bg-[#31516f]/45 px-2.5 py-2 text-left backdrop-blur-md">
+                <p className="truncate text-sm font-bold text-white">{post.placeName ?? post.content}</p>
+                <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-white/90">
+                  <Heart size={13} className="fill-[#ff7385] stroke-none" />
                   <span>{post.likeCount}</span>
                   <span>· {post.createdAgo}</span>
                 </div>
               </div>
               <div className="absolute left-2 top-2">
-                {post.author.profileImageUrl && (
-                  <img src={post.author.profileImageUrl} alt={post.author.nickname} className="size-6 rounded-full border border-white object-cover" />
-                )}
+                <ProfileBadge post={post} />
               </div>
             </button>
           ))}
@@ -305,29 +355,33 @@ function onTagMouseDown(e: React.MouseEvent) {
       </section>
       )}
 
-      <section>
-        <div className="flex items-center px-4 pb-2">
-          <h2 className="flex-1 text-sm font-bold text-zinc-800">최신 피드</h2>
-          <div className="flex gap-1 rounded-full bg-zinc-100 p-1">
+      <section className="pb-3">
+        <div className="flex items-center px-4 pb-3">
+          <h2 className="flex-1 text-[1.35rem] font-extrabold tracking-[-0.04em] text-[#0a2b5e]">최신 피드</h2>
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setViewMode("tile")}
               aria-label="타일형 보기"
-              className={`grid size-6 place-items-center rounded-full transition-colors ${
-                viewMode === "tile" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400"
+              className={`grid size-10 place-items-center rounded-full border shadow-sm backdrop-blur-sm transition-all ${
+                viewMode === "tile"
+                  ? "border-[#66c9f4] bg-white/75 text-[#1598ec]"
+                  : "border-white/85 bg-white/45 text-[#7898b5]"
               }`}
             >
-              <LayoutGrid size={13} />
+              <LayoutGrid size={20} strokeWidth={2.5} />
             </button>
             <button
               type="button"
               onClick={() => setViewMode("grid")}
               aria-label="그리드형 보기"
-              className={`grid size-6 place-items-center rounded-full transition-colors ${
-                viewMode === "grid" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400"
+              className={`grid size-10 place-items-center rounded-full border shadow-sm backdrop-blur-sm transition-all ${
+                viewMode === "grid"
+                  ? "border-[#66c9f4] bg-white/75 text-[#1598ec]"
+                  : "border-white/85 bg-white/45 text-[#7898b5]"
               }`}
             >
-              <Grid3x3 size={13} />
+              <List size={21} strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -342,7 +396,7 @@ function onTagMouseDown(e: React.MouseEvent) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.1, ease: "easeOut" }}
-                className="flex gap-2 px-3 pb-6"
+                className="flex gap-2.5 px-4 pb-6"
               >
                 {[0, 1].map((col) => (
                   <div key={col} className="flex flex-1 flex-col">
@@ -366,7 +420,7 @@ function onTagMouseDown(e: React.MouseEvent) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.1, ease: "easeOut" }}
-                className="grid grid-cols-3 gap-0.5 pb-6"
+                className="grid grid-cols-3 gap-1.5 px-4 pb-6"
               >
                 {posts.map((post) => (
                   <SquareGridTile key={post.id} post={post} onClick={() => openPost(post)} />
@@ -382,7 +436,7 @@ function onTagMouseDown(e: React.MouseEvent) {
               type="button"
               onClick={loadMore}
               disabled={loadingMore}
-              className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-200 disabled:opacity-50"
+              className="rounded-full border border-white/90 bg-white/65 px-5 py-2.5 text-xs font-bold text-[#416789] shadow-sm backdrop-blur-sm hover:bg-white/85 disabled:opacity-50"
             >
               {loadingMore ? "불러오는 중..." : "더 보기"}
             </button>
