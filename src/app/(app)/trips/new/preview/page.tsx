@@ -268,9 +268,6 @@ export default function TripPreviewPage() {
                   </li>
                 ))}
               </ol>
-              {preview.appliedDefaults.length > 0 && (
-                <p className="mt-3 text-xs leading-relaxed text-zinc-400">날짜별 활동 시간은 기본값으로 설정되며, 각 날짜를 눌러 수정할 수 있습니다.</p>
-              )}
             </section>
 
             {preview.routeCoverage === "ATTRACTION_ROUTES_ONLY" && (
@@ -279,11 +276,18 @@ export default function TripPreviewPage() {
               </p>
             )}
 
+            {preview.routeCoverage === "FULL" && (
+              <p className="rounded-xl bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+                출발지와 숙소·도착지를 기준으로 이동 동선을 구성합니다.
+              </p>
+            )}
+
             {preview.warnings
               .filter(
                 (warning) =>
-                  preview.routeCoverage !== "ATTRACTION_ROUTES_ONLY" ||
-                  warning.code !== "LODGING_ROUTE_EXCLUDED",
+                  warning.code !== "FASTAPI_PREVIEW_MIGRATION" &&
+                  (preview.routeCoverage !== "ATTRACTION_ROUTES_ONLY" ||
+                    warning.code !== "LODGING_ROUTE_EXCLUDED"),
               )
               .map((warning) => (
               <p key={`${warning.code}-${warning.date ?? "all"}`} className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">{warning.message}</p>
