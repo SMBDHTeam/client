@@ -219,25 +219,25 @@ function onTagMouseDown(e: React.MouseEvent) {
 
   return (
     <PageFade className="flex min-h-0 flex-1 flex-col bg-white text-[#0b2146]">
-      <header className="relative h-16 shrink-0 border-b border-[#edf1f5] bg-white">
+      <header className="relative h-[4.25rem] shrink-0 border-b border-[#edf1f5] bg-white">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="뒤로 가기"
           className="absolute left-4 top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full text-[#0b3972] transition-colors hover:bg-white/45"
         >
-          <ChevronLeft size={28} strokeWidth={2.6} />
+          <ChevronLeft size={24} strokeWidth={2.3} />
         </button>
-        <h1 className="absolute inset-x-16 top-1/2 z-10 -translate-y-1/2 text-center text-[1.55rem] font-extrabold tracking-[-0.045em] text-[#081d43] drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)]">
+        <h1 className="absolute inset-x-16 top-1/2 z-10 -translate-y-1/2 text-center text-xl font-extrabold tracking-[-0.045em] text-[#0b2146]">
           커뮤니티
         </h1>
       </header>
 
       {/* 태그 필터 */}
-      <div className="relative shrink-0 border-b border-[#edf1f5] bg-white pb-2">
+      <div className="relative shrink-0 border-b border-[#edf1f5] bg-white">
         <div
           ref={tagScrollRef}
-          className="flex cursor-grab select-none gap-2 overflow-x-auto px-4 py-2 scrollbar-none"
+          className="flex cursor-grab select-none gap-2 overflow-x-auto px-4 py-2.5 scrollbar-none"
           onMouseDown={onTagMouseDown}
           onMouseMove={onTagMouseMove}
           onMouseUp={onTagMouseUp}
@@ -246,7 +246,7 @@ function onTagMouseDown(e: React.MouseEvent) {
         <button
           type="button"
           onClick={() => { setActiveTag(null); void loadFeed(); }}
-          className={`h-11 shrink-0 rounded-full border px-4 text-sm font-bold shadow-sm transition-all ${
+          className={`flex h-8 shrink-0 items-center justify-center rounded-full border px-3 text-xs leading-none font-bold shadow-sm transition-all ${
             activeTag === null
               ? "border-transparent bg-linear-to-br from-[#2394eb] to-[#18b8ae] text-white shadow-[0_6px_16px_rgba(37,151,214,0.2)]"
               : "border-[#dce4eb] bg-[#f8fafc] text-[#526d88]"
@@ -264,7 +264,7 @@ function onTagMouseDown(e: React.MouseEvent) {
                 const label = next ? COMMUNITY_TAGS.find((t) => t.id === next)?.label : undefined;
                 void loadFeed(label);
               }}
-            className={`h-11 shrink-0 rounded-full border px-4 text-sm font-bold shadow-sm transition-all ${
+            className={`flex h-8 shrink-0 items-center justify-center rounded-full border px-3 text-xs leading-none font-bold shadow-sm transition-all ${
               activeTag === tag.id
                 ? "border-transparent bg-linear-to-br from-[#2394eb] to-[#18b8ae] text-white shadow-[0_6px_16px_rgba(37,151,214,0.2)]"
                 : "border-[#dce4eb] bg-[#f8fafc] text-[#526d88]"
@@ -292,29 +292,29 @@ function onTagMouseDown(e: React.MouseEvent) {
       {topPosts.length > 0 && (
       <section className="mb-7 pt-5">
         <div className="flex items-center px-4 pb-3">
-          <h2 className="flex-1 text-[1.35rem] font-extrabold tracking-[-0.04em] text-[#0a2b5e]">인기 후기 🔥</h2>
+          <h2 className="relative top-0.5 flex-1 text-[1.35rem] font-extrabold tracking-[-0.04em] text-[#0a2b5e]">인기 후기 <span className="text-[0.97em]">🔥</span></h2>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => scrollPopular("left")}
               aria-label="인기 후기 이전"
-              className="grid size-10 place-items-center rounded-full border border-white/90 bg-white/55 text-[#164a83] shadow-sm backdrop-blur-sm transition-transform hover:scale-105 active:scale-95"
+              className="grid size-[1.667rem] place-items-center rounded-full border border-white/90 bg-white/55 text-[#164a83] shadow-sm backdrop-blur-sm transition-transform hover:scale-105 active:scale-95"
             >
-              <ChevronLeft size={21} strokeWidth={2.5} />
+              <ChevronLeft size={14} strokeWidth={2.5} />
             </button>
             <button
               type="button"
               onClick={() => scrollPopular("right")}
               aria-label="인기 후기 다음"
-              className="grid size-10 place-items-center rounded-full border border-white/90 bg-white/55 text-[#164a83] shadow-sm backdrop-blur-sm transition-transform hover:scale-105 active:scale-95"
+              className="grid size-[1.667rem] place-items-center rounded-full border border-white/90 bg-white/55 text-[#164a83] shadow-sm backdrop-blur-sm transition-transform hover:scale-105 active:scale-95"
             >
-              <ChevronRight size={21} strokeWidth={2.5} />
+              <ChevronRight size={14} strokeWidth={2.5} />
             </button>
           </div>
         </div>
         <div
           ref={popularScrollRef}
-          className="flex cursor-grab snap-x snap-mandatory select-none gap-3 overflow-x-auto px-4 pb-2 scrollbar-none"
+          className="-mt-1.5 flex cursor-grab snap-x snap-mandatory scroll-pl-3 select-none gap-3 overflow-x-auto px-3 pb-2 scrollbar-none"
           onMouseDown={onPopularMouseDown}
           onMouseMove={onPopularMouseMove}
           onMouseUp={onPopularMouseUp}
@@ -357,31 +357,31 @@ function onTagMouseDown(e: React.MouseEvent) {
 
       <section className="pb-3">
         <div className="flex items-center px-4 pb-3">
-          <h2 className="flex-1 text-[1.35rem] font-extrabold tracking-[-0.04em] text-[#0a2b5e]">최신 피드</h2>
-          <div className="flex gap-2">
+          <h2 className="relative top-0.5 flex-1 text-[1.35rem] font-extrabold tracking-[-0.04em] text-[#0a2b5e]">최신 피드</h2>
+          <div className="relative top-0.5 flex gap-1">
             <button
               type="button"
               onClick={() => setViewMode("tile")}
               aria-label="타일형 보기"
-              className={`grid size-10 place-items-center rounded-full border shadow-sm backdrop-blur-sm transition-all ${
+              className={`grid size-9 place-items-center rounded-full border shadow-sm backdrop-blur-sm transition-all ${
                 viewMode === "tile"
                   ? "border-[#66c9f4] bg-white/75 text-[#1598ec]"
                   : "border-white/85 bg-white/45 text-[#7898b5]"
               }`}
             >
-              <LayoutGrid size={20} strokeWidth={2.5} />
+              <LayoutGrid size={18} strokeWidth={2.5} />
             </button>
             <button
               type="button"
               onClick={() => setViewMode("grid")}
               aria-label="그리드형 보기"
-              className={`grid size-10 place-items-center rounded-full border shadow-sm backdrop-blur-sm transition-all ${
+              className={`grid size-9 place-items-center rounded-full border shadow-sm backdrop-blur-sm transition-all ${
                 viewMode === "grid"
                   ? "border-[#66c9f4] bg-white/75 text-[#1598ec]"
                   : "border-white/85 bg-white/45 text-[#7898b5]"
               }`}
             >
-              <List size={21} strokeWidth={2.5} />
+              <List size={19} strokeWidth={2.5} />
             </button>
           </div>
         </div>

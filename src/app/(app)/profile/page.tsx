@@ -126,9 +126,9 @@ export default function ProfilePage() {
           type="button"
           onClick={() => router.back()}
           aria-label="뒤로 가기"
-          className="absolute top-3 left-3 z-10 grid size-11 place-items-center rounded-full text-[#102750] transition-colors hover:bg-white/65 active:bg-white/85"
+          className="absolute top-3 left-3 z-10 grid size-10 place-items-center rounded-full text-[#102750] transition-colors hover:bg-white/65 active:bg-white/85"
         >
-          <ChevronLeft size={31} strokeWidth={2.2} />
+          <ChevronLeft size={24} strokeWidth={2.3} />
         </button>
         <h1 className="absolute top-5 left-1/2 z-10 -translate-x-1/2 text-xl font-extrabold tracking-[-0.045em] text-[#0b2146]">
           내 정보

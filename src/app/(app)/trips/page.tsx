@@ -218,7 +218,7 @@ export default function TripsPage() {
                     className="object-cover object-top"
                 />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[28%] bg-linear-to-b from-transparent via-white/40 to-[#F8FBFF]" />
-                <h1 className="relative pt-[clamp(45px,10.5vw,54px)] text-center text-[clamp(24px,5.65vw,28px)] font-extrabold tracking-tight">내 일정</h1>
+                <h1 className="relative pt-[clamp(45px,10.5vw,54px)] text-center text-[clamp(24px,5.65vw,28px)] font-extrabold tracking-[-0.045em] text-[#0b2146]">내 일정</h1>
                 <Settings className="absolute top-[clamp(47px,11vw,56px)] right-[clamp(24px,5.6vw,29px)] text-[#61748E]" size={23} strokeWidth={1.7} aria-hidden />
                 <span
                     aria-hidden
