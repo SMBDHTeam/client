@@ -21,17 +21,25 @@ const POPULAR_FALLBACK_IMAGES = [
   "/trips-covers/destination-gamcheon-sunset.png",
 ];
 
+/**
+ * 인기 여행지가 아직 집계되지 않았을 때 보여줄 기본 카드.
+ *
+ * name 과 address 는 서버에 적재된 실제 값과 같게 유지한다. 집계가 시작되면 이 카드는
+ * 더 이상 보이지 않으므로 항목을 늘릴 필요는 없다.
+ */
 const POPULAR_FALLBACK_PLACES = [
   {
     key: "gwangalli",
     imageUrl: POPULAR_FALLBACK_IMAGES[0],
-    subtitle: "해운대 · 광안리",
+    name: "광안리해수욕장",
+    address: "부산광역시 수영구 광안해변로 219",
     keyword: "광안리해수욕장",
   },
   {
     key: "gamcheon",
     imageUrl: POPULAR_FALLBACK_IMAGES[1],
-    subtitle: "감천문화마을 · 태종대",
+    name: "감천문화마을",
+    address: "부산광역시 사하구 감내2로 203 감천문화마을안내센터",
     keyword: "감천문화마을",
   },
 ] as const;
@@ -40,6 +48,14 @@ const COMMUNITY_FALLBACK_IMAGES = [
   "/trips-covers/cover-coastal-temple.png",
   "/trips-covers/cover-harbor-market.png",
 ];
+
+/**
+ * 카드에 보여줄 짧은 주소. 목록이 전부 부산이라 "부산광역시"는 지운다.
+ * 카드가 좁아 앞부분이 다 같은 글자로 차면 구·동이 보이기 전에 잘린다.
+ */
+function shortAddress(address: string | null | undefined) {
+  return address?.replace(/^부산(광역시)?\s*/, "") || null;
+}
 
 function avatarLabel(name: string | null | undefined) {
   const normalized = (name ?? "누비").replace(/[0-9\s_-]/g, "");
@@ -268,10 +284,10 @@ export default function HomePage() {
                     <span className="block px-3.5 py-3">
                       <span className="flex items-center gap-2 text-base font-extrabold tracking-[-0.03em] text-[#102750]">
                         <MapPin size={18} strokeWidth={2.3} className="shrink-0 text-[#2E7DF2]" />
-                        부산
+                        <span className="truncate">{place.name}</span>
                       </span>
                       <span className="mt-1 block truncate pl-[1.65rem] text-xs font-medium text-[#8996aa]">
-                        {[place.name, place.categoryLabel].filter(Boolean).join(" · ")}
+                        {shortAddress(place.address) ?? place.categoryLabel ?? "부산"}
                       </span>
                     </span>
                   </button>
@@ -292,7 +308,7 @@ export default function HomePage() {
                     className="group overflow-hidden rounded-[1.35rem] bg-white text-left shadow-[0_8px_24px_rgba(38,83,133,0.1)] ring-1 ring-[#e4edf7] transition-transform hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-80"
                   >
                     <span className="relative block aspect-3/2 overflow-hidden bg-[#eaf3fb]">
-                      <CardImage src={place.imageUrl} alt={place.subtitle} />
+                      <CardImage src={place.imageUrl} alt={place.name} />
                       {resolving && (
                         <span className="absolute inset-0 grid place-items-center bg-[#0b2146]/20" aria-hidden>
                           <LoaderCircle className="animate-spin text-white" size={28} strokeWidth={2.5} />
@@ -302,10 +318,10 @@ export default function HomePage() {
                     <span className="block px-3.5 py-3">
                       <span className="flex items-center gap-2 text-base font-extrabold tracking-[-0.03em] text-[#102750]">
                         <MapPin size={18} strokeWidth={2.3} className="shrink-0 text-[#2E7DF2]" />
-                        부산
+                        <span className="truncate">{place.name}</span>
                       </span>
                       <span className="mt-1 block truncate pl-[1.65rem] text-xs font-medium text-[#8996aa]">
-                        {place.subtitle}
+                        {shortAddress(place.address)}
                       </span>
                     </span>
                   </button>
