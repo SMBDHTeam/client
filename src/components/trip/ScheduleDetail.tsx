@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ScheduleCourseView, {
   type ScheduleCourseMarker,
@@ -10,7 +10,7 @@ import ScheduleCourseView, {
 } from "@/components/trip/ScheduleCourseView";
 import PlaceDetailSheet from "@/components/sheet/PlaceDetailSheet";
 import ShareLinkSheet from "@/components/sheet/ShareLinkSheet";
-import { getSchedule, getScheduleMap } from "@/lib/api/schedules";
+import { deleteSchedule, getSchedule, getScheduleMap } from "@/lib/api/schedules";
 import { createShareLink } from "@/lib/api/shares";
 import { formatCourseTime, formatKoreanReturnTime } from "@/lib/schedule-course";
 import { placeCategoryLabel } from "@/utils/place-category";
@@ -44,6 +44,7 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
   const [detailPlaceId, setDetailPlaceId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -155,6 +156,54 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
     }
   }
 
+  function handleDelete() {
+    if (deleting) return;
+
+    toast.custom(
+      (toastId) => (
+        <div className="flex w-72 flex-col gap-3 rounded-xl bg-white p-4 shadow-lg">
+          <div>
+            <p className="text-sm font-semibold text-black">일정을 삭제할까요?</p>
+            <p className="mt-0.5 text-xs text-gray-500">삭제하면 되돌릴 수 없어요.</p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm text-gray-600"
+              onClick={() => toast.dismiss(toastId)}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="rounded-lg bg-red-500 px-3 py-1.5 text-sm text-white"
+              onClick={async () => {
+                toast.dismiss(toastId);
+                setDeleting(true);
+                try {
+                  await deleteSchedule(scheduleId);
+                  toast.success("일정을 삭제했어요.");
+                  router.replace("/trips");
+                  router.refresh();
+                } catch (cause) {
+                  toast.error(
+                    cause instanceof Error
+                      ? cause.message
+                      : "일정을 삭제하지 못했어요. 다시 시도해주세요.",
+                  );
+                  setDeleting(false);
+                }
+              }}
+            >
+              삭제
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: Infinity },
+    );
+  }
+
   if (error) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
@@ -197,6 +246,15 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
           className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-600 hover:bg-black/5"
         >
           <Pencil size={18} />
+        </button>
+        <button
+          type="button"
+          aria-label="일정 삭제"
+          disabled={deleting}
+          onClick={handleDelete}
+          className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-600 hover:bg-red-50 hover:text-red-500 disabled:cursor-wait disabled:opacity-50"
+        >
+          <Trash2 size={18} />
         </button>
         <button
           type="button"

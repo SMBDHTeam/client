@@ -87,6 +87,7 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const [userName, setUserName] = useState<string | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [loadedProfileUserId, setLoadedProfileUserId] = useState<number | null>(null);
   const [communityPosts, setCommunityPosts] = useState<FeedPost[]>([]);
   const [popularPlaces, setPopularPlaces] = useState<PlaceSummary[]>([]);
   const [popularLoading, setPopularLoading] = useState(true);
@@ -132,6 +133,9 @@ export default function HomePage() {
       })
       .catch(() => {
         if (!cancelled) setUserName(session?.user?.name ?? null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadedProfileUserId(userId);
       });
 
     return () => {
@@ -140,6 +144,11 @@ export default function HomePage() {
   }, [session]);
 
   const displayName = greetingName(userName ?? session?.user?.name);
+  const displayProfileImage = profileImageUrl ?? session?.user?.image ?? null;
+  const sessionUserId = session?.user?.id != null ? Number(session.user.id) : null;
+  const profileLoading =
+    status === "loading" ||
+    (sessionUserId !== null && loadedProfileUserId !== sessionUserId && !displayProfileImage);
 
   async function openFallbackPlace(place: (typeof POPULAR_FALLBACK_PLACES)[number]) {
     if (resolvingFallback) return;
@@ -173,8 +182,9 @@ export default function HomePage() {
   return (
     <PageFade className="flex min-h-full shrink-0 flex-col bg-[#f8fbff] text-[#0b2146]">
       <HomeHeader
-        profileImageUrl={profileImageUrl}
+        profileImageUrl={displayProfileImage}
         profileLabel={avatarLabel(displayName)}
+        profileLoading={profileLoading}
       />
 
       <section className="relative h-[clamp(6rem,24vw,7.5rem)] shrink-0 overflow-hidden">

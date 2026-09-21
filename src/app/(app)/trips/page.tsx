@@ -351,10 +351,10 @@ export default function TripsPage() {
                         ) : (
                             <ul className="mt-3 flex flex-col gap-3">
                                 {visibleSchedules.map((t) => (
-                                    <li key={t.id}>
+                                    <li key={t.id} className="relative">
                                         <Link
                                             href={`/trips/${t.id}`}
-                                             className="relative flex aspect-[3.58] min-h-[110px] items-center gap-[clamp(16px,3.75vw,19px)] overflow-hidden rounded-[20px] bg-white p-[clamp(10px,2.35vw,12px)] pl-[clamp(16px,3.75vw,19px)] shadow-[0_5px_20px_rgba(44,112,191,0.08)] transition-colors hover:bg-[#F8FBFF]"
+                                             className="relative flex aspect-[3.58] min-h-[110px] items-center gap-[clamp(16px,3.75vw,19px)] overflow-hidden rounded-[20px] bg-white p-[clamp(10px,2.35vw,12px)] pr-[clamp(42px,9.86vw,48px)] pl-[clamp(16px,3.75vw,19px)] shadow-[0_5px_20px_rgba(44,112,191,0.08)] transition-colors hover:bg-[#F8FBFF]"
                                         >
                                             <span className={`absolute inset-y-0 left-0 w-[5px] ${t.scheduleType === "SPONTANEOUS" ? "bg-[#F48779]" : "bg-[#2E7DF2]"}`} />
                                              <span className="relative aspect-square w-[23%] min-w-[80px] max-w-[110px] shrink-0 overflow-hidden rounded-[13px]">
