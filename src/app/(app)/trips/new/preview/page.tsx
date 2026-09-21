@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
 import { ApiError } from "@/lib/api/axios";
 import { getTripQuestions } from "@/lib/api/questions";
@@ -167,6 +168,12 @@ export default function TripPreviewPage() {
                   <dt className="text-zinc-400">시작 위치</dt>
                   <dd className="text-right font-semibold">{draft.startLocation?.name}</dd>
                 </div>
+                {draft.lodgingPlan.mode === "FIXED_BASE" && (
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="text-zinc-400">숙소·도착지</dt>
+                    <dd className="text-right font-semibold">{draft.lodgingPlan.baseLocation.name}</dd>
+                  </div>
+                )}
                 <div>
                   <dt className="text-zinc-400">여행 취향</dt>
                   <dd className="mt-2 flex flex-wrap gap-2">
@@ -192,18 +199,26 @@ export default function TripPreviewPage() {
                     <button
                       type="button"
                       onClick={() => openTimeEditor(day)}
-                      className="flex w-full gap-3 text-left"
+                      className="flex w-full gap-3 rounded-2xl p-2 text-left transition-colors hover:bg-[#f6f9ff] active:bg-[#eef5ff]"
                     >
-                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-zinc-900 text-xs font-bold text-white">{index + 1}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold">{day.date}</p>
-                        <p className="text-sm font-bold text-[#2E7DF2]">{day.availableFrom} - {day.availableUntil}</p>
+                      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-zinc-900 text-xs font-bold text-white">{index + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold">{day.date}</p>
+                            <p className="mt-1 truncate text-xs text-zinc-400">
+                              {locationLabel(day.startLocation?.name, day.startLocationSource)} → {locationLabel(day.endLocation?.name, day.endLocationSource)}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-sm font-bold text-[#2E7DF2]">{day.availableFrom} - {day.availableUntil}</p>
+                            <span className="mt-1 inline-flex items-center gap-0.5 rounded-full bg-[#EAF2FE] px-2 py-0.5 text-[0.65rem] font-bold text-[#2E7DF2]">
+                              시간 수정
+                              <ChevronDown size={12} className={editingDate === day.date ? "rotate-180 transition-transform" : "transition-transform"} />
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <p className="mt-1 truncate text-xs text-zinc-400">
-                        {locationLabel(day.startLocation?.name, day.startLocationSource)} → {locationLabel(day.endLocation?.name, day.endLocationSource)}
-                      </p>
-                    </div>
                     </button>
                     {editingDate === day.date && (
                       <div className="mt-3 rounded-2xl bg-[#f6f9ff] p-3">
@@ -260,7 +275,7 @@ export default function TripPreviewPage() {
 
             {preview.routeCoverage === "ATTRACTION_ROUTES_ONLY" && (
               <p className="rounded-xl bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-                도착지와 숙소를 별도로 입력하지 않아 출발지를 기준으로 하루를 마무리합니다. 방문지 사이의 이동시간을 우선 고려해 일정을 만듭니다.
+                숙소·도착지를 별도로 입력하지 않아 출발지를 기준으로 하루를 마무리합니다. 방문지 사이의 이동시간을 우선 고려해 일정을 만듭니다.
               </p>
             )}
 

@@ -184,9 +184,6 @@ export default function TripPlacesIntroPage() {
           <h2 className="text-[1.55rem] font-extrabold tracking-[-0.05em] text-[#071b3f]">
             꼭 가고 싶은 곳이 있나요?
           </h2>
-          <p className="mt-2 text-sm leading-relaxed font-medium text-[#6e7f99]">
-            먼저 담아두면 그 장소를 중심으로 동선까지 맞춰 일정을 짜드려요
-          </p>
         </section>
 
         <div className="mt-auto flex flex-col gap-3 pt-7">
