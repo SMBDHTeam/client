@@ -2,7 +2,6 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, MapPin, Search, Trash2 } from "lucide-react";
 
@@ -37,7 +36,6 @@ function selectionKey(place: PlaceSearchItem) {
 }
 
 export default function TripPlacesIntroPage() {
-  const router = useRouter();
   const { draft, updateDraft } = useTripDraft();
   const selectedPlaces = draft.selectedPlaces;
 
@@ -63,14 +61,13 @@ export default function TripPlacesIntroPage() {
           className="object-cover object-[68%_58%] opacity-55"
         />
         <div className="absolute inset-0 bg-linear-to-b from-white/40 via-white/35 to-[#fbfdff]" />
-        <button
-          type="button"
-          onClick={() => router.push("/trips/new/step3")}
+        <Link
+          href="/trips/new/step3"
           aria-label="뒤로 가기"
-          className="absolute top-4 left-3 z-10 grid size-10 place-items-center rounded-full text-[#0d234f] transition-colors hover:bg-white/70"
+          className="absolute top-4 left-3 z-20 grid size-10 place-items-center rounded-full text-[#0d234f] transition-colors hover:bg-white/70"
         >
           <ChevronLeft size={29} strokeWidth={2.2} />
-        </button>
+        </Link>
         <div className="relative z-10 flex flex-col items-center pt-1">
           <h1 className="text-xl font-extrabold tracking-[-0.04em] text-[#091d42]">가고 싶은 곳</h1>
         </div>
