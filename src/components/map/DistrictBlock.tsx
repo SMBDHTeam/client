@@ -14,6 +14,23 @@ function seededUnit(seed: number) {
   return value - Math.floor(value);
 }
 
+const HERO_LABEL_OFFSETS: Record<string, [number, number]> = {
+  "21010": [0.05, -0.12],
+  "21020": [-0.16, -0.08],
+  "21030": [0.08, 0.12],
+  "21040": [0.18, -0.05],
+  "21050": [0.12, 0.08],
+  "21060": [0.02, 0.12],
+  "21070": [0.16, -0.06],
+  "21080": [-0.12, 0.08],
+  "21090": [0.08, 0.04],
+  "21100": [-0.04, -0.12],
+  "21120": [1.45, 1.6],
+  "21130": [0.12, -0.04],
+  "21140": [0.2, -0.06],
+  "21150": [-0.12, 0.02],
+};
+
 function makeGeo(polygons: Polygon[], bbox: BBox, heroStyle: boolean): THREE.ExtrudeGeometry {
   const shapes = polygons.map((poly) => {
     const shape = new THREE.Shape(
@@ -74,6 +91,7 @@ export function DistrictBlock({
   index,
   phase,
   heroStyle = false,
+  showHeroLabel = false,
   onAssemblyComplete,
   onSelect,
   selected,
@@ -86,6 +104,7 @@ export function DistrictBlock({
   index: number;
   phase: string;
   heroStyle?: boolean;
+  showHeroLabel?: boolean;
   onAssemblyComplete?: () => void;
   onSelect: (code: string, name: string) => void;
   selected: boolean;
@@ -134,6 +153,7 @@ export function DistrictBlock({
     const nextColor = new THREE.Color(selected ? "#3b82f6" : color);
     return hovered ? nextColor.lerp(new THREE.Color("#8be6ff"), 0.24) : nextColor;
   }, [color, hovered, selected]);
+  const [heroLabelDx, heroLabelDy] = HERO_LABEL_OFFSETS[district.code] ?? [0, 0];
 
   useCursor(heroStyle && hovered);
 
@@ -297,6 +317,45 @@ export function DistrictBlock({
               {LANDMARK_MAP[district.name] ?? "대표 명소 준비 중"}
             </p>
           </div>
+        </Html>
+      )}
+
+      {heroStyle && (
+        <Html
+          position={[
+            district.centroid[0] + heroLabelDx,
+            district.centroid[1] + heroLabelDy,
+            0.98,
+          ]}
+          center
+          distanceFactor={8.2}
+          zIndexRange={[8, 0]}
+          occlude={false}
+          style={{
+            pointerEvents: "none",
+            opacity: showHeroLabel ? 1 : 0,
+            transition: `opacity 280ms ease ${index * 28}ms`,
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              display: "block",
+              padding: "1px 3px",
+              color: "#f8fdff",
+              fontSize: "10px",
+              fontWeight: 850,
+              lineHeight: 1.1,
+              letterSpacing: "-0.05em",
+              whiteSpace: "nowrap",
+              textShadow: "0 1px 2px rgba(5, 39, 77, 0.95), 0 0 5px rgba(9, 64, 113, 0.7)",
+              transform: showHeroLabel ? "translateY(0)" : "translateY(4px)",
+              transition: `transform 360ms ease ${index * 28}ms`,
+              userSelect: "none",
+            }}
+          >
+            {district.name}
+          </span>
         </Html>
       )}
     </group>
