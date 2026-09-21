@@ -8,7 +8,7 @@ import { getTripQuestions } from "@/lib/api/questions";
 import { createSchedulePreview, getSchedulePreview } from "@/lib/api/schedule-previews";
 import { useTripDraft } from "@/store/trip-draft";
 import type { TripQuestion } from "@/types/api/question";
-import type { CreateSchedulePreviewRequest, SchedulePreview } from "@/types/api/schedule-preview";
+import type { CreateSchedulePreviewRequest, SchedulePreview, TripDraftState } from "@/types/api/schedule-preview";
 
 function previewRequestFromDraft(
   draft: ReturnType<typeof useTripDraft>["draft"],
@@ -33,29 +33,39 @@ function locationLabel(name: string | undefined, source: string) {
   return source === "PLANNER_DECIDES" ? "AI가 동선에 맞춰 결정" : "미정";
 }
 
+function timeInputValue(value: string) {
+  return value.slice(0, 5);
+}
+
+function timeApiValue(value: string) {
+  return value.length === 5 ? `${value}:00` : value;
+}
+
 export default function TripPreviewPage() {
   const router = useRouter();
-  const { draft, hydrated, setPreview } = useTripDraft();
+  const { draft, hydrated, updateDraft, setPreview } = useTripDraft();
   const [preview, setPreviewState] = useState<SchedulePreview | null>(null);
   const [questions, setQuestions] = useState<TripQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [timeForm, setTimeForm] = useState({ availableFrom: "10:00", availableUntil: "20:00" });
   const requestedRef = useRef(false);
 
   const loadPreview = useCallback(
-    async (preferExisting: boolean) => {
+    async (preferExisting: boolean, nextDraft: TripDraftState = draft) => {
       setLoading(true);
       setError(null);
       try {
         let response: SchedulePreview;
         try {
           response =
-            preferExisting && draft.previewId
-              ? await getSchedulePreview(draft.previewId)
-              : await createSchedulePreview(previewRequestFromDraft(draft));
+            preferExisting && nextDraft.previewId
+              ? await getSchedulePreview(nextDraft.previewId)
+              : await createSchedulePreview(previewRequestFromDraft(nextDraft));
         } catch (cause) {
           if (preferExisting && cause instanceof ApiError && cause.payload.code === "PREVIEW_EXPIRED") {
-            response = await createSchedulePreview(previewRequestFromDraft(draft));
+            response = await createSchedulePreview(previewRequestFromDraft(nextDraft));
           } else {
             throw cause;
           }
@@ -90,6 +100,35 @@ export default function TripPreviewPage() {
       (answerId) => question?.answers.find((answer) => answer.id === answerId)?.label ?? answerId,
     );
   });
+
+  function openTimeEditor(day: SchedulePreview["resolvedDays"][number]) {
+    setEditingDate(day.date);
+    setTimeForm({
+      availableFrom: timeInputValue(day.availableFrom),
+      availableUntil: timeInputValue(day.availableUntil),
+    });
+  }
+
+  function applyTimeOverride(date: string) {
+    if (timeForm.availableFrom >= timeForm.availableUntil) {
+      setError("활동 시작 시간은 종료 시간보다 빨라야 합니다.");
+      return;
+    }
+
+    const dayOverrides = [
+      ...draft.dayOverrides.filter((override) => override.date !== date),
+      {
+        date,
+        availableFrom: timeApiValue(timeForm.availableFrom),
+        availableUntil: timeApiValue(timeForm.availableUntil),
+      },
+    ].sort((left, right) => left.date.localeCompare(right.date));
+    const nextDraft = { ...draft, dayOverrides };
+
+    setEditingDate(null);
+    updateDraft({ dayOverrides });
+    void loadPreview(false, nextDraft);
+  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -149,7 +188,12 @@ export default function TripPreviewPage() {
               <h2 className="text-base font-bold">하루 활동 시간</h2>
               <ol className="mt-3 flex flex-col">
                 {preview.resolvedDays.map((day, index) => (
-                  <li key={day.date} className="flex gap-3 border-b border-zinc-100 py-3 first:pt-0">
+                  <li key={day.date} className="border-b border-zinc-100 py-3 first:pt-0">
+                    <button
+                      type="button"
+                      onClick={() => openTimeEditor(day)}
+                      className="flex w-full gap-3 text-left"
+                    >
                     <span className="grid size-8 shrink-0 place-items-center rounded-full bg-zinc-900 text-xs font-bold text-white">{index + 1}</span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-3">
@@ -160,16 +204,64 @@ export default function TripPreviewPage() {
                         {locationLabel(day.startLocation?.name, day.startLocationSource)} → {locationLabel(day.endLocation?.name, day.endLocationSource)}
                       </p>
                     </div>
+                    </button>
+                    {editingDate === day.date && (
+                      <div className="mt-3 rounded-2xl bg-[#f6f9ff] p-3">
+                        <p className="text-xs font-semibold text-zinc-500">활동 시간 수정</p>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <label className="text-xs text-zinc-500">
+                            시작
+                            <input
+                              type="time"
+                              value={timeForm.availableFrom}
+                              onChange={(event) =>
+                                setTimeForm((current) => ({ ...current, availableFrom: event.target.value }))
+                              }
+                              className="mt-1 h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-800"
+                            />
+                          </label>
+                          <label className="text-xs text-zinc-500">
+                            종료
+                            <input
+                              type="time"
+                              value={timeForm.availableUntil}
+                              onChange={(event) =>
+                                setTimeForm((current) => ({ ...current, availableUntil: event.target.value }))
+                              }
+                              className="mt-1 h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-800"
+                            />
+                          </label>
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditingDate(null)}
+                            className="flex-1 rounded-full bg-white py-2 text-xs font-bold text-zinc-500"
+                          >
+                            취소
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyTimeOverride(day.date)}
+                            className="flex-1 rounded-full bg-[#2E7DF2] py-2 text-xs font-bold text-white"
+                          >
+                            적용
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ol>
               {preview.appliedDefaults.length > 0 && (
-                <p className="mt-3 text-xs leading-relaxed text-zinc-400">입력하지 않은 시간과 위치는 여행 일정에 맞춰 자동으로 정했습니다.</p>
+                <p className="mt-3 text-xs leading-relaxed text-zinc-400">날짜별 활동 시간은 기본값으로 설정되며, 각 날짜를 눌러 수정할 수 있습니다.</p>
               )}
             </section>
 
             {preview.routeCoverage === "ATTRACTION_ROUTES_ONLY" && (
-              <p className="rounded-xl bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">숙소가 정해지지 않아 방문지 사이의 이동시간을 기준으로 일정을 만듭니다.</p>
+              <p className="rounded-xl bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+                도착지와 숙소를 별도로 입력하지 않아 출발지를 기준으로 하루를 마무리합니다. 방문지 사이의 이동시간을 우선 고려해 일정을 만듭니다.
+              </p>
             )}
 
             {preview.warnings

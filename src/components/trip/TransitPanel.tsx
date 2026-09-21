@@ -42,6 +42,8 @@ function hasPublicTransitSegment(transit: ScheduleTransit) {
 }
 
 function transitSummaryModeLabel(transit: ScheduleTransit) {
+  const suppliedSummary = present(transit.summary);
+  if (transit.segments.length === 0 && suppliedSummary) return suppliedSummary;
   if (hasPublicTransitSegment(transit)) return "대중교통";
   const mode = transit.segments[0]?.mode ?? "WALK";
   return modeInfo(mode).label;
@@ -163,10 +165,12 @@ export default function TransitPanel({
 }) {
   const provider = present(transit.provider);
   const providerKey = provider?.toUpperCase();
+  const unresolvedRoute = providerKey === "UNRESOLVED";
   const estimated =
     !provider ||
     providerKey === "FAKE" ||
     providerKey === "UNKNOWN" ||
+    unresolvedRoute ||
     transit.fallbackUsed ||
     transit.realtimeStatus === "UNAVAILABLE";
   const partiallyEstimated = !estimated && transit.realtimeStatus === "PARTIAL";
@@ -201,7 +205,11 @@ export default function TransitPanel({
   const hasExpandableDetails = usesSpontaneousRoadGuidance
     ? roadGuidanceLines.length > 0
     : transit.segments.length > 0;
-  const primaryMode = hasPublicRide ? "TRANSIT" : roadSegment?.mode ?? transit.segments[0]?.mode ?? "WALK";
+  const primaryMode = unresolvedRoute
+    ? "TRANSIT"
+    : hasPublicRide
+      ? "TRANSIT"
+      : roadSegment?.mode ?? transit.segments[0]?.mode ?? "WALK";
   const PrimaryModeIcon = primaryMode === "WALK" ? Footprints : Route;
 
   if (appearance === "spontaneous-result") {
