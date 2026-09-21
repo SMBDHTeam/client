@@ -17,6 +17,7 @@ export function Scene({
   controlsRef,
   colorPalette,
   heroStyle = false,
+  showHeroLabels = false,
   onAssemblyComplete,
   onTap,
   tappedName,
@@ -29,6 +30,7 @@ export function Scene({
   controlsRef: React.RefObject<OrbitControlsImpl | null>;
   colorPalette?: readonly string[];
   heroStyle?: boolean;
+  showHeroLabels?: boolean;
   onAssemblyComplete?: () => void;
   onTap?: (name: string) => void;
   tappedName?: string | null;
@@ -85,6 +87,7 @@ export function Scene({
             index={i}
             phase={phase}
             heroStyle={heroStyle}
+            showHeroLabel={showHeroLabels}
             onAssemblyComplete={i === districts.length - 1 ? onAssemblyComplete : undefined}
             onSelect={onSelect}
             selected={selected === d.code}

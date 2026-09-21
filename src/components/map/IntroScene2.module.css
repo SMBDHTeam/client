@@ -153,27 +153,75 @@
 }
 
 .routeShadow,
+.routeRail,
 .routePath {
   fill: none;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .routeShadow {
-  stroke: rgb(14 63 115 / 20%);
+  stroke: rgb(14 63 115 / 24%);
+  stroke-width: 11;
+  transform: translateY(3px);
+}
+
+.routeRail,
+.routePath {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.routeRail {
+  stroke: #2e7df2;
   stroke-width: 9;
-  transform: translateY(4px);
+  filter: drop-shadow(0 2px 5px rgb(25 99 168 / 24%));
 }
 
 .routePath {
   stroke: white;
-  stroke-width: 6;
-  stroke-dasharray: 390;
-  stroke-dashoffset: 390;
-  filter: drop-shadow(0 2px 5px rgb(25 99 168 / 25%));
+  stroke-width: 5.5;
 }
 
+.routeVisible .routeRail,
 .routeVisible .routePath {
   animation: drawRoute 850ms ease-out 120ms forwards;
+}
+
+.routeStop {
+  fill: white;
+  stroke: #56a5ee;
+  stroke-width: 2.5;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.routePin {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.routePin path {
+  fill: #2e7df2;
+  stroke: white;
+  stroke-width: 3.5;
+  paint-order: stroke;
+  filter: drop-shadow(0 3px 4px rgb(14 63 115 / 30%));
+}
+
+.routePin circle {
+  fill: white;
+}
+
+.routeVisible .routeStop,
+.routeVisible .routePin {
+  animation: popIn 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 760ms forwards;
+}
+
+.routeVisible .routePinEnd {
+  animation-delay: 920ms;
 }
 
 .routeDot {
@@ -462,6 +510,9 @@
   }
 
   .routePath,
+  .routeRail,
+  .routeStop,
+  .routePin,
   .routeDot,
   .busBadge {
     animation-duration: 1ms !important;

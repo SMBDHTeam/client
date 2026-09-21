@@ -264,6 +264,7 @@ export default function IntroScene2({ onEnter }: { onEnter: () => void }) {
                   phase={scenePhase}
                   colorPalette={LOGIN_DISTRICT_COLORS}
                   heroStyle
+                  showHeroLabels={panelVisible}
                   onAssemblyComplete={handleAssemblyComplete}
                   onSelect={() => {}}
                   selected={null}
@@ -279,16 +280,47 @@ export default function IntroScene2({ onEnter }: { onEnter: () => void }) {
           viewBox="0 0 360 170"
           aria-hidden="true"
         >
-          <path className={styles.routeShadow} d="M38 126 C90 159 95 80 158 98 S235 129 306 42" />
-          <path className={styles.routePath} d="M38 126 C90 159 95 80 158 98 S235 129 306 42" />
-          <circle cx="38" cy="126" r="8" className={styles.routeDot} />
-          <circle cx="306" cy="42" r="8" className={styles.routeDot} />
-          <g className={styles.busBadge} transform="translate(155 83)">
-            <circle r="23" />
-            <rect x="-8" y="-10" width="16" height="20" rx="4" />
-            <path d="M-5 -5h10M-5 2h10" />
-            <circle cx="-5" cy="13" r="2" />
-            <circle cx="5" cy="13" r="2" />
+          <path
+            className={styles.routeShadow}
+            d="M38 126 C82 151 102 96 142 101 C180 106 201 126 232 104 C260 84 280 62 306 42"
+          />
+          <path
+            pathLength="1"
+            className={styles.routeRail}
+            d="M38 126 C82 151 102 96 142 101 C180 106 201 126 232 104 C260 84 280 62 306 42"
+          />
+          <path
+            pathLength="1"
+            className={styles.routePath}
+            d="M38 126 C82 151 102 96 142 101 C180 106 201 126 232 104 C260 84 280 62 306 42"
+          />
+
+          <g transform="translate(38 126)">
+            <g className={styles.routePin}>
+              <path d="M0 9c-7-8-10-12-10-18a10 10 0 0 1 20 0C10-3 7 1 0 9Z" />
+              <circle cy="-9" r="3.7" />
+            </g>
+          </g>
+          <g transform="translate(306 42)">
+            <g className={`${styles.routePin} ${styles.routePinEnd}`}>
+              <path d="M0 9c-7-8-10-12-10-18a10 10 0 0 1 20 0C10-3 7 1 0 9Z" />
+              <circle cy="-9" r="3.7" />
+            </g>
+          </g>
+
+          <circle cx="72" cy="132" r="4.5" className={styles.routeStop} style={{ animationDelay: "700ms" }} />
+          <circle cx="111" cy="104" r="4.5" className={styles.routeStop} style={{ animationDelay: "760ms" }} />
+          <circle cx="151" cy="103" r="4.5" className={styles.routeStop} style={{ animationDelay: "820ms" }} />
+          <circle cx="194" cy="113" r="4.5" className={styles.routeStop} style={{ animationDelay: "880ms" }} />
+          <circle cx="237" cy="100" r="4.5" className={styles.routeStop} style={{ animationDelay: "940ms" }} />
+          <circle cx="273" cy="70" r="4.5" className={styles.routeStop} style={{ animationDelay: "1000ms" }} />
+
+          <g className={styles.busBadge} transform="translate(108 104)">
+            <circle r="19" />
+            <rect x="-7" y="-9" width="14" height="18" rx="3.5" />
+            <path d="M-4.5 -4.5h9M-4.5 1.5h9" />
+            <circle cx="-4.5" cy="11" r="1.8" />
+            <circle cx="4.5" cy="11" r="1.8" />
           </g>
         </svg>
       </section>
