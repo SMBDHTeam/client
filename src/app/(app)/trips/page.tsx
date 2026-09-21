@@ -5,9 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import localFont from "next/font/local";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ChevronRight, Settings } from "lucide-react";
+import { ArrowRight, ChevronRight, Settings, Trash2 } from "lucide-react";
 import { useTripDraft } from "@/store/trip-draft";
-import { getSchedules } from "@/lib/api/schedules";
+import { deleteSchedule, getSchedules } from "@/lib/api/schedules";
 import { ApiError } from "@/lib/api/axios";
 import type { ScheduleSummary } from "@/types/api/schedule";
 
@@ -162,6 +162,7 @@ export default function TripsPage() {
     const [showAllSchedules, setShowAllSchedules] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [deletingScheduleId, setDeletingScheduleId] = useState<string | null>(null);
     const [now, setNow] = useState(() => new Date());
 
     useEffect(() => {
@@ -205,6 +206,22 @@ export default function TripsPage() {
     }, [sorted, today]);
     const visibleSchedules = showAllSchedules ? sorted : sorted.slice(0, 3);
     const canToggleSchedules = sorted.length > 3;
+
+    async function handleDeleteSchedule(schedule: ScheduleSummary) {
+        const confirmed = window.confirm(`"${getScheduleTitle(schedule)}" 일정을 삭제할까요?`);
+        if (!confirmed) return;
+
+        setDeletingScheduleId(schedule.id);
+        setError(null);
+        try {
+            await deleteSchedule(schedule.id);
+            setSchedules((items) => items.filter((item) => item.id !== schedule.id));
+        } catch (err) {
+            setError(err instanceof ApiError ? err.payload.message : "일정을 삭제하지 못했습니다.");
+        } finally {
+            setDeletingScheduleId(null);
+        }
+    }
 
     return (
         <div className={`${pageFont.className} flex w-full min-w-0 flex-1 flex-col overflow-x-clip bg-[#F8FBFF] text-[#14233F]`}>
@@ -351,10 +368,10 @@ export default function TripsPage() {
                         ) : (
                             <ul className="mt-3 flex flex-col gap-3">
                                 {visibleSchedules.map((t) => (
-                                    <li key={t.id}>
+                                    <li key={t.id} className="relative">
                                         <Link
                                             href={`/trips/${t.id}`}
-                                             className="relative flex aspect-[3.58] min-h-[110px] items-center gap-[clamp(16px,3.75vw,19px)] overflow-hidden rounded-[20px] bg-white p-[clamp(10px,2.35vw,12px)] pl-[clamp(16px,3.75vw,19px)] shadow-[0_5px_20px_rgba(44,112,191,0.08)] transition-colors hover:bg-[#F8FBFF]"
+                                             className="relative flex aspect-[3.58] min-h-[110px] items-center gap-[clamp(16px,3.75vw,19px)] overflow-hidden rounded-[20px] bg-white p-[clamp(10px,2.35vw,12px)] pr-[clamp(42px,9.86vw,48px)] pl-[clamp(16px,3.75vw,19px)] shadow-[0_5px_20px_rgba(44,112,191,0.08)] transition-colors hover:bg-[#F8FBFF]"
                                         >
                                             <span className={`absolute inset-y-0 left-0 w-[5px] ${t.scheduleType === "SPONTANEOUS" ? "bg-[#F48779]" : "bg-[#2E7DF2]"}`} />
                                              <span className="relative aspect-square w-[23%] min-w-[80px] max-w-[110px] shrink-0 overflow-hidden rounded-[13px]">
@@ -377,6 +394,19 @@ export default function TripsPage() {
                                             </span>
                                              <ChevronRight className="size-[clamp(19px,4.46vw,23px)] shrink-0 text-[#64758E]" strokeWidth={1.8} aria-hidden />
                                         </Link>
+                                        <button
+                                            type="button"
+                                            disabled={deletingScheduleId === t.id}
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                void handleDeleteSchedule(t);
+                                            }}
+                                            className="absolute top-3 right-3 z-10 flex size-8 items-center justify-center rounded-full bg-white/90 text-[#94A3B8] shadow-sm transition-colors hover:bg-[#FFE8E5] hover:text-[#D74432] disabled:cursor-wait disabled:opacity-50"
+                                            aria-label={`${getScheduleTitle(t)} 일정 삭제`}
+                                        >
+                                            <Trash2 className="size-4" strokeWidth={2} aria-hidden />
+                                        </button>
                                     </li>
                                 ))}
                             </ul>

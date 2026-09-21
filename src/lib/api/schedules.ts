@@ -25,6 +25,10 @@ export async function getSchedule(scheduleId: string) {
   return data;
 }
 
+export async function deleteSchedule(scheduleId: string) {
+  await apiClient.delete(`/schedules/${scheduleId}`);
+}
+
 export async function updateSchedule(
   scheduleId: string,
   stops: { stopId: string | null; placeId: number | null; dayNo: number; order: number; stayMinutes: number }[],
