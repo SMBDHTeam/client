@@ -32,9 +32,13 @@ function parseDate(value?: string) {
 }
 
 function LocationField({
+  label,
+  placeholder,
   value,
   onOpen,
 }: {
+  label: string;
+  placeholder: string;
   value: LocationInput | null;
   onOpen: () => void;
 }) {
@@ -49,13 +53,13 @@ function LocationField({
         <MapPin size={17} strokeWidth={2.1} aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[0.7rem] font-medium text-[#8695aa]">출발지</span>
+        <span className="block text-[0.7rem] font-medium text-[#8695aa]">{label}</span>
         <span
           className={`block truncate text-sm font-bold tracking-[-0.02em] ${
             value ? "text-[#10254e]" : "text-[#71819a]"
           }`}
         >
-          {value?.name ?? "역, 터미널 또는 장소를 검색하세요"}
+          {value?.name ?? placeholder}
         </span>
       </span>
       <span className="shrink-0 pr-1 text-xl text-[#a7b5c7]" aria-hidden>
@@ -73,12 +77,15 @@ export default function TripDatePage() {
   const [startLocation, setStartLocation] = useState<LocationInput | null>(
     draft.startLocation ?? null,
   );
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [endLocation, setEndLocation] = useState<LocationInput | null>(
+    draft.lodgingPlan.mode === "FIXED_BASE" ? draft.lodgingPlan.baseLocation : null,
+  );
+  const [pickerTarget, setPickerTarget] = useState<"START" | "END" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const nights = start && end ? differenceInDays(start, end) : 0;
   const tooLong = nights > 3;
-  const ready = Boolean(start && end && !tooLong && startLocation);
+  const ready = Boolean(start && end && !tooLong && startLocation && endLocation);
 
   function handleSelect(date: Date) {
     setError(null);
@@ -100,13 +107,13 @@ export default function TripDatePage() {
   }
 
   function continueFlow() {
-    if (!ready || !start || !end || !startLocation) return;
+    if (!ready || !start || !end || !startLocation || !endLocation) return;
     updateDraft({
       startDate: toDateInput(start),
       endDate: toDateInput(end),
       startLocation,
       startTime: undefined,
-      lodgingPlan: { mode: "UNDECIDED" },
+      lodgingPlan: { mode: "FIXED_BASE", baseLocation: endLocation },
       endConstraint: undefined,
       fixedEvents: [],
       dayOverrides: [],
@@ -196,8 +203,21 @@ export default function TripDatePage() {
 
         {start && end && !tooLong && (
           <section className="mt-6 border-t border-[#dce8f5] pt-5">
-            <h2 className="mb-3 text-lg font-extrabold tracking-[-0.04em] text-[#0b2146]">출발지</h2>
-            <LocationField value={startLocation} onOpen={() => setPickerOpen(true)} />
+            <h2 className="mb-3 text-lg font-extrabold tracking-[-0.04em] text-[#0b2146]">이동 기준 위치</h2>
+            <div className="flex flex-col gap-3">
+              <LocationField
+                label="출발지"
+                placeholder="출발할 역, 터미널 또는 장소를 검색하세요"
+                value={startLocation}
+                onOpen={() => setPickerTarget("START")}
+              />
+              <LocationField
+                label="숙소·도착지"
+                placeholder="마지막에 도착할 숙소 또는 장소를 검색하세요"
+                value={endLocation}
+                onOpen={() => setPickerTarget("END")}
+              />
+            </div>
           </section>
         )}
 
@@ -211,12 +231,18 @@ export default function TripDatePage() {
         </button>
       </div>
 
-      {pickerOpen && (
+      {pickerTarget && (
         <LocationPickerSheet
-          title="출발지 선택"
-          initial={startLocation}
-          onClose={() => setPickerOpen(false)}
-          onSelect={setStartLocation}
+          title={pickerTarget === "START" ? "출발지 선택" : "숙소·도착지 선택"}
+          initial={pickerTarget === "START" ? startLocation : endLocation}
+          onClose={() => setPickerTarget(null)}
+          onSelect={(point) => {
+            if (pickerTarget === "START") {
+              setStartLocation(point);
+            } else {
+              setEndLocation(point);
+            }
+          }}
         />
       )}
     </PageFade>
