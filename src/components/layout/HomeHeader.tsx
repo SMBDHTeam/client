@@ -15,9 +15,11 @@ const NOTIFICATION_COUNT_POLLING_MS = 60_000;
 export default function HomeHeader({
   profileImageUrl,
   profileLabel = "누비",
+  profileLoading = false,
 }: {
   profileImageUrl?: string | null;
   profileLabel?: string;
+  profileLoading?: boolean;
 }) {
   const { status } = useSession();
   const profileImage = profileImageUrl;
@@ -79,7 +81,9 @@ export default function HomeHeader({
           aria-label="내 정보"
           className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-linear-to-br from-[#79A9F2] to-[#574BCB] text-xs font-bold text-white shadow-[0_5px_12px_rgba(61,85,169,0.16)] ring-1 ring-white/75"
         >
-          {profileImage ? (
+          {profileLoading ? (
+            <span className="size-full animate-pulse bg-[#dce7f7]" aria-hidden="true" />
+          ) : profileImage ? (
             <Image
               src={profileImage}
               alt="프로필"
