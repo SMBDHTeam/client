@@ -65,7 +65,7 @@ export default function TripPlacesIntroPage() {
         <div className="absolute inset-0 bg-linear-to-b from-white/40 via-white/35 to-[#fbfdff]" />
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => router.push("/trips/new/step3")}
           aria-label="뒤로 가기"
           className="absolute top-4 left-3 z-10 grid size-10 place-items-center rounded-full text-[#0d234f] transition-colors hover:bg-white/70"
         >
@@ -73,9 +73,6 @@ export default function TripPlacesIntroPage() {
         </button>
         <div className="relative z-10 flex flex-col items-center pt-1">
           <h1 className="text-xl font-extrabold tracking-[-0.04em] text-[#091d42]">가고 싶은 곳</h1>
-          <span className="mt-2 rounded-full bg-[#dff1ff]/90 px-4 py-1 text-sm font-bold text-[#2878e7]">
-            선택 사항
-          </span>
         </div>
       </header>
 
@@ -88,7 +85,7 @@ export default function TripPlacesIntroPage() {
           <span className="text-base font-medium text-[#72829a]">장소를 검색해 담아보세요</span>
         </Link>
 
-        <section className="relative mt-4 overflow-hidden rounded-[1.55rem] bg-[#eaf5ff] px-4 pt-6 pb-5 shadow-[0_9px_26px_rgba(56,107,157,0.06)]">
+        <section className="relative mt-4 overflow-hidden rounded-[1.55rem] bg-[#eaf5ff] px-4 pt-5 pb-6 shadow-[0_9px_26px_rgba(56,107,157,0.06)]">
           <AnimatePresence mode="wait">
             {selectedPlaces.length === 0 ? (
               <motion.div
@@ -97,10 +94,13 @@ export default function TripPlacesIntroPage() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2 }}
+                className="flex flex-col items-center"
               >
-                <PlacesEmptyAnimation />
-                <div className="mt-1 text-center">
-                  <h2 className="text-[1.3rem] font-extrabold tracking-[-0.045em] text-[#081d42]">
+                <div className="w-full max-w-[18rem]">
+                  <PlacesEmptyAnimation />
+                </div>
+                <div className="-mt-2 text-center">
+                  <h2 className="text-[1.2rem] leading-tight font-extrabold tracking-[-0.045em] text-[#081d42]">
                     검색해서 장소를 추가해 보세요
                   </h2>
                   <p className="mt-1 text-sm font-medium text-[#71839e]">
