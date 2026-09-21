@@ -187,7 +187,7 @@ export default function HomePage() {
         profileLoading={profileLoading}
       />
 
-      <section className="relative h-[clamp(6rem,24vw,7.5rem)] shrink-0 overflow-hidden">
+      <section className="relative h-[clamp(5.25rem,21vw,6.5rem)] shrink-0 overflow-hidden">
         <Image
           src="/trips-covers/cover-gwangalli.png"
           alt=""
@@ -199,7 +199,7 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-white/20 via-white/14 to-[#f8fbff]" />
         <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-white/90 via-white/35 to-white/5" />
 
-        <h1 className="absolute inset-x-4 bottom-2 text-[clamp(1.25rem,5vw,1.55rem)] leading-[1.45] font-extrabold tracking-[-0.045em] text-[#081c3d]">
+        <h1 className="absolute inset-x-4 bottom-4 text-[22px] leading-[1.45] font-bold tracking-[-0.045em] text-[#081c3d]">
           어서오세요{displayName ? ` ${displayName}님` : ""},
           <br />
           오늘은 어디로 떠날까요?
@@ -207,7 +207,7 @@ export default function HomePage() {
       </section>
 
       <div className="relative z-10 -mt-1 space-y-7 px-4 pb-9">
-        <section className="relative min-h-[12.5rem] overflow-hidden rounded-[1.65rem] border border-white bg-white shadow-[0_12px_32px_rgba(41,100,160,0.12)]">
+        <section className="relative mt-3 min-h-[12.5rem] overflow-hidden rounded-[1.65rem] border border-white bg-white shadow-[0_12px_32px_rgba(41,100,160,0.12)]">
           <Image
             src="/trips-covers/cover-gwangalli.png"
             alt="광안대교와 부산 바다"
@@ -229,17 +229,17 @@ export default function HomePage() {
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[38%] bg-linear-to-r from-white via-white/98 to-transparent" />
 
           <div className="relative z-10 flex min-h-[12.5rem] max-w-[60%] flex-col items-start p-5">
-            <h2 className="text-[clamp(1.15rem,4.7vw,1.45rem)] font-extrabold tracking-[-0.04em] text-[#123d86]">
+            <h2 className="text-xl font-bold tracking-[-0.04em] text-[#123d86]">
               AI 맞춤 일정 만들기
             </h2>
-            <p className="mt-2 text-[clamp(0.78rem,3.1vw,0.94rem)] leading-7 font-medium text-[#5f718b]">
+            <p className="mt-2 text-sm leading-7 font-normal text-[#5f718b]">
               취향만 알려주면 3분 만에
               <br />
               완벽한 여행 코스를 짜드려요
             </p>
             <Link
               href="/trips/new/date"
-              className="mt-auto inline-flex items-center gap-2 rounded-full bg-[#2E7DF2] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_rgba(46,125,242,0.25)] transition-transform hover:-translate-y-0.5 active:scale-95"
+              className="mt-auto inline-flex items-center gap-2 rounded-full bg-[#2E7DF2] px-5 py-2.5 text-xs font-semibold text-white shadow-[0_8px_18px_rgba(46,125,242,0.25)] transition-transform hover:-translate-y-0.5 active:scale-95"
             >
               시작하기
               <ArrowRight size={18} strokeWidth={2.35} />
@@ -249,7 +249,7 @@ export default function HomePage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-xl font-extrabold tracking-[-0.04em] text-[#0b2146]">
+          <h2 className="mb-3 text-lg font-bold tracking-[-0.04em] text-[#0b2146]">
             지금 인기 여행지
           </h2>
           {popularLoading ? (
@@ -282,11 +282,11 @@ export default function HomePage() {
                       <CardImage src={imageUrl} alt={place.name} />
                     </span>
                     <span className="block px-3.5 py-3">
-                      <span className="flex items-center gap-2 text-base font-extrabold tracking-[-0.03em] text-[#102750]">
+                      <span className="flex items-center gap-2 text-sm font-bold tracking-[-0.03em] text-[#102750]">
                         <MapPin size={18} strokeWidth={2.3} className="shrink-0 text-[#2E7DF2]" />
                         <span className="truncate">{place.name}</span>
                       </span>
-                      <span className="mt-1 block truncate pl-[1.65rem] text-xs font-medium text-[#8996aa]">
+                      <span className="mt-1 block truncate pl-[1.65rem] text-xs font-normal text-[#8996aa]">
                         {shortAddress(place.address) ?? place.categoryLabel ?? "부산"}
                       </span>
                     </span>
@@ -316,11 +316,11 @@ export default function HomePage() {
                       )}
                     </span>
                     <span className="block px-3.5 py-3">
-                      <span className="flex items-center gap-2 text-base font-extrabold tracking-[-0.03em] text-[#102750]">
+                      <span className="flex items-center gap-2 text-sm font-bold tracking-[-0.03em] text-[#102750]">
                         <MapPin size={18} strokeWidth={2.3} className="shrink-0 text-[#2E7DF2]" />
                         <span className="truncate">{place.name}</span>
                       </span>
-                      <span className="mt-1 block truncate pl-[1.65rem] text-xs font-medium text-[#8996aa]">
+                      <span className="mt-1 block truncate pl-[1.65rem] text-xs font-normal text-[#8996aa]">
                         {shortAddress(place.address)}
                       </span>
                     </span>
@@ -333,7 +333,7 @@ export default function HomePage() {
 
         {communityPosts.length > 0 && (
           <section>
-            <h2 className="mb-3 text-xl font-extrabold tracking-[-0.04em] text-[#0b2146]">
+            <h2 className="mb-3 text-lg font-bold tracking-[-0.04em] text-[#0b2146]">
               커뮤니티 인기글
             </h2>
             <div className="grid grid-cols-2 gap-3">
@@ -352,10 +352,10 @@ export default function HomePage() {
                       />
                     </span>
                     <span className="block px-3.5 py-3">
-                      <span className="block truncate text-sm font-extrabold tracking-[-0.025em] text-[#102750]">
+                      <span className="block truncate text-sm font-bold tracking-[-0.025em] text-[#102750]">
                         {post.author.nickname}
                       </span>
-                      <span className="mt-1 block truncate text-xs font-medium text-[#8996aa]">
+                      <span className="mt-1 block truncate text-xs font-normal text-[#8996aa]">
                         {post.categories[0] ?? "여행후기"} · 댓글 {post.commentCount}
                       </span>
                     </span>
