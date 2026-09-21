@@ -49,6 +49,12 @@ function transitSummaryModeLabel(transit: ScheduleTransit) {
   return modeInfo(mode).label;
 }
 
+function transitSummaryDurationLabel(transit: ScheduleTransit) {
+  return hasPublicTransitSegment(transit)
+    ? `총 ${transit.totalMinutes}분`
+    : `${transitSummaryModeLabel(transit)} ${transit.totalMinutes}분`;
+}
+
 function providerDisplayLabel(provider: string | null) {
   const key = provider?.toUpperCase();
   if (!key || key === "FAKE" || key === "UNKNOWN") return null;
@@ -247,7 +253,7 @@ export default function TransitPanel({
             </span>
             <span className="min-w-0 flex-1">
               <span className="font-bold text-[#30435f]">
-                {transitSummaryModeLabel(transit)} {transit.totalMinutes}분
+                {transitSummaryDurationLabel(transit)}
               </span>
               {providerLabel && <span className="ml-2 text-[#7f8da3]">{providerLabel}</span>}
             </span>
@@ -327,10 +333,11 @@ export default function TransitPanel({
       </div>
 
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-500">
-        {transit.walkMinutes > 0 && <span>도보 {transit.walkMinutes}분</span>}
+        {hasPublicRide && <span>총 {transit.totalMinutes}분</span>}
+        {!hasPublicRide && transit.walkMinutes > 0 && <span>도보 {transit.walkMinutes}분</span>}
+        {providerLabel && <span>{providerLabel}</span>}
         {hasPublicRide && <span>환승 {transit.transferCount}회</span>}
         {transit.fareAmount != null && <span>약 {transit.fareAmount.toLocaleString()}원</span>}
-        {providerLabel && <span>{providerLabel}</span>}
       </div>
 
       {usesSpontaneousRoadGuidance ? (
