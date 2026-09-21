@@ -156,21 +156,52 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
     }
   }
 
-  async function handleDelete() {
-    if (deleting || !window.confirm("이 일정을 삭제할까요?\n삭제한 일정은 복구할 수 없습니다.")) {
-      return;
-    }
+  function handleDelete() {
+    if (deleting) return;
 
-    setDeleting(true);
-    try {
-      await deleteSchedule(scheduleId);
-      toast.success("일정을 삭제했습니다.");
-      router.replace("/trips");
-      router.refresh();
-    } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "일정을 삭제하지 못했습니다.");
-      setDeleting(false);
-    }
+    toast.custom(
+      (toastId) => (
+        <div className="flex w-72 flex-col gap-3 rounded-xl bg-white p-4 shadow-lg">
+          <div>
+            <p className="text-sm font-semibold text-black">일정을 삭제할까요?</p>
+            <p className="mt-0.5 text-xs text-gray-500">삭제하면 되돌릴 수 없어요.</p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm text-gray-600"
+              onClick={() => toast.dismiss(toastId)}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="rounded-lg bg-red-500 px-3 py-1.5 text-sm text-white"
+              onClick={async () => {
+                toast.dismiss(toastId);
+                setDeleting(true);
+                try {
+                  await deleteSchedule(scheduleId);
+                  toast.success("일정을 삭제했어요.");
+                  router.replace("/trips");
+                  router.refresh();
+                } catch (cause) {
+                  toast.error(
+                    cause instanceof Error
+                      ? cause.message
+                      : "일정을 삭제하지 못했어요. 다시 시도해주세요.",
+                  );
+                  setDeleting(false);
+                }
+              }}
+            >
+              삭제
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: Infinity },
+    );
   }
 
   if (error) {
@@ -220,7 +251,7 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
           type="button"
           aria-label="일정 삭제"
           disabled={deleting}
-          onClick={() => void handleDelete()}
+          onClick={handleDelete}
           className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-600 hover:bg-red-50 hover:text-red-500 disabled:cursor-wait disabled:opacity-50"
         >
           <Trash2 size={18} />
