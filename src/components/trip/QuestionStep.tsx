@@ -179,7 +179,7 @@ function AnswerGroup({
             type="button"
             disabled={atMax}
             onClick={() => onToggle(a.id)}
-            className={`flex min-h-[5.25rem] flex-col items-center justify-center gap-2 rounded-[1.2rem] border p-3 text-center text-sm font-bold transition-all ${
+            className={`flex min-h-[6.25rem] flex-col items-center justify-center gap-2.5 rounded-[1.2rem] border p-3 text-center text-sm font-bold transition-all ${
               on
                 ? "border-2 border-[#2f7ff2] bg-[#edf6ff] text-[#2376e9] shadow-[0_8px_18px_rgba(47,127,242,0.08)]"
                 : atMax
@@ -187,7 +187,7 @@ function AnswerGroup({
                   : "border-[#d7e0ec] bg-white text-[#14294d] hover:border-[#a9cafa]"
             }`}
           >
-            <Icon size={29} strokeWidth={1.8} aria-hidden />
+            <Icon size={32} strokeWidth={1.8} aria-hidden />
             {a.label}
           </button>
         );
@@ -295,18 +295,6 @@ export default function QuestionStep({
           )}
         </section>
 
-        {uiStep === 1 && (
-          <div className="mb-7 flex items-center gap-4 rounded-[1.25rem] bg-[#edf6ff] px-5 py-4 text-[#0e2d5b]">
-            <UsersRound className="shrink-0 text-[#2f7ff2]" size={42} strokeWidth={1.7} aria-hidden />
-            <div>
-              <p className="text-[0.98rem] font-extrabold tracking-[-0.03em]">
-                누구와 떠나시든, 좋아하는 스타일에 맞춰
-              </p>
-              <p className="mt-1 text-sm font-medium text-[#6f8099]">딱 맞는 코스를 추천해드려요.</p>
-            </div>
-          </div>
-        )}
-
         {error && (
           <p className="mb-6 rounded-2xl bg-red-50 px-4 py-3 text-sm text-[#F16E5E]">
             질문을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
@@ -319,7 +307,7 @@ export default function QuestionStep({
           </div>
         )}
 
-        <div className={`flex flex-col ${uiStep === 1 ? "gap-7" : "gap-8"}`}>
+        <div className="flex flex-col gap-8">
         {stepQuestions.map((q) => {
           const multiple = q.type === "MULTIPLE_CHOICE";
           const selectedIds = selectedIdsFor(q);

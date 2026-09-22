@@ -100,7 +100,7 @@ export default function SpontaneousStartPage() {
         >
           <ChevronLeft size={34} strokeWidth={2.4} />
         </button>
-        <h1 className="relative z-10 ml-2 text-[1.75rem] font-bold tracking-[-0.04em] text-[#0b1d43]">
+        <h1 className="relative z-10 ml-2 text-[1.5rem] font-extrabold tracking-[-0.045em] text-[#0b2146]">
           제로플랜
         </h1>
       </header>
