@@ -7,10 +7,12 @@ export default function StepProgress({
   step,
   total,
   title,
+  backHref,
 }: {
   step: number;
   total: number;
   title?: string;
+  backHref?: string;
 }) {
   const router = useRouter();
   const percent = (step / total) * 100;
@@ -20,7 +22,7 @@ export default function StepProgress({
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => backHref ? router.replace(backHref) : router.back()}
           aria-label="뒤로 가기"
           className="-ml-2 grid size-10 shrink-0 place-items-center rounded-full text-[#0d234f] transition-colors hover:bg-[#eef5ff]"
         >

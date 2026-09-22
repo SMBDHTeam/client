@@ -219,6 +219,12 @@ export default function QuestionStep({
   const { draft, setAnswer } = useTripDraft();
   const [questions, setQuestions] = useState<TripQuestion[] | null>(null);
   const [error, setError] = useState(false);
+  const backHref =
+    uiStep === 3
+      ? "/trips/new/step2"
+      : uiStep === 2
+        ? "/trips/new/step1"
+        : "/trips/new/date";
 
   useEffect(() => {
     let cancelled = false;
@@ -271,7 +277,7 @@ export default function QuestionStep({
 
   return (
     <PageFade className="flex min-h-0 flex-1 flex-col bg-[#fbfdff]">
-      <StepProgress step={stepIndex} total={total} title={headerTitle} />
+      <StepProgress step={stepIndex} total={total} title={headerTitle} backHref={backHref} />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-6 scrollbar-none">
         <section className="relative -mx-5 min-h-[10.5rem] overflow-hidden px-5 pt-8">
