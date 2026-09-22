@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronLeft, Lightbulb, MapPin, Minus, Plus, Search } from "lucide-react";
+import { ChevronLeft, MapPin, Minus, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -105,8 +105,17 @@ export default function SpontaneousStartPage() {
         </h1>
       </header>
 
-      <div className="flex flex-1 flex-col gap-4 px-4 pb-5">
-        <div className="relative">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5 pb-6 scrollbar-none">
+        <section>
+          <h2 className="text-[1.45rem] font-extrabold tracking-[-0.05em] text-[#1769db]">
+            어디서 출발할까요?
+          </h2>
+          <p className="mt-1 text-sm font-medium tracking-[-0.025em] text-[#526f9f]">
+            지금 출발할 부산의 장소를 검색해 주세요
+          </p>
+        </section>
+
+        <div className="relative mt-5">
           <div className="flex h-16 items-center gap-3 rounded-[1.65rem] border border-[#cbd6e7] bg-white px-5 shadow-[0_8px_24px_rgba(55,103,160,0.08)] transition focus-within:border-[#2E7DF2] focus-within:ring-4 focus-within:ring-[#2E7DF2]/10">
             <Search className="shrink-0 text-[#35527d]" size={27} strokeWidth={2} />
             <input
@@ -147,12 +156,12 @@ export default function SpontaneousStartPage() {
         </div>
 
         {error && (
-          <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
+          <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
             {error}
           </p>
         )}
 
-        <div className="relative h-[clamp(18rem,38dvh,27rem)] w-full shrink-0 overflow-hidden rounded-[1.7rem] bg-[#eef4f8] shadow-[0_10px_28px_rgba(38,87,137,0.1)]">
+        <div className="relative mt-4 h-[clamp(16rem,32dvh,22rem)] w-full shrink-0 overflow-hidden rounded-[1.45rem] border border-[#d7e1ee] bg-[#eef4f8] shadow-[0_6px_18px_rgba(35,75,123,0.06)]">
           <NaverMap
             center={mapCenter}
             zoom={mapZoom}
@@ -180,25 +189,22 @@ export default function SpontaneousStartPage() {
         </div>
 
         {selected && (
-          <section className="rounded-[1.7rem] border border-[#d8e2ee] bg-white px-5 py-5 shadow-[0_8px_24px_rgba(38,87,137,0.07)]">
-            <h2 className="text-[0.95rem] font-semibold text-[#284a7c]">선택한 출발지</h2>
-            <div className="mt-3 flex items-center gap-4">
-              <div className="grid size-[3.75rem] shrink-0 place-items-center rounded-full bg-[#e9f5ff]">
-                <span className="relative block size-9 text-[#3886ef]">
-                  <MapPin size={36} fill="currentColor" stroke="currentColor" strokeWidth={1.5} />
-                  <span className="absolute top-[9px] left-1/2 size-2.5 -translate-x-1/2 rounded-full bg-white" />
-                </span>
+          <section className="mt-4 rounded-[1.2rem] border border-[#d7e1ee] bg-white px-4 py-4 shadow-[0_6px_18px_rgba(35,75,123,0.05)]">
+            <div className="flex items-center gap-3">
+              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-[#eaf4ff] text-[#2f7ff2]">
+                <MapPin size={20} strokeWidth={2.1} aria-hidden />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[1.15rem] font-bold tracking-[-0.025em] text-[#10254e]">
+                <p className="text-[0.7rem] font-medium text-[#8695aa]">선택한 출발지</p>
+                <p className="mt-0.5 truncate text-sm font-bold tracking-[-0.02em] text-[#10254e]">
                   {selected.name}
                 </p>
-                <p className="mt-1 truncate text-[0.9rem] text-[#7183a2]">{selected.address}</p>
+                <p className="mt-0.5 truncate text-xs text-[#7183a2]">{selected.address}</p>
               </div>
               <button
                 type="button"
                 onClick={handleChangeLocation}
-                className="shrink-0 rounded-2xl border-2 border-[#1672ee] px-5 py-2.5 text-sm font-semibold text-[#1269df] transition-colors hover:bg-[#f2f7ff] active:bg-[#e8f2ff]"
+                className="shrink-0 rounded-xl border border-[#8dbbf8] px-4 py-2 text-sm font-semibold text-[#1269df] transition-colors hover:bg-[#f2f7ff] active:bg-[#e8f2ff]"
               >
                 변경
               </button>
@@ -206,18 +212,11 @@ export default function SpontaneousStartPage() {
           </section>
         )}
 
-        <div className="flex min-h-12 items-center gap-3 rounded-2xl bg-[#e9f5ff] px-5 py-3 text-[#1465df]">
-          <Lightbulb size={25} strokeWidth={2} className="shrink-0" />
-          <p className="text-[0.95rem] font-semibold tracking-[-0.025em]">
-            {selected ? "이곳을 출발지로 설정할게요" : "검색한 장소를 출발지로 선택해 주세요"}
-          </p>
-        </div>
-
         <button
           type="button"
           disabled={!selected}
           onClick={() => router.push("/spontaneous/conditions")}
-          className="mt-1 w-full rounded-full bg-linear-to-r from-[#2f7bf4] via-[#16add3] to-[#16cdb7] py-4 text-center text-[1.05rem] font-semibold text-white shadow-[0_10px_22px_rgba(31,142,202,0.2)] transition disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.99]"
+          className="mt-5 w-full rounded-full bg-linear-to-r from-[#2f7bf4] via-[#20acd8] to-[#36d6bd] py-4 text-center text-base font-bold text-white shadow-[0_10px_24px_rgba(31,142,202,0.2)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
         >
           다음
         </button>
