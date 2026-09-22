@@ -87,37 +87,40 @@ export default function ScheduleDetail({ scheduleId }: { scheduleId: string }) {
 
   const places = useMemo<ScheduleCoursePlace[]>(
     () =>
-      day?.stops.map((stop) => {
-        const marker = mapData?.markers.find(
-          (item) =>
-            item.dayNo === day.dayNo &&
-            (item.placeId === stop.place.id || item.order === stop.order),
-        );
-        return {
-          id: stop.id,
-          placeId: stop.place.id,
-          order: stop.order,
-          latitude:
-            finiteCoordinate(marker?.latitude) ?? finiteCoordinate(stop.place.latitude),
-          longitude:
-            finiteCoordinate(marker?.longitude) ?? finiteCoordinate(stop.place.longitude),
-          imageUrl: stop.place.primaryImageUrl ?? null,
-          arrivalTime: formatCourseTime(stop.arriveAtDateTime ?? stop.arriveAt),
-          title: stop.place.name,
-          categoryLabel:
-            stop.place.categoryLabel || placeCategoryLabel(stop.place.category),
-          stayMinutes: stop.stayMinutes,
-          inboundTransit: stop.inboundTransit,
-          mealLabel:
-            stop.mealTimeSlot === "LUNCH"
-              ? "점심 추천"
-              : stop.mealTimeSlot === "DINNER"
-                ? "저녁 추천"
-                : null,
-          waitingMinutesBefore: stop.waitingMinutesBefore,
-          warnings: stop.warnings ?? [],
-        };
-      }) ?? [],
+      [...(day?.stops ?? [])]
+        .sort((left, right) => left.order - right.order)
+        .map((stop) => {
+          const dayMarkers = mapData?.markers.filter(
+            (item) => item.dayNo === day?.dayNo,
+          );
+          const marker =
+            dayMarkers?.find((item) => item.placeId === stop.place.id) ??
+            dayMarkers?.find((item) => item.order === stop.order);
+          return {
+            id: stop.id,
+            placeId: stop.place.id,
+            order: stop.order,
+            latitude:
+              finiteCoordinate(marker?.latitude) ?? finiteCoordinate(stop.place.latitude),
+            longitude:
+              finiteCoordinate(marker?.longitude) ?? finiteCoordinate(stop.place.longitude),
+            imageUrl: stop.place.primaryImageUrl ?? null,
+            arrivalTime: formatCourseTime(stop.arriveAtDateTime ?? stop.arriveAt),
+            title: stop.place.name,
+            categoryLabel:
+              stop.place.categoryLabel || placeCategoryLabel(stop.place.category),
+            stayMinutes: stop.stayMinutes,
+            inboundTransit: stop.inboundTransit,
+            mealLabel:
+              stop.mealTimeSlot === "LUNCH"
+                ? "점심 추천"
+                : stop.mealTimeSlot === "DINNER"
+                  ? "저녁 추천"
+                  : null,
+            waitingMinutesBefore: stop.waitingMinutesBefore,
+            warnings: stop.warnings ?? [],
+          };
+        }),
     [day, mapData?.markers],
   );
 
