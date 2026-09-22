@@ -442,7 +442,7 @@ export default function SpontaneousConditionsPage() {
           />
           <div className="absolute inset-0 bg-linear-to-r from-white via-white/85 to-white/15" />
           <div className="relative z-10">
-            <h2 className="text-[2rem] font-bold tracking-[-0.055em] text-[#07183f]">
+            <h2 className="text-[1.85rem] font-extrabold tracking-[-0.055em] text-[#071b3f]">
               어떻게 여행할까요?
             </h2>
             {draft.startLocation && (
@@ -455,7 +455,9 @@ export default function SpontaneousConditionsPage() {
 
         <div className="flex flex-col gap-7 px-4 pt-5 pb-6">
           <section>
-            <h2 className="mb-3 text-xl font-bold tracking-[-0.035em] text-[#0b1d43]">여행 시간</h2>
+            <h2 className="mb-3 text-[1.15rem] font-extrabold tracking-[-0.035em] text-[#0a2148]">
+              여행 시간
+            </h2>
             <div className="grid grid-cols-2 gap-2">
               <TimeInput
                 label="출발"
@@ -479,7 +481,9 @@ export default function SpontaneousConditionsPage() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-xl font-bold tracking-[-0.035em] text-[#0b1d43]">이동수단</h2>
+            <h2 className="mb-3 text-[1.15rem] font-extrabold tracking-[-0.035em] text-[#0a2148]">
+              이동수단
+            </h2>
             <div className="grid grid-cols-2 gap-2">
               {TRANSPORT_OPTIONS.map(({ value, label, icon: Icon }) => {
                 const selected = transportMode === value;
@@ -505,7 +509,9 @@ export default function SpontaneousConditionsPage() {
 
           <section>
             <div className="mb-3 flex items-baseline gap-2">
-              <h2 className="text-xl font-bold tracking-[-0.035em] text-[#0b1d43]">희망 테마</h2>
+              <h2 className="text-[1.15rem] font-extrabold tracking-[-0.035em] text-[#0a2148]">
+                희망 테마
+              </h2>
               <p className="text-sm font-medium text-[#8a97ac]">최대 3개 선택</p>
             </div>
 
