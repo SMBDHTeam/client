@@ -63,7 +63,30 @@ export function SpontaneousDraftProvider({ children }: { children: React.ReactNo
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-          setDraft({ ...INITIAL_DRAFT, ...(JSON.parse(stored) as Partial<SpontaneousDraft>) });
+          const restored = {
+            ...INITIAL_DRAFT,
+            ...(JSON.parse(stored) as Partial<SpontaneousDraft>),
+          };
+          const hasCarData =
+            restored.conditions?.transportMode === "CAR" ||
+            restored.course?.transportMode === "CAR" ||
+            restored.destinations?.some((destination) => destination.transport.mode === "CAR");
+
+          setDraft(
+            hasCarData
+              ? {
+                  ...restored,
+                  conditions: restored.conditions
+                    ? { ...restored.conditions, transportMode: "PUBLIC_TRANSIT" }
+                    : null,
+                  destinations: null,
+                  selectedDestinationId: null,
+                  course: null,
+                  courseFailures: {},
+                  saveIdempotencyKey: null,
+                }
+              : restored,
+          );
         }
       } catch {
       }

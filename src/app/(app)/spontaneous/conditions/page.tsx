@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
-  CarFront,
+  BusFront,
   ChevronLeft,
   Clock3,
   Coffee,
@@ -38,7 +38,7 @@ const TRANSPORT_OPTIONS: {
   icon: LucideIcon;
 }[] = [
   { value: "WALK", label: "도보", icon: Footprints },
-  { value: "CAR", label: "자동차", icon: CarFront },
+  { value: "PUBLIC_TRANSIT", label: "대중교통", icon: BusFront },
 ];
 
 const THEME_OPTIONS: {
@@ -319,7 +319,7 @@ export default function SpontaneousConditionsPage() {
   const [startTime, setStartTime] = useState("");
   const [returnTime, setReturnTime] = useState("03:00");
   const [today, setToday] = useState<Date | null>(null);
-  const [transportMode, setTransportMode] = useState<TransportMode>("WALK");
+  const [transportMode, setTransportMode] = useState<TransportMode>("PUBLIC_TRANSIT");
   const [desiredThemes, setDesiredThemes] = useState<TravelTheme[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
